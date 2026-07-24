@@ -1,0 +1,92 @@
+@import url(./error.less);
+html,
+body {
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  font-size: 14px;
+  font-family:
+    -apple-system,
+    Source Han Mono SC,
+    BlinkMacSystemFont,
+    Segoe UI,
+    Helvetica,
+    Arial,
+    sans-serif,
+    Apple Color Emoji,
+    Segoe UI Emoji,
+    Segoe UI Symbol;
+  -webkit-font-smoothing: antialiased;
+}
+button,
+input,
+textarea {
+  font-family:
+    -apple-system,
+    Source Han Mono SC,
+    BlinkMacSystemFont,
+    Segoe UI,
+    Helvetica,
+    Arial,
+    sans-serif,
+    Apple Color Emoji,
+    Segoe UI Emoji,
+    Segoe UI Symbol;
+  -webkit-font-smoothing: antialiased;
+}
+#app {
+  height: 100%;
+}
+
+a {
+  color: var(--kui-color-primary);
+  text-decoration: none;
+}
+
+.line-clamp2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
+  white-space: normal;
+  line-clamp: 2;
+}
+
+.jv-container.jv-light {
+  background-color: var(--kui-color-bg);
+
+  .jv-key,
+  .jv-item.jv-object {
+    color: var(--kui-color-text);
+  }
+}
+
+:root {
+  --header-bg: #f0f0f0;
+  --kui-border-radius: 9px;
+}
+[theme-mode="dark"] {
+  --header-bg: #222222;
+}
+
+/* 1. 用内部阴影覆盖默认背景色（假设你的输入框背景是白色 #ffffff） */
+input:-webkit-autofill {
+  transition: background-color 50000s ease-in-out 0s;
+  // -webkit-text-fill-color: #333333 !important;
+}
+/* 1. 用内部阴影覆盖默认背景色（假设你的输入框背景是白色 #ffffff） */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff00 inset !important;
+  /* 如果你的背景是深色或透明，将 #ffffff 换成你需要的颜色 */
+
+  /* 修改自动填充后的文字颜色 */
+  -webkit-text-fill-color: var(--kui-color-text) !important;
+
+  /* 如果背景有圆角，确保阴影不会超出圆角 */
+  border-radius: inherit;
+}

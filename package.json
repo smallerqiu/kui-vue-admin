@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "start": "npm run dev",
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview"
@@ -12,11 +13,20 @@
     "vue": "^3.5.39"
   },
   "devDependencies": {
+    "@types/big.js": "^7.0.0",
+    "@types/crypto-js": "^4.2.2",
+    "@types/hash-sum": "^1.0.2",
     "@types/node": "^24.13.2",
     "@vitejs/plugin-vue": "^6.0.7",
     "@vue/tsconfig": "^0.9.1",
+    "big.js": "^7.0.1",
+    "crypto-js": "^4.2.0",
+    "dayjs": "^1.11.21",
+    "hash-sum": "^2.0.0",
     "kui-icons": "^5.0.0",
     "kui-vue": "^5.3.1",
+    "less": "^4.8.0",
+    "nanoid": "^6.0.0",
     "pinia": "^4.0.2",
     "typescript": "~6.0.2",
     "vite": "^8.1.1",
