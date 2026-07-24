@@ -14,15 +14,15 @@ const router = createRouter({
       meta: {
         title: "System Error",
         icon: "RemoveCircle",
+        showInMenu: false,
       },
       // @ts-ignore
-      hidden: true,
       id: id("/system/error"),
       component: () => import("../pages/error/500.vue"),
     },
     {
       path: "/:pathMatch(.*)*",
-      meta: { title: "NotFound", icon: "RemoveCircle" },
+      meta: { title: "NotFound", icon: "RemoveCircle", showInMenu: false },
       component: () => import("../pages/error/404.vue"),
       // @ts-ignore
       id: id("/error/404"),
@@ -49,7 +49,6 @@ export const routerInitialized = (app: App): Promise<void> => {
     if (paths.includes(window.location.pathname)) {
       resolve();
     } else {
-      console.log(routes);
       resolve();
       // 从后端获取菜单配置
       /* 

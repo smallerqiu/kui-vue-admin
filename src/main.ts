@@ -13,7 +13,6 @@ app.use(pinia).use(kui);
 
 routerInitialized(app)
   .then((res: any) => {
-    console.log(res);
     tabs.setRoutes(res);
     app.use(router).mount("#app");
   })

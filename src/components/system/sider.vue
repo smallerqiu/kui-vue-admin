@@ -26,6 +26,8 @@ import type { MenuSelectEvent } from "kui-vue";
 import { computed, ref, type PropType } from "vue";
 import { useRouter } from "vue-router";
 import RecursiveMenu from "./recursive-menu.vue";
+import { useMenu } from "./useMenu";
+
 const router = useRouter();
 const props = defineProps({
   collapsed: {
@@ -38,6 +40,10 @@ const props = defineProps({
     default: () => [],
   },
 });
+const { menuList } = useMenu();
+
+const routes = ref(menuList.value);
+// console.log(menuList.value);
 
 const activeMenu = computed(() => {
   return props.activeMenu;

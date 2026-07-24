@@ -9,6 +9,10 @@
     <Theme />
   </div>
 </template>
+<route lang="yaml">
+meta:
+  showInMenu: false
+</route>
 <script setup lang="ts">
 import { inject } from "vue";
 import { useRouter } from "vue-router";

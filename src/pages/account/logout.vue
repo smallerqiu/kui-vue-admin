@@ -1,6 +1,10 @@
 <template>
   <div></div>
 </template>
+<route lang="yaml">
+meta:
+  showInMenu: false
+</route>
 <script setup lang="ts">
 import { message } from "kui-vue";
 import { onMounted } from "vue";

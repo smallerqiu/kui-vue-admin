@@ -75,6 +75,10 @@
     <Theme />
   </div>
 </template>
+<route lang="yaml">
+meta:
+  showInMenu: false
+</route>
 <script setup lang="ts">
 import { Lock, LogoGoogle, LogoWechat, Phone, Sailboat, User } from "kui-icons";
 import { message, type FormContext, type FormRule } from "kui-vue";
