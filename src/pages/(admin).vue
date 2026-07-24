@@ -1,6 +1,5 @@
 <template>
   <Layout class="layout-back">
-    <!-- <Layout class="layout-back" v-if="!loading"> -->
     <Sider :routes="routes" :collapsed="collapsed" :activeMenu="activeMenu" />
     <Content class="k-sys-main">
       <Flex class="header-nav" vertical>
@@ -12,32 +11,50 @@
               size="small"
             ></Button>
             <ButtonGroup>
-              <Button size="small" :icon="ChevronLeft" @click="router.back"></Button>
-              <Button size="small" :icon="ChevronRight" @click="router.forward"></Button>
+              <Button
+                size="small"
+                :icon="ChevronLeft"
+                @click="router.back"
+              ></Button>
+              <Button
+                size="small"
+                :icon="ChevronRight"
+                @click="router.forward"
+              ></Button>
             </ButtonGroup>
             <Breadcrumb>
-              <BreadcrumbItem v-for="item in Breadcrumbs" :icon="icons[item?.meta?.icon]">
+              <BreadcrumbItem
+                v-for="item in Breadcrumbs"
+                :icon="icons[item?.meta?.icon]"
+              >
                 {{ $t(`route.${item.path}`) || item?.meta?.title }}
               </BreadcrumbItem>
             </Breadcrumb>
           </Space>
           <Space :size="10">
-            <Tooltip title="Lunch" v-model="showTip">
-              <Button :icon="Grid3x3" size="small" @click="openLunch" />
-            </Tooltip>
             <Tooltip :title="`${$t('menu.langTip')}`" placement="bottom">
               <Button size="small" :icon="Languages" @click="changeLang" />
             </Tooltip>
-            <Button :icon="localTheme == 'dark' ? Sun : Moon" size="small" @click="switchMode" />
+            <Button
+              :icon="localTheme == 'dark' ? Sun : Moon"
+              size="small"
+              @click="switchMode"
+            />
             <Dropdown placement="bottom-right" arrow>
               <Button size="small">
-                <Avatar style="background: #3a95ff" :size="14" :src="user.avatar"></Avatar>
+                <Avatar
+                  style="background: #3a95ff"
+                  :size="14"
+                  :src="user.avatar"
+                ></Avatar>
                 <span>{{ user.fullName || "Guest" }}</span>
               </Button>
               <template #overlay>
                 <Menu>
                   <MenuItem key="logout">
-                    <a href="javascript:;" @click="logout">{{ $t("menu.log_out") }}</a>
+                    <a href="javascript:;" @click="logout">{{
+                      $t("menu.log_out")
+                    }}</a>
                   </MenuItem>
                 </Menu>
               </template>
@@ -51,18 +68,19 @@
       </div>
     </Content>
   </Layout>
-  <LunchPad v-model="showLunch" />
   <Theme />
 </template>
 <script setup lang="ts">
+import Sider from "@/components/system/sider.vue";
+import Main from "@/components/system/sys-main.vue";
+import Tab from "@/components/system/tab.vue";
+import Theme from "@/components/system/theme.vue";
 import { useTabViewsStore } from "@/stores/tabs.ts";
 import { useThemeStore } from "@/stores/theme.ts";
-import { signOutRedirect } from "@/utils/oidc";
 import * as kuiIcons from "kui-icons";
 import {
   ChevronLeft,
   ChevronRight,
-  Grid3x3,
   Languages,
   Moon,
   PanelLeftClose,
@@ -72,11 +90,6 @@ import {
 import { theme, type IconType } from "kui-vue";
 import { computed, inject, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import LunchPad from "../lunchpad.vue";
-import Sider from "./sider.vue";
-import Main from "./sys-main.vue";
-import Tab from "./tab.vue";
-import Theme from "./theme.vue";
 const icons = ref<Record<string, IconType[]>>(kuiIcons);
 const themeStore = useThemeStore();
 const tabViewsStore = useTabViewsStore();
@@ -89,12 +102,11 @@ const changeLang = inject<() => void>("changeLang");
 const collapsed = ref(false);
 const routes = computed(() => tabViewsStore.routes);
 
-const showLunch = ref(false);
 const user = ref(JSON.parse(localStorage.getItem("user_info") || "{}"));
 
-const showTip = computed(() => localStorage.getItem("showTip") === null);
-
-const localCollapsed = computed(() => localStorage.getItem("collapsed") === "1");
+const localCollapsed = computed(
+  () => localStorage.getItem("collapsed") === "1",
+);
 const Breadcrumbs = ref<any[]>([]);
 onMounted(() => {
   collapsed.value = localCollapsed.value;
@@ -131,19 +143,17 @@ watch(
   () => {
     const keys = getPath(routes.value, route.path);
     activeMenu.value = keys;
-  }
+  },
 );
 const toggle = () => {
   collapsed.value = !collapsed.value;
   localStorage.setItem("collapsed", collapsed.value ? "1" : "0");
 };
 const logout = () => {
-  signOutRedirect();
-};
-
-const openLunch = () => {
-  showLunch.value = !showLunch.value;
-  localStorage.setItem("showTip", "0");
+  // 退出登录
+  localStorage.removeItem("token");
+  localStorage.removeItem("user_info");
+  router.push({ path: "/account/login" });
 };
 
 const switchMode = (event: MouseEvent) => {

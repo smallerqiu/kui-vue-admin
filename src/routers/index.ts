@@ -49,6 +49,7 @@ export const routerInitialized = (app: App): Promise<void> => {
     if (paths.includes(window.location.pathname)) {
       resolve();
     } else {
+      console.log(routes);
       resolve();
       // 从后端获取菜单配置
       /* 
@@ -78,7 +79,7 @@ router.beforeEach(async (to) => {
 
   if (!token) {
     // 本地校验token,登陆跳转.
-    //return !whiteList.includes(to.path) ? "/account/login" : true;
+    return !whiteList.includes(to.path) ? "/account/login" : true;
   }
   if (whiteList.includes(to.path)) return true;
   return;

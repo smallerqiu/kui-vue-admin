@@ -117,6 +117,19 @@ const labelCol = ref({});
 const postLogin = (info: any) => {
   if (loading.value) return;
   loading.value = true;
+
+  setTimeout(() => {
+    message.success("Login successful");
+    localStorage.setItem("token", "123456");
+    localStorage.setItem(
+      "user_info",
+      JSON.stringify({
+        name: "admin",
+        email: "<EMAIL>",
+      }),
+    );
+    location.href = "/";
+  }, 1000);
   /*
   request.post("/api/login", info)
     .then((res) => {

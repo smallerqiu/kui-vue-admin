@@ -87,6 +87,8 @@ const go = (event: MenuSelectEvent) => {
 
     .logo {
       transition: margin 300ms ease 300ms;
+      width: 32px;
+      height: 32px;
     }
 
     .sys-sider-title {
@@ -95,6 +97,7 @@ const go = (event: MenuSelectEvent) => {
       display: block;
       margin-left: 8px;
       width: calc(100% - 70px);
+      font-weight: bold;
     }
   }
 
