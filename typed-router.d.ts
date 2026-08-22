@@ -40,6 +40,9 @@ declare module 'vue-router/auto-routes' {
       | '/(admin)/commerce'
       | '/(admin)/commerce/orders'
       | '/(admin)/commerce/products'
+      | '/(admin)/crm'
+      | '/(admin)/crm/customers'
+      | '/(admin)/customer/[id]'
       | '/(admin)/data'
       | '/(admin)/data/analytics'
       | '/(admin)/notifications'
@@ -78,6 +81,27 @@ declare module 'vue-router/auto-routes' {
       '/commerce/products',
       Record<never, never>,
       Record<never, never>,
+      | never
+    >,
+    '/(admin)/crm': RouteRecordInfo<
+      '/(admin)/crm',
+      '/crm',
+      Record<never, never>,
+      Record<never, never>,
+      | '/(admin)/crm/customers'
+    >,
+    '/(admin)/crm/customers': RouteRecordInfo<
+      '/(admin)/crm/customers',
+      '/crm/customers',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/(admin)/customer/[id]': RouteRecordInfo<
+      '/(admin)/customer/[id]',
+      '/customer/:id',
+      { id: ParamValue<true> },
+      { id: ParamValue<false> },
       | never
     >,
     '/(admin)/data': RouteRecordInfo<
@@ -208,6 +232,9 @@ declare module 'vue-router/auto-routes' {
         | '/(admin)/commerce'
         | '/(admin)/commerce/orders'
         | '/(admin)/commerce/products'
+        | '/(admin)/crm'
+        | '/(admin)/crm/customers'
+        | '/(admin)/customer/[id]'
         | '/(admin)/data'
         | '/(admin)/data/analytics'
         | '/(admin)/notifications'
@@ -256,6 +283,31 @@ declare module 'vue-router/auto-routes' {
         | never
       pathParamNames:
         | never
+    }
+    'src/pages/(admin)/crm.vue': {
+      routes:
+        | '/(admin)/crm'
+        | '/(admin)/crm/customers'
+      views:
+        | 'default'
+      pathParamNames:
+        | never
+    }
+    'src/pages/(admin)/crm/customers.vue': {
+      routes:
+        | '/(admin)/crm/customers'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/(admin)/customer/[id].vue': {
+      routes:
+        | '/(admin)/customer/[id]'
+      views:
+        | never
+      pathParamNames:
+        | 'id'
     }
     'src/pages/(admin)/data.vue': {
       routes:
