@@ -35,6 +35,12 @@
             </Breadcrumb>
           </Space>
           <Space :size="10">
+            <Dropdown trigger="click" placement="bottom-right">
+              <Badge :count="notificationStore.unreadCount" :max-count="99">
+                <Button size="small" :icon="Bell" />
+              </Badge>
+              <template #overlay><NotificationPanel /></template>
+            </Dropdown>
             <Tooltip :title="`${$t('menu.langTip')}`" placement="bottom">
               <Button size="small" :icon="Languages" @click="changeLang" />
             </Tooltip>
@@ -79,15 +85,18 @@ import Sider from "@/components/system/sider.vue";
 import Main from "@/components/system/sys-main.vue";
 import Tab from "@/components/system/tab.vue";
 import Theme from "@/components/system/theme.vue";
+import NotificationPanel from "@/components/system/notification-panel.vue";
 import { useTranslate } from "@/lang/useTranslate.ts";
 import { useTabViewsStore } from "@/stores/tabs.ts";
 import { useAuthStore } from "@/stores/auth";
 import { useThemeStore } from "@/stores/theme.ts";
+import { useNotificationStore } from "@/stores/notifications";
 import { filterMenuByRoles } from "@/routers/permissions";
 import * as kuiIcons from "kui-icons";
 import {
   ChevronLeft,
   ChevronRight,
+  Bell,
   Languages,
   Menu as MenuIcon,
   Moon,
@@ -102,6 +111,7 @@ const icons = ref<Record<string, IconType[]>>(kuiIcons);
 const themeStore = useThemeStore();
 const tabViewsStore = useTabViewsStore();
 const authStore = useAuthStore();
+const notificationStore = useNotificationStore();
 const route = useRoute();
 const router = useRouter();
 

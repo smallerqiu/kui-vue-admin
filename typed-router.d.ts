@@ -42,6 +42,7 @@ declare module 'vue-router/auto-routes' {
       | '/(admin)/commerce/products'
       | '/(admin)/data'
       | '/(admin)/data/analytics'
+      | '/(admin)/notifications'
       | '/(admin)/profile'
       | '/(admin)/system'
       | '/(admin)/system/logs'
@@ -87,6 +88,13 @@ declare module 'vue-router/auto-routes' {
     '/(admin)/data/analytics': RouteRecordInfo<
       '/(admin)/data/analytics',
       '/data/analytics',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/(admin)/notifications': RouteRecordInfo<
+      '/(admin)/notifications',
+      '/notifications',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -185,6 +193,7 @@ declare module 'vue-router/auto-routes' {
         | '/(admin)/commerce/products'
         | '/(admin)/data'
         | '/(admin)/data/analytics'
+        | '/(admin)/notifications'
         | '/(admin)/profile'
         | '/(admin)/system'
         | '/(admin)/system/logs'
@@ -241,6 +250,14 @@ declare module 'vue-router/auto-routes' {
     'src/pages/(admin)/data/analytics.vue': {
       routes:
         | '/(admin)/data/analytics'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/(admin)/notifications.vue': {
+      routes:
+        | '/(admin)/notifications'
       views:
         | never
       pathParamNames:
