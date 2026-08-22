@@ -14,12 +14,14 @@ import ui_zh from "kui-vue/locale/zh-CN";
 import { computed, provide, ref } from "vue";
 import { useAuthStore } from "./stores/auth";
 import { usePreferenceStore } from "./stores/preferences";
+import { useSystemSettingsStore } from "./stores/system-settings";
 import local_en from "./lang/en";
 import { setTranslate } from "./lang/useTranslate";
 import local_zh from "./lang/zh";
 const lang = ref(localStorage.getItem("lang") || "en");
 const authStore = useAuthStore();
 const preferenceStore = usePreferenceStore();
+useSystemSettingsStore();
 if (lang.value === "zh") {
   dayjs.locale("zh-cn");
 }

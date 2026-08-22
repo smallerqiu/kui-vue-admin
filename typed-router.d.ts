@@ -47,6 +47,7 @@ declare module 'vue-router/auto-routes' {
       | '/(admin)/system'
       | '/(admin)/system/logs'
       | '/(admin)/system/roles'
+      | '/(admin)/system/settings'
       | '/(admin)/system/users'
     >,
     '/(admin)/': RouteRecordInfo<
@@ -113,6 +114,7 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | '/(admin)/system/logs'
       | '/(admin)/system/roles'
+      | '/(admin)/system/settings'
       | '/(admin)/system/users'
     >,
     '/(admin)/system/logs': RouteRecordInfo<
@@ -125,6 +127,13 @@ declare module 'vue-router/auto-routes' {
     '/(admin)/system/roles': RouteRecordInfo<
       '/(admin)/system/roles',
       '/system/roles',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/(admin)/system/settings': RouteRecordInfo<
+      '/(admin)/system/settings',
+      '/system/settings',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -198,6 +207,7 @@ declare module 'vue-router/auto-routes' {
         | '/(admin)/system'
         | '/(admin)/system/logs'
         | '/(admin)/system/roles'
+        | '/(admin)/system/settings'
         | '/(admin)/system/users'
       views:
         | 'default'
@@ -276,6 +286,7 @@ declare module 'vue-router/auto-routes' {
         | '/(admin)/system'
         | '/(admin)/system/logs'
         | '/(admin)/system/roles'
+        | '/(admin)/system/settings'
         | '/(admin)/system/users'
       views:
         | 'default'
@@ -293,6 +304,14 @@ declare module 'vue-router/auto-routes' {
     'src/pages/(admin)/system/roles.vue': {
       routes:
         | '/(admin)/system/roles'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/(admin)/system/settings.vue': {
+      routes:
+        | '/(admin)/system/settings'
       views:
         | never
       pathParamNames:

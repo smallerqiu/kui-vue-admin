@@ -17,6 +17,9 @@
               @click="toggle"
               size="small"
             />
+            <Button class="command-trigger" size="small" :icon="Search" @click="commandMenuRef?.open()">
+              <span>搜索</span><kbd>⌘ K</kbd>
+            </Button>
             <ButtonGroup class="history-actions">
               <Button size="small" :icon="ChevronLeft" @click="router.back" />
               <Button
@@ -79,6 +82,7 @@
     </Content>
   </Layout>
   <Theme />
+  <CommandMenu ref="commandMenuRef" :routes="routes" :icons="icons" />
 </template>
 <script setup lang="ts">
 import Sider from "@/components/system/sider.vue";
@@ -86,6 +90,7 @@ import Main from "@/components/system/sys-main.vue";
 import Tab from "@/components/system/tab.vue";
 import Theme from "@/components/system/theme.vue";
 import NotificationPanel from "@/components/system/notification-panel.vue";
+import CommandMenu from "@/components/system/command-menu.vue";
 import { useTranslate } from "@/lang/useTranslate.ts";
 import { useTabViewsStore } from "@/stores/tabs.ts";
 import { useAuthStore } from "@/stores/auth";
@@ -99,6 +104,7 @@ import {
   Bell,
   Languages,
   Menu as MenuIcon,
+  Search,
   Moon,
   PanelLeftClose,
   PanelRightClose,
@@ -121,6 +127,7 @@ const changeLang = inject<() => void>("changeLang");
 const collapsed = ref(false);
 const isMobile = ref(false);
 const mobileOpen = ref(false);
+const commandMenuRef = ref<InstanceType<typeof CommandMenu>>();
 const routes = computed(() => filterMenuByRoles(tabViewsStore.routes, authStore.roles));
 const user = computed(() => authStore.user);
 
@@ -204,6 +211,14 @@ const switchMode = (event: MouseEvent) => {
     gap: 12px;
   }
 
+  .command-trigger {
+    min-width: 150px;
+    justify-content: flex-start;
+    color: var(--kui-color-text-description);
+
+    kbd { margin-left: auto; color: var(--kui-color-text-placeholder); font: inherit; font-size: 11px; }
+  }
+
   .header-nav {
     padding: 0px 10px 4px 10px;
     position: sticky;
@@ -271,6 +286,8 @@ const switchMode = (event: MouseEvent) => {
     .header-nav { padding: 0 8px 4px; }
     .container { padding: 6px 4px 10px; }
     .history-actions, .header-breadcrumb { display: none; }
+    .command-trigger { min-width: auto; }
+    .command-trigger span, .command-trigger kbd { display: none; }
     .top-nav-start { min-width: 0; }
     .top-nav .k-space:last-child > .k-tooltip:first-child { display: none; }
     .top-nav .k-avatar + span { display: none; }
