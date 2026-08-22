@@ -26,7 +26,7 @@ import type { MenuSelectEvent } from "kui-vue";
 import { computed, ref, type PropType } from "vue";
 import { useRouter } from "vue-router";
 import RecursiveMenu from "./recursive-menu.vue";
-import { useMenu } from "./useMenu";
+import type { AdminMenuItem } from "./useMenu";
 
 const router = useRouter();
 const props = defineProps({
@@ -36,14 +36,11 @@ const props = defineProps({
   },
   activeMenu: Array as PropType<string[]>,
   routes: {
-    type: Array as PropType<any[]>,
+    type: Array as PropType<AdminMenuItem[]>,
     default: () => [],
   },
 });
-const { menuList } = useMenu();
-
-const routes = ref(menuList.value);
-// console.log(menuList.value);
+const routes = computed(() => props.routes);
 
 const activeMenu = computed(() => {
   return props.activeMenu;

@@ -1,5 +1,6 @@
 import id from "hash-sum";
 import { defineStore } from "pinia";
+import type { AdminMenuItem } from "@/components/system/useMenu";
 
 export interface ViewItem {
   key: string;
@@ -13,15 +14,25 @@ export interface ViewItem {
   icon?: string;
 }
 
+const readStoredViews = (): ViewItem[] => {
+  try {
+    const value = JSON.parse(localStorage.getItem("routes") || "[]");
+    return Array.isArray(value) ? value : [];
+  } catch {
+    localStorage.removeItem("routes");
+    return [];
+  }
+};
+
 export const useTabViewsStore = defineStore("tabViews", {
   state: () => ({
-    routes: [] as any[],
-    views: JSON.parse(localStorage.getItem("routes") || "[]") as ViewItem[],
+    routes: [] as AdminMenuItem[],
+    views: readStoredViews(),
     keepViews: [] as string[],
     keepKey: "" as string | number,
   }),
   actions: {
-    setRoutes(routes: any[]) {
+    setRoutes(routes: AdminMenuItem[]) {
       this.routes = routes;
     },
     addView(route: any) {
@@ -40,12 +51,17 @@ export const useTabViewsStore = defineStore("tabViews", {
       this.updateLocalRoutes();
     },
     reloadSelectView(route: any) {
-      const { index } = this.getView(route);
+      const { index, keepViewKey } = this.getView(route);
       if (index !== -1) {
-        this.keepViews.splice(index, 1);
+        if (keepViewKey) {
+          this.keepViews = this.keepViews.filter((name) => name !== keepViewKey);
+        }
         route.loading = true;
         setTimeout(() => {
           route.loading = false;
+          if (keepViewKey && !this.keepViews.includes(keepViewKey)) {
+            this.keepViews.push(keepViewKey);
+          }
         }, 500);
       }
     },
@@ -53,7 +69,9 @@ export const useTabViewsStore = defineStore("tabViews", {
       const { index } = this.getView(route);
       if (index !== -1) {
         this.views.splice(index, 1);
-        this.keepViews.splice(index, 1);
+        if (route.name) {
+          this.keepViews = this.keepViews.filter((name) => name !== route.name);
+        }
         this.updateLocalRoutes();
       }
     },
@@ -67,14 +85,14 @@ export const useTabViewsStore = defineStore("tabViews", {
       if (this.views.length <= 1) return;
       const { index } = this.getView(route);
       this.views = this.views.slice(0, index + 1);
-      this.keepViews = this.keepViews.slice(0, index + 1);
+      this.syncKeepViews();
       this.updateLocalRoutes();
     },
     closeLeftView(route: any) {
       if (this.views.length <= 1) return;
       const { index } = this.getView(route);
       this.views = this.views.slice(index);
-      this.keepViews = this.keepViews.slice(index);
+      this.syncKeepViews();
       this.updateLocalRoutes();
     },
     closeAllView() {
@@ -85,15 +103,20 @@ export const useTabViewsStore = defineStore("tabViews", {
     reloadView(route: any) {
       const { index, keepViewKey } = this.getView(route);
       if (index !== -1 && keepViewKey) {
-        this.keepViews.splice(index, 1);
+        this.keepViews = this.keepViews.filter((name) => name !== keepViewKey);
         this.keepKey = Math.random();
         route.loading = true;
         setTimeout(() => {
-          this.keepViews.splice(index, 0, keepViewKey);
+          if (!this.keepViews.includes(keepViewKey)) this.keepViews.push(keepViewKey);
           this.keepKey = id(route.fullPath);
           route.loading = false;
         }, 500);
       }
+    },
+    syncKeepViews() {
+      this.keepViews = this.views
+        .filter((view) => view.meta.keepAlive && view.name)
+        .map((view) => view.name as string);
     },
     updateLocalRoutes() {
       const routes = this.views.map((v) => ({

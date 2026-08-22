@@ -1,5 +1,7 @@
 import { defineStore } from "pinia";
 
+export type ThemeMode = "light" | "dark";
+
 export const useThemeStore = defineStore("theme", {
   state: () => ({
     theme:
@@ -12,9 +14,9 @@ export const useThemeStore = defineStore("theme", {
     isDark: (state) => state.theme === "dark",
   },
   actions: {
-    setTheme(theme: string) {
+    setTheme(theme: ThemeMode, persist = true) {
       this.theme = theme;
-      localStorage.setItem("theme-mode", theme);
+      if (persist) localStorage.setItem("theme-mode", theme);
     },
   },
 });

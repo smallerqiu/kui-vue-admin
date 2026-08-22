@@ -11,9 +11,9 @@ const pinia = createPinia();
 const tabs = useTabViewsStore(pinia);
 app.use(pinia).use(kui);
 
-routerInitialized(app)
-  .then((res: any) => {
-    tabs.setRoutes(res);
+routerInitialized()
+  .then((menu) => {
+    tabs.setRoutes(menu);
     app.use(router).mount("#app");
   })
   .catch(() => {});

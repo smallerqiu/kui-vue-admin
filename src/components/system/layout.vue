@@ -75,6 +75,7 @@ import Theme from "@/components/system/theme.vue";
 import { useTranslate } from "@/lang/useTranslate.ts";
 import { useTabViewsStore } from "@/stores/tabs.ts";
 import { useThemeStore } from "@/stores/theme.ts";
+import { getAuthUser } from "@/utils/auth";
 import * as kuiIcons from "kui-icons";
 import {
   ChevronLeft,
@@ -100,7 +101,7 @@ const changeLang = inject<() => void>("changeLang");
 const collapsed = ref(false);
 const routes = computed(() => tabViewsStore.routes);
 
-const user = ref(JSON.parse(localStorage.getItem("user_info") || "{}"));
+const user = ref(getAuthUser());
 
 const localCollapsed = computed(
   () => localStorage.getItem("collapsed") === "1",
@@ -148,7 +149,7 @@ const toggle = () => {
   localStorage.setItem("collapsed", collapsed.value ? "1" : "0");
 };
 const logout = () => {
-  console.log("logout");
+  router.push("/account/logout");
 };
 
 const switchMode = (event: MouseEvent) => {

@@ -1,5 +1,6 @@
 import { message } from "kui-vue";
 import { customAlphabet } from "nanoid";
+import { clearAuthSession, getToken } from "./auth";
 
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789";
 const nanoid = customAlphabet(alphabet, 16);
@@ -14,7 +15,22 @@ export interface ApiResponse<T = any> {
 // 扩展 Fetch 配置
 interface RequestOptions extends RequestInit {
   timeout?: number;
-  headers?: Record<string, string>;
+}
+
+export class ApiError extends Error {
+  status: number;
+  data?: unknown;
+
+  constructor(
+    message: string,
+    status: number,
+    data?: unknown,
+  ) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.data = data;
+  }
 }
 
 const request = {
@@ -31,7 +47,7 @@ const request = {
     data: any = {},
     customOptions: RequestOptions = {},
   ): Promise<T> {
-    const timeout = data.timeout || customOptions.timeout || 30000;
+    const { timeout = 30000, headers: customHeaders, ...requestOptions } = customOptions;
     const controller = new AbortController();
     const requestId = nanoid();
     this._maps.set(requestId, controller);
@@ -42,16 +58,14 @@ const request = {
       // finalUrl = `/${url}`;
     }
 
-    const token = localStorage.getItem("token");
+    const token = getToken();
+    const headers = new Headers(customHeaders);
+    if (token) headers.set("Authorization", `Bearer ${token}`);
     const options: RequestOptions = {
+      ...requestOptions,
       method: method.toUpperCase(),
       signal: controller.signal,
-      redirect: "manual",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        ...customOptions.headers,
-      },
-      ...customOptions,
+      headers,
     };
 
     if (["POST", "PUT", "PATCH"].includes(options.method!)) {
@@ -60,7 +74,7 @@ const request = {
         // 注意：发送 FormData 时不要手动设置 Content-Type
       } else {
         const body = this.filterNull(data);
-        options.headers!["Content-Type"] = "application/json";
+        headers.set("Content-Type", "application/json");
         options.body = JSON.stringify(body);
       }
     } else {
@@ -75,8 +89,6 @@ const request = {
 
     try {
       const response = await fetch(finalUrl, options);
-      clearTimeout(timer);
-
       if (!response.ok) {
         return await this.handleHttpError(response);
       }
@@ -92,6 +104,7 @@ const request = {
       }
       throw err;
     } finally {
+      clearTimeout(timer);
       this._maps.delete(requestId);
     }
   },
@@ -122,41 +135,29 @@ const request = {
   _401Lock: false,
 
   async handleHttpError(response: Response): Promise<never> {
-    const { status, type } = response;
+    const { status } = response;
     const whiteList = ["/account/login"];
-    if (status === 0 && type == "opaqueredirect" && !this._401Lock) {
-      this._401Lock = true;
-      message.show({
-        content: "Login expired. Redirecting to the login page...",
-        type: "error",
-        grouping: "login",
-      });
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    }
     if (
       status === 401 &&
       !whiteList.includes(location.pathname) &&
       !this._401Lock
     ) {
       this._401Lock = true;
-      localStorage.removeItem("token");
-      localStorage.removeItem("user_info");
+      clearAuthSession();
       message.show({
         content: "Login expired. Redirecting to the login page...",
         type: "error",
         grouping: "login",
       });
       setTimeout(() => {
-        window.location.href = "/account/login";
+        const redirect = encodeURIComponent(location.pathname + location.search);
+        window.location.href = `/account/login?redirect=${redirect}`;
       }, 1000);
-    } else if (status === 500) {
-      //message.error("Internal Server Error (500)");
     }
 
     const errorData = await response.json().catch(() => ({}));
-    throw { ...errorData, status };
+    const messageText = errorData.message || errorData.msg || response.statusText || "Request failed";
+    throw new ApiError(messageText, status, errorData);
   },
 
   /**

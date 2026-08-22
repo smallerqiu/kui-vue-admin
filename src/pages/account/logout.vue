@@ -8,12 +8,14 @@ meta:
 <script setup lang="ts">
 import { message } from "kui-vue";
 import { onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { clearAuthSession } from "../../utils/auth";
+const router = useRouter();
 onMounted(() => {
   message.success("Account logged out, please log in again.");
-  localStorage.removeItem("token");
-  localStorage.removeItem("user_info");
+  clearAuthSession();
   setTimeout(() => {
-    window.location.href = "/account/login";
+    router.replace("/account/login");
   }, 1000);
 });
 </script>

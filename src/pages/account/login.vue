@@ -83,10 +83,12 @@ meta:
 import { Lock, LogoGoogle, LogoWechat, Phone, Sailboat, User } from "kui-icons";
 import { message, type FormContext, type FormRule } from "kui-vue";
 import { onMounted, reactive, ref } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
+import { setAuthSession } from "../../utils/auth";
 import Theme from "../../components/system/theme.vue";
 // import { request } from "@/utils/request";
 const route = useRoute();
+const router = useRouter();
 const refForm = ref<FormContext>();
 const current = ref("1");
 const handleForgotPassword = () => {
@@ -118,21 +120,20 @@ const rules = ref<Record<string, FormRule[]>>({
 const wrapperCol = ref({ span: 24 });
 const labelCol = ref({});
 
-const postLogin = (info: any) => {
+const postLogin = (_info: typeof form) => {
   if (loading.value) return;
   loading.value = true;
 
   setTimeout(() => {
     message.success("Login successful");
-    localStorage.setItem("token", "123456");
-    localStorage.setItem(
-      "user_info",
-      JSON.stringify({
-        name: "admin",
-        email: "<EMAIL>",
-      }),
-    );
-    location.href = "/";
+    setAuthSession("123456", {
+      name: "admin",
+      fullName: "Administrator",
+      email: "admin@k-ui.cn",
+      roles: ["admin"],
+    });
+    const redirect = typeof route.query.redirect === "string" ? route.query.redirect : "/";
+    router.replace(redirect);
   }, 1000);
   /*
   request.post("/api/login", info)

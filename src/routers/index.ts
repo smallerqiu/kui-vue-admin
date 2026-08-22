@@ -1,8 +1,8 @@
-import id from "hash-sum";
 import { loading } from "kui-vue";
-import type { App } from "vue";
 import { createRouter, createWebHistory } from "vue-router";
 import { routes } from "vue-router/auto-routes";
+import { createMenuItems } from "../components/system/useMenu";
+import { getToken } from "../utils/auth";
 //import { buildRoute } from "./utils.ts";
 
 const router = createRouter({
@@ -16,17 +16,12 @@ const router = createRouter({
         icon: "RemoveCircle",
         showInMenu: false,
       },
-      // @ts-ignore
-      id: id("/system/error"),
       component: () => import("../pages/error/500.vue"),
     },
     {
       path: "/:pathMatch(.*)*",
       meta: { title: "NotFound", icon: "RemoveCircle", showInMenu: false },
       component: () => import("../pages/error/404.vue"),
-      // @ts-ignore
-      id: id("/error/404"),
-      hidden: true,
     },
   ],
   scrollBehavior(to, _, savedPosition) {
@@ -43,45 +38,20 @@ const router = createRouter({
   },
 });
 
-export const routerInitialized = (app: App): Promise<void> => {
-  return new Promise((resolve: (routes?: any) => void, reject) => {
-    const paths = ["/account/login", "/system/error"];
-    if (paths.includes(window.location.pathname)) {
-      resolve();
-    } else {
-      resolve();
-      // 从后端获取菜单配置
-      /* 
-      fetch("/api/")
-        .then((res: any) => {
-          const routes = buildRoute(router,res.data);
-          resolve(routes);
-        })
-        .catch(async (res: any) => {
-          app.use(router).mount("#app");
-          if (res.status == 401) {
-            router.push("/account/login");
-          } else {
-            router.push("/system/error");
-          }
-          reject();
-        });
-        */
-    }
-  });
-};
+export const routerInitialized = async () => createMenuItems(router.options.routes);
 
 router.beforeEach(async (to) => {
   loading.start();
-  const whiteList = ["/account/login", "/system/error"];
-  let token = localStorage.getItem("token");
+  const whiteList = ["/account/login", "/account/logout", "/system/error"];
+  const token = getToken();
 
   if (!token) {
-    // 本地校验token,登陆跳转.
-    return !whiteList.includes(to.path) ? "/account/login" : true;
+    return !whiteList.includes(to.path)
+      ? { path: "/account/login", query: { redirect: to.fullPath } }
+      : true;
   }
-  if (whiteList.includes(to.path)) return true;
-  return;
+  if (to.path === "/account/login") return "/";
+  return true;
 });
 router.afterEach((_) => {
   loading.finish();
