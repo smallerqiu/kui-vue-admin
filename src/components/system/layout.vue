@@ -1,17 +1,23 @@
 <template>
   <Layout class="layout-back">
-    <!-- <Layout class="layout-back" v-if="!loading"> -->
-    <Sider :routes="routes" :collapsed="collapsed" :activeMenu="activeMenu" />
+    <div v-if="isMobile && mobileOpen" class="mobile-sider-mask" @click="mobileOpen = false"></div>
+    <Sider
+      :class="{ 'mobile-sider': isMobile, 'mobile-sider-open': mobileOpen }"
+      :routes="routes"
+      :collapsed="isMobile ? false : collapsed"
+      :activeMenu="activeMenu"
+      @select="mobileOpen = false"
+    />
     <Content class="k-sys-main">
       <Flex class="header-nav" vertical>
         <Flex class="top-nav" justify="space-between">
-          <Space>
+          <Space class="top-nav-start">
             <Button
-              :icon="!collapsed ? PanelLeftClose : PanelRightClose"
+              :icon="isMobile ? MenuIcon : (!collapsed ? PanelLeftClose : PanelRightClose)"
               @click="toggle"
               size="small"
             />
-            <ButtonGroup>
+            <ButtonGroup class="history-actions">
               <Button size="small" :icon="ChevronLeft" @click="router.back" />
               <Button
                 size="small"
@@ -19,7 +25,7 @@
                 @click="router.forward"
               />
             </ButtonGroup>
-            <Breadcrumb>
+            <Breadcrumb class="header-breadcrumb">
               <BreadcrumbItem
                 v-for="item in Breadcrumbs"
                 :icon="icons[item?.meta?.icon]"
@@ -48,6 +54,7 @@
               </Button>
               <template #overlay>
                 <Menu>
+                  <MenuItem key="profile" @click="router.push('/profile')">个人中心</MenuItem>
                   <MenuItem key="logout">
                     <a href="javascript:;" @click="logout">{{
                       $t("menu.log_out")
@@ -82,13 +89,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Languages,
+  Menu as MenuIcon,
   Moon,
   PanelLeftClose,
   PanelRightClose,
   Sun,
 } from "kui-icons";
 import { theme, type IconType } from "kui-vue";
-import { computed, inject, onMounted, ref, watch } from "vue";
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 const icons = ref<Record<string, IconType[]>>(kuiIcons);
 const themeStore = useThemeStore();
@@ -101,6 +109,8 @@ const localTheme = computed(() => themeStore.theme);
 const $t = useTranslate();
 const changeLang = inject<() => void>("changeLang");
 const collapsed = ref(false);
+const isMobile = ref(false);
+const mobileOpen = ref(false);
 const routes = computed(() => filterMenuByRoles(tabViewsStore.routes, authStore.roles));
 const user = computed(() => authStore.user);
 
@@ -110,7 +120,16 @@ const localCollapsed = computed(
 const Breadcrumbs = ref<any[]>([]);
 onMounted(() => {
   collapsed.value = localCollapsed.value;
+  mediaQuery = window.matchMedia("(max-width: 860px)");
+  syncViewport(mediaQuery);
+  mediaQuery.addEventListener("change", syncViewport);
 });
+let mediaQuery: MediaQueryList | undefined;
+const syncViewport = (event: MediaQueryList | MediaQueryListEvent) => {
+  isMobile.value = event.matches;
+  if (!event.matches) mobileOpen.value = false;
+};
+onBeforeUnmount(() => mediaQuery?.removeEventListener("change", syncViewport));
 const getPath = (tree: any, targetKey: string) => {
   const path: string[] = [];
   const nodePaths: string[] = [];
@@ -143,9 +162,14 @@ watch(
   () => {
     const keys = getPath(routes.value, route.path);
     activeMenu.value = keys;
+    if (isMobile.value) mobileOpen.value = false;
   },
 );
 const toggle = () => {
+  if (isMobile.value) {
+    mobileOpen.value = !mobileOpen.value;
+    return;
+  }
   collapsed.value = !collapsed.value;
   localStorage.setItem("collapsed", collapsed.value ? "1" : "0");
 };
@@ -167,6 +191,7 @@ const switchMode = (event: MouseEvent) => {
   }
   .top-nav {
     padding: 10px 0 10px 0;
+    gap: 12px;
   }
 
   .header-nav {
@@ -201,6 +226,44 @@ const switchMode = (event: MouseEvent) => {
   .k-layout-footer {
     text-align: center;
     color: #999;
+  }
+}
+
+.mobile-sider-mask {
+  position: fixed;
+  z-index: 1100;
+  inset: 0;
+  background: var(--kui-color-mask);
+  animation: mobile-mask-in var(--kui-motion-duration-fast);
+}
+
+@keyframes mobile-mask-in { from { opacity: 0; } }
+
+@media (max-width: 860px) {
+  .layout-back {
+    .mobile-sider {
+      position: fixed;
+      z-index: 1101;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: min(280px, calc(100vw - 52px));
+      height: 100vh;
+      margin: 0;
+      border-width: 0 1px 0 0;
+      border-radius: 0 var(--kui-card-radius) var(--kui-card-radius) 0;
+      transform: translateX(-105%);
+      transition: transform var(--kui-motion-duration) var(--kui-motion-easing);
+      box-shadow: var(--kui-pop-shadow);
+    }
+
+    .mobile-sider-open { transform: translateX(0); }
+    .header-nav { padding: 0 8px 4px; }
+    .container { padding: 6px 4px 10px; }
+    .history-actions, .header-breadcrumb { display: none; }
+    .top-nav-start { min-width: 0; }
+    .top-nav .k-space:last-child > .k-tooltip:first-child { display: none; }
+    .top-nav .k-avatar + span { display: none; }
   }
 }
 </style>

@@ -29,6 +29,7 @@ import RecursiveMenu from "./recursive-menu.vue";
 import type { AdminMenuItem } from "./useMenu";
 
 const router = useRouter();
+const emit = defineEmits<{ select: [] }>();
 const props = defineProps({
   collapsed: {
     type: Boolean,
@@ -64,6 +65,7 @@ const go = (event: MenuSelectEvent) => {
     return window.open(event.key);
   }
   router.push({ path: event.key });
+  emit("select");
 };
 </script>
 <style lang="less">

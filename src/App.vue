@@ -1,6 +1,6 @@
 <template>
   <ConfigProvider :locale="locale">
-    <Watermark :content="userEmail" :fullscreen="true" :z-index="1010" />
+    <Watermark v-if="preferenceStore.watermark && userEmail" :content="userEmail" :fullscreen="true" :z-index="1010" />
     <router-view v-slot="{ Component }">
       <component :is="Component" />
     </router-view>
@@ -13,11 +13,13 @@ import ui_en from "kui-vue/locale/en";
 import ui_zh from "kui-vue/locale/zh-CN";
 import { computed, provide, ref } from "vue";
 import { useAuthStore } from "./stores/auth";
+import { usePreferenceStore } from "./stores/preferences";
 import local_en from "./lang/en";
 import { setTranslate } from "./lang/useTranslate";
 import local_zh from "./lang/zh";
 const lang = ref(localStorage.getItem("lang") || "en");
 const authStore = useAuthStore();
+const preferenceStore = usePreferenceStore();
 if (lang.value === "zh") {
   dayjs.locale("zh-cn");
 }

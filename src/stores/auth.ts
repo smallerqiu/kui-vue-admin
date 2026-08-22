@@ -26,5 +26,9 @@ export const useAuthStore = defineStore("auth", {
       this.token = "";
       this.user = {};
     },
+    updateUser(user: AuthUser) {
+      this.user = { ...this.user, ...user };
+      setAuthSession(this.token, this.user);
+    },
   },
 });
