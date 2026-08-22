@@ -48,6 +48,7 @@ declare module 'vue-router/auto-routes' {
       | '/(admin)/notifications'
       | '/(admin)/order/[id]'
       | '/(admin)/profile'
+      | '/(admin)/projects'
       | '/(admin)/system'
       | '/(admin)/system/logs'
       | '/(admin)/system/roles'
@@ -135,6 +136,13 @@ declare module 'vue-router/auto-routes' {
     '/(admin)/profile': RouteRecordInfo<
       '/(admin)/profile',
       '/profile',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/(admin)/projects': RouteRecordInfo<
+      '/(admin)/projects',
+      '/projects',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -240,6 +248,7 @@ declare module 'vue-router/auto-routes' {
         | '/(admin)/notifications'
         | '/(admin)/order/[id]'
         | '/(admin)/profile'
+        | '/(admin)/projects'
         | '/(admin)/system'
         | '/(admin)/system/logs'
         | '/(admin)/system/roles'
@@ -345,6 +354,14 @@ declare module 'vue-router/auto-routes' {
     'src/pages/(admin)/profile.vue': {
       routes:
         | '/(admin)/profile'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/(admin)/projects.vue': {
+      routes:
+        | '/(admin)/projects'
       views:
         | never
       pathParamNames:

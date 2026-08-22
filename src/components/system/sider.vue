@@ -1,5 +1,11 @@
 <template>
-  <Sider :class="['sys-sider', { 'sys-sider-collapsed': collapsed }]">
+  <Sider
+    :class="['sys-sider', { 'sys-sider-collapsed': collapsed }]"
+    collapsible
+    :collapsed="collapsed"
+    :width="200"
+    :collapsed-width="60"
+  >
     <div class="logo-box">
       <img src="/favicon.svg" class="logo" />
       <transition name="sys-sider-title">
@@ -75,8 +81,11 @@ const go = (event: MenuSelectEvent) => {
   left: 0;
   position: relative;
   border: 1px solid var(--kui-color-border);
-  transition: width 0.3s ease 0s;
-  width: 200px;
+  transition:
+    width 0.3s ease,
+    min-width 0.3s ease,
+    max-width 0.3s ease,
+    flex-basis 0.3s ease;
   display: flex;
   flex-direction: column;
   margin: 10px;
@@ -164,7 +173,11 @@ const go = (event: MenuSelectEvent) => {
 }
 
 .sys-sider-collapsed {
-  width: 60px;
+  // Compatible with kui-vue versions whose Sider width was not reactive.
+  width: 60px !important;
+  min-width: 60px !important;
+  max-width: 60px !important;
+  flex-basis: 60px !important;
 
   .logo-box {
     padding-left: calc(50% - 16px);
