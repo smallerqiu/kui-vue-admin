@@ -16,8 +16,8 @@ export const useAuthStore = defineStore("auth", {
     roles: (state) => state.user.roles || [],
   },
   actions: {
-    login(token: string, user: AuthUser) {
-      setAuthSession(token, user);
+    login(token: string, user: AuthUser, persistent = true) {
+      setAuthSession(token, user, persistent);
       this.token = token;
       this.user = user;
     },
@@ -28,7 +28,7 @@ export const useAuthStore = defineStore("auth", {
     },
     updateUser(user: AuthUser) {
       this.user = { ...this.user, ...user };
-      setAuthSession(this.token, this.user);
+      setAuthSession(this.token, this.user, Boolean(localStorage.getItem("token")));
     },
   },
 });
