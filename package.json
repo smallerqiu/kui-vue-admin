@@ -24,9 +24,18 @@
     "@codemirror/view": "^6.43.9",
     "cm6-theme-solarized-dark": "^0.2.0",
     "cm6-theme-solarized-light": "^0.2.0",
+    "big.js": "^7.0.1",
+    "crypto-js": "^4.2.0",
+    "dayjs": "^1.11.23",
     "echarts": "^6.1.0",
+    "hash-sum": "^2.0.0",
+    "kui-icons": "^5.0.0",
+    "kui-vue": "^5.7.0",
+    "nanoid": "^6.0.1",
+    "pinia": "^4.0.3",
     "vue": "^3.5.41",
-    "vue-echarts": "^8.1.0"
+    "vue-echarts": "^8.1.0",
+    "vue-router": "^5.2.0"
   },
   "devDependencies": {
     "@types/big.js": "^7.0.0",
@@ -35,20 +44,11 @@
     "@types/node": "^24.13.3",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/tsconfig": "^0.9.1",
-    "big.js": "^7.0.1",
-    "crypto-js": "^4.2.0",
-    "dayjs": "^1.11.23",
-    "hash-sum": "^2.0.0",
     "jsdom": "^30.0.1",
-    "kui-icons": "^5.0.0",
-    "kui-vue": "^5.7.0",
     "less": "^4.9.0",
-    "nanoid": "^6.0.1",
-    "pinia": "^4.0.3",
     "typescript": "~6.0.3",
     "vite": "^8.2.2",
     "vitest": "^4.1.11",
-    "vue-router": "^5.2.0",
     "vue-tsc": "^3.3.11"
   }
 }

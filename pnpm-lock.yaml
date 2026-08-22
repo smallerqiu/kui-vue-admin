@@ -29,21 +29,48 @@ importers:
       '@codemirror/view':
         specifier: ^6.43.9
         version: 6.43.9
+      big.js:
+        specifier: ^7.0.1
+        version: 7.0.1
       cm6-theme-solarized-dark:
         specifier: ^0.2.0
         version: 0.2.0(@codemirror/language@6.12.4)(@codemirror/state@6.7.1)(@codemirror/view@6.43.9)(@lezer/highlight@1.2.3)
       cm6-theme-solarized-light:
         specifier: ^0.2.0
         version: 0.2.0(@codemirror/language@6.12.4)(@codemirror/state@6.7.1)(@codemirror/view@6.43.9)(@lezer/highlight@1.2.3)
+      crypto-js:
+        specifier: ^4.2.0
+        version: 4.2.0
+      dayjs:
+        specifier: ^1.11.23
+        version: 1.11.23
       echarts:
         specifier: ^6.1.0
         version: 6.1.0
+      hash-sum:
+        specifier: ^2.0.0
+        version: 2.0.0
+      kui-icons:
+        specifier: ^5.0.0
+        version: 5.0.0
+      kui-vue:
+        specifier: ^5.7.0
+        version: 5.7.0(postcss@8.5.26)(vue@3.5.41(typescript@6.0.3))
+      nanoid:
+        specifier: ^6.0.1
+        version: 6.0.1
+      pinia:
+        specifier: ^4.0.3
+        version: 4.0.3(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.41(typescript@6.0.3))
       vue:
         specifier: ^3.5.41
         version: 3.5.41(typescript@6.0.3)
       vue-echarts:
         specifier: ^8.1.0
         version: 8.1.0(echarts@6.1.0)(vue@3.5.41(typescript@6.0.3))
+      vue-router:
+        specifier: ^5.2.0
+        version: 5.2.0(@vue/compiler-sfc@3.5.41)(pinia@4.0.3(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.41(typescript@6.0.3)))(rolldown@1.2.5)(vite@8.2.2(@types/node@24.13.3)(less@4.9.0)(yaml@2.9.0))(vue@3.5.41(typescript@6.0.3))
     devDependencies:
       '@types/big.js':
         specifier: ^7.0.0
@@ -63,36 +90,12 @@ importers:
       '@vue/tsconfig':
         specifier: ^0.9.1
         version: 0.9.1(typescript@6.0.3)(vue@3.5.41(typescript@6.0.3))
-      big.js:
-        specifier: ^7.0.1
-        version: 7.0.1
-      crypto-js:
-        specifier: ^4.2.0
-        version: 4.2.0
-      dayjs:
-        specifier: ^1.11.23
-        version: 1.11.23
-      hash-sum:
-        specifier: ^2.0.0
-        version: 2.0.0
       jsdom:
         specifier: ^30.0.1
         version: 30.0.1
-      kui-icons:
-        specifier: ^5.0.0
-        version: 5.0.0
-      kui-vue:
-        specifier: ^5.7.0
-        version: 5.7.0(postcss@8.5.26)(vue@3.5.41(typescript@6.0.3))
       less:
         specifier: ^4.9.0
         version: 4.9.0
-      nanoid:
-        specifier: ^6.0.1
-        version: 6.0.1
-      pinia:
-        specifier: ^4.0.3
-        version: 4.0.3(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.41(typescript@6.0.3))
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
@@ -102,9 +105,6 @@ importers:
       vitest:
         specifier: ^4.1.11
         version: 4.1.11(@types/node@24.13.3)(jsdom@30.0.1)(vite@8.2.2(@types/node@24.13.3)(less@4.9.0)(yaml@2.9.0))
-      vue-router:
-        specifier: ^5.2.0
-        version: 5.2.0(@vue/compiler-sfc@3.5.41)(pinia@4.0.3(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.41(typescript@6.0.3)))(rolldown@1.2.5)(vite@8.2.2(@types/node@24.13.3)(less@4.9.0)(yaml@2.9.0))(vue@3.5.41(typescript@6.0.3))
       vue-tsc:
         specifier: ^3.3.11
         version: 3.3.11(typescript@6.0.3)

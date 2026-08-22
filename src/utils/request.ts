@@ -1,6 +1,7 @@
 import { message } from "kui-vue";
 import { customAlphabet } from "nanoid";
 import { clearAuthSession, getToken } from "./auth";
+import { appConfig } from "@/config/app";
 
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789";
 const nanoid = customAlphabet(alphabet, 16);
@@ -54,8 +55,10 @@ const request = {
 
     let finalUrl = url;
     if (!url.startsWith("http")) {
-      // 在这里加自定义前缀
-      // finalUrl = `/${url}`;
+      const path = url.startsWith("/") ? url : `/${url}`;
+      finalUrl = appConfig.apiBaseUrl.startsWith("/") && (path === appConfig.apiBaseUrl || path.startsWith(`${appConfig.apiBaseUrl}/`))
+        ? path
+        : `${appConfig.apiBaseUrl}${path}`;
     }
 
     const token = getToken();

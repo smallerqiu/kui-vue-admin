@@ -1,7 +1,7 @@
 <template>
   <div class="login-page">
     <aside class="login-intro">
-      <div class="intro-brand"><img src="@/assets/img/logo.svg" /><span>KUI Vue Pro</span></div>
+      <div class="intro-brand"><img src="@/assets/img/logo.svg" /><span>{{ appConfig.name }}</span></div>
       <div class="intro-content">
         <Tag theme="fill">Enterprise Admin</Tag>
         <h1>专注业务，<br />不重复搭建后台基础设施。</h1>
@@ -13,7 +13,7 @@
     <main class="login-box">
       <Space class="header">
         <img src="@/assets/img/logo.svg" class="logo" />
-        <span class="title">KUI Vue Pro</span>
+        <span class="title">{{ appConfig.name }}</span>
       </Space>
       <div class="desc">欢迎回来，请登录你的账号</div>
       <div class="main">
@@ -101,6 +101,7 @@ import { computed, onBeforeUnmount, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "../../stores/auth";
 import Theme from "../../components/system/theme.vue";
+import { appConfig } from "../../config/app";
 // import { request } from "@/utils/request";
 const route = useRoute();
 const router = useRouter();

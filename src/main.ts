@@ -11,9 +11,18 @@ const pinia = createPinia();
 const tabs = useTabViewsStore(pinia);
 app.use(pinia).use(kui);
 
-routerInitialized()
-  .then((menu) => {
+const bootstrap = async () => {
+  try {
+    const menu = await routerInitialized();
     tabs.setRoutes(menu);
-    app.use(router).mount("#app");
-  })
-  .catch(() => {});
+  } catch (error) {
+    console.error("Failed to initialize application routes", error);
+  }
+
+  app.config.errorHandler = (error, instance, info) => {
+    console.error("Unhandled application error", { error, instance, info });
+  };
+  app.use(router).mount("#app");
+};
+
+void bootstrap();

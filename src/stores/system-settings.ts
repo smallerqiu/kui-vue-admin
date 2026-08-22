@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { reactive, watch } from "vue";
+import { appConfig } from "@/config/app";
 
 export interface SystemSettings {
   organizationName: string;
@@ -17,7 +18,7 @@ export interface SystemSettings {
 }
 
 export const defaultSystemSettings: SystemSettings = {
-  organizationName: "KUI Technology Co., Ltd.", shortName: "KUI Pro", domain: "admin.k-ui.cn",
+  organizationName: "KUI Technology Co., Ltd.", shortName: appConfig.shortName, domain: appConfig.siteUrl.replace(/^https?:\/\//, ""),
   timezone: "Asia/Shanghai", locale: "zh-CN", primaryColor: "#54a9ff", sessionTimeout: 120,
   allowMultiLogin: true, passwordExpiry: 90, orderNotification: true, securityNotification: true, weeklyReport: true,
 };

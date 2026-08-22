@@ -3,7 +3,7 @@
     <div class="logo-box">
       <img src="/favicon.svg" class="logo" />
       <transition name="sys-sider-title">
-        <span class="sys-sider-title" v-show="!collapsed">Kui Vue Admin</span>
+        <span class="sys-sider-title" v-show="!collapsed">{{ systemSettings.settings.shortName }}</span>
       </transition>
     </div>
     <Menu
@@ -27,8 +27,10 @@ import { computed, ref, type PropType } from "vue";
 import { useRouter } from "vue-router";
 import RecursiveMenu from "./recursive-menu.vue";
 import type { AdminMenuItem } from "./useMenu";
+import { useSystemSettingsStore } from "@/stores/system-settings";
 
 const router = useRouter();
+const systemSettings = useSystemSettingsStore();
 const emit = defineEmits<{ select: [] }>();
 const props = defineProps({
   collapsed: {

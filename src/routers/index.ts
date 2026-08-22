@@ -4,6 +4,7 @@ import { routes } from "vue-router/auto-routes";
 import { createMenuItems } from "../components/system/useMenu";
 import { getAuthUser, getToken } from "../utils/auth";
 import { hasRole } from "./permissions";
+import { getRuntimeAppName } from "../config/app";
 //import { buildRoute } from "./utils.ts";
 
 const router = createRouter({
@@ -57,7 +58,8 @@ router.beforeEach(async (to) => {
   }
   return true;
 });
-router.afterEach((_) => {
+router.afterEach((to) => {
   loading.finish();
+  document.title = to.meta.title ? `${to.meta.title} - ${getRuntimeAppName()}` : getRuntimeAppName();
 });
 export default router;
