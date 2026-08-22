@@ -39,7 +39,12 @@ declare module 'vue-router/auto-routes' {
       | '/(admin)/'
       | '/(admin)/commerce'
       | '/(admin)/commerce/orders'
+      | '/(admin)/commerce/products'
+      | '/(admin)/data'
+      | '/(admin)/data/analytics'
       | '/(admin)/system'
+      | '/(admin)/system/logs'
+      | '/(admin)/system/roles'
       | '/(admin)/system/users'
     >,
     '/(admin)/': RouteRecordInfo<
@@ -55,10 +60,32 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       Record<never, never>,
       | '/(admin)/commerce/orders'
+      | '/(admin)/commerce/products'
     >,
     '/(admin)/commerce/orders': RouteRecordInfo<
       '/(admin)/commerce/orders',
       '/commerce/orders',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/(admin)/commerce/products': RouteRecordInfo<
+      '/(admin)/commerce/products',
+      '/commerce/products',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/(admin)/data': RouteRecordInfo<
+      '/(admin)/data',
+      '/data',
+      Record<never, never>,
+      Record<never, never>,
+      | '/(admin)/data/analytics'
+    >,
+    '/(admin)/data/analytics': RouteRecordInfo<
+      '/(admin)/data/analytics',
+      '/data/analytics',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -68,7 +95,23 @@ declare module 'vue-router/auto-routes' {
       '/system',
       Record<never, never>,
       Record<never, never>,
+      | '/(admin)/system/logs'
+      | '/(admin)/system/roles'
       | '/(admin)/system/users'
+    >,
+    '/(admin)/system/logs': RouteRecordInfo<
+      '/(admin)/system/logs',
+      '/system/logs',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/(admin)/system/roles': RouteRecordInfo<
+      '/(admin)/system/roles',
+      '/system/roles',
+      Record<never, never>,
+      Record<never, never>,
+      | never
     >,
     '/(admin)/system/users': RouteRecordInfo<
       '/(admin)/system/users',
@@ -131,7 +174,12 @@ declare module 'vue-router/auto-routes' {
         | '/(admin)/'
         | '/(admin)/commerce'
         | '/(admin)/commerce/orders'
+        | '/(admin)/commerce/products'
+        | '/(admin)/data'
+        | '/(admin)/data/analytics'
         | '/(admin)/system'
+        | '/(admin)/system/logs'
+        | '/(admin)/system/roles'
         | '/(admin)/system/users'
       views:
         | 'default'
@@ -150,6 +198,7 @@ declare module 'vue-router/auto-routes' {
       routes:
         | '/(admin)/commerce'
         | '/(admin)/commerce/orders'
+        | '/(admin)/commerce/products'
       views:
         | 'default'
       pathParamNames:
@@ -163,12 +212,55 @@ declare module 'vue-router/auto-routes' {
       pathParamNames:
         | never
     }
+    'src/pages/(admin)/commerce/products.vue': {
+      routes:
+        | '/(admin)/commerce/products'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/(admin)/data.vue': {
+      routes:
+        | '/(admin)/data'
+        | '/(admin)/data/analytics'
+      views:
+        | 'default'
+      pathParamNames:
+        | never
+    }
+    'src/pages/(admin)/data/analytics.vue': {
+      routes:
+        | '/(admin)/data/analytics'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
     'src/pages/(admin)/system.vue': {
       routes:
         | '/(admin)/system'
+        | '/(admin)/system/logs'
+        | '/(admin)/system/roles'
         | '/(admin)/system/users'
       views:
         | 'default'
+      pathParamNames:
+        | never
+    }
+    'src/pages/(admin)/system/logs.vue': {
+      routes:
+        | '/(admin)/system/logs'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/(admin)/system/roles.vue': {
+      routes:
+        | '/(admin)/system/roles'
+      views:
+        | never
       pathParamNames:
         | never
     }

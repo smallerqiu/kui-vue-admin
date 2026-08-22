@@ -54,11 +54,14 @@ export default defineConfig({
           // Match package segments instead of the whole absolute path. The
           // project directory itself contains "kui-vue", so a broad includes
           // check would accidentally put every dependency into ui-lib.
-          const packagePath = id.split("/node_modules/").at(-1) || "";
+          const packageSegments = id.split("/node_modules/");
+          const packagePath = packageSegments[packageSegments.length - 1] || "";
           if (packagePath.startsWith("kui-icons/")) return "ui-icons";
           if (packagePath.startsWith("kui-vue/")) return "ui-lib";
           if (packagePath.startsWith("echarts/") || packagePath.startsWith("vue-echarts/"))
             return "charts";
+          if (packagePath.startsWith("@codemirror/") || packagePath.startsWith("cm6-theme-"))
+            return "code-editor";
           if (packagePath.startsWith("vue-router/") || packagePath.startsWith("pinia/"))
             return "vue-vendor";
           if (packagePath.startsWith("vue/") || packagePath.startsWith("@vue/")) return "vue";

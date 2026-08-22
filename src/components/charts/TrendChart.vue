@@ -23,7 +23,12 @@ interface TrendPoint {
   value: number;
 }
 
-const props = defineProps<{ data: TrendPoint[] }>();
+const props = withDefaults(defineProps<{
+  data: TrendPoint[];
+  name?: string;
+  suffix?: string;
+  color?: string;
+}>(), { name: "访问量", suffix: "k", color: "#54a9ff" });
 const themeStore = useThemeStore();
 
 use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
@@ -55,20 +60,20 @@ const option = computed<ChartOption>(() => {
     },
     yAxis: {
       type: "value",
-      axisLabel: { color: textColor, formatter: (value: number) => `${value}k` },
+      axisLabel: { color: textColor, formatter: (value: number) => `${value}${props.suffix}` },
       splitLine: { lineStyle: { color: splitColor, type: "dashed" } },
     },
     series: [{
-      name: "访问量",
+      name: props.name,
       type: "line",
       smooth: true,
       symbol: "circle",
       symbolSize: 7,
       showSymbol: false,
       data: props.data.map((item) => item.value),
-      lineStyle: { width: 3, color: "#54a9ff" },
-      itemStyle: { color: "#54a9ff", borderWidth: 2, borderColor: dark ? "#1f1f1f" : "#ffffff" },
-      areaStyle: { color: "rgba(84, 169, 255, 0.18)" },
+      lineStyle: { width: 3, color: props.color },
+      itemStyle: { color: props.color, borderWidth: 2, borderColor: dark ? "#1f1f1f" : "#ffffff" },
+      areaStyle: { color: `${props.color}2e` },
       emphasis: { focus: "series", scale: 1.2 },
     }],
   };
