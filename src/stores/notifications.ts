@@ -24,9 +24,9 @@ const initialNotifications: NotificationItem[] = [
 const readStored = () => {
   try {
     const value = JSON.parse(localStorage.getItem("notifications") || "null");
-    return Array.isArray(value) ? value as NotificationItem[] : initialNotifications;
+    return Array.isArray(value) ? value as NotificationItem[] : initialNotifications.map((item) => ({ ...item }));
   } catch {
-    return initialNotifications;
+    return initialNotifications.map((item) => ({ ...item }));
   }
 };
 
