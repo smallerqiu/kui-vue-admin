@@ -1,6 +1,6 @@
 import type { AdminMenuItem } from "@/components/system/useMenu";
 
-const hasRole = (required: string[] | undefined, roles: string[]) => {
+export const hasRole = (required: string[] | undefined, roles: string[]) => {
   if (!required?.length) return true;
   return required.some((role) => roles.includes(role));
 };

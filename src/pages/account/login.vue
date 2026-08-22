@@ -84,11 +84,12 @@ import { Lock, LogoGoogle, LogoWechat, Phone, Sailboat, User } from "kui-icons";
 import { message, type FormContext, type FormRule } from "kui-vue";
 import { onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { setAuthSession } from "../../utils/auth";
+import { useAuthStore } from "../../stores/auth";
 import Theme from "../../components/system/theme.vue";
 // import { request } from "@/utils/request";
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 const refForm = ref<FormContext>();
 const current = ref("1");
 const handleForgotPassword = () => {
@@ -126,7 +127,7 @@ const postLogin = (_info: typeof form) => {
 
   setTimeout(() => {
     message.success("Login successful");
-    setAuthSession("123456", {
+    authStore.login("123456", {
       name: "admin",
       fullName: "Administrator",
       email: "admin@k-ui.cn",

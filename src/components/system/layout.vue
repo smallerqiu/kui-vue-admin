@@ -74,8 +74,9 @@ import Tab from "@/components/system/tab.vue";
 import Theme from "@/components/system/theme.vue";
 import { useTranslate } from "@/lang/useTranslate.ts";
 import { useTabViewsStore } from "@/stores/tabs.ts";
+import { useAuthStore } from "@/stores/auth";
 import { useThemeStore } from "@/stores/theme.ts";
-import { getAuthUser } from "@/utils/auth";
+import { filterMenuByRoles } from "@/routers/permissions";
 import * as kuiIcons from "kui-icons";
 import {
   ChevronLeft,
@@ -92,6 +93,7 @@ import { useRoute, useRouter } from "vue-router";
 const icons = ref<Record<string, IconType[]>>(kuiIcons);
 const themeStore = useThemeStore();
 const tabViewsStore = useTabViewsStore();
+const authStore = useAuthStore();
 const route = useRoute();
 const router = useRouter();
 
@@ -99,9 +101,8 @@ const localTheme = computed(() => themeStore.theme);
 const $t = useTranslate();
 const changeLang = inject<() => void>("changeLang");
 const collapsed = ref(false);
-const routes = computed(() => tabViewsStore.routes);
-
-const user = ref(getAuthUser());
+const routes = computed(() => filterMenuByRoles(tabViewsStore.routes, authStore.roles));
+const user = computed(() => authStore.user);
 
 const localCollapsed = computed(
   () => localStorage.getItem("collapsed") === "1",
@@ -138,7 +139,7 @@ const keys = getPath(routes.value, route.path);
 const activeMenu = ref(keys);
 
 watch(
-  () => route.fullPath,
+  [() => route.fullPath, routes],
   () => {
     const keys = getPath(routes.value, route.path);
     activeMenu.value = keys;

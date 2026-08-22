@@ -49,14 +49,20 @@ export default defineConfig({
           return "assets/[name]-[hash][extname]";
         },
         manualChunks(id) {
-          if (id.includes("node_modules")) {
-            if (id.includes("kui-icons")) return "ui-icons";
-            if (id.includes("kui-vue")) return "ui-lib";
-            if (id.includes("vue-router") || id.includes("pinia"))
-              return "vue-vendor";
-            if (id.includes("vue")) return "vue";
-            if (id.includes("dayjs")) return "dayjs";
-          }
+          if (!id.includes("/node_modules/")) return;
+
+          // Match package segments instead of the whole absolute path. The
+          // project directory itself contains "kui-vue", so a broad includes
+          // check would accidentally put every dependency into ui-lib.
+          const packagePath = id.split("/node_modules/").at(-1) || "";
+          if (packagePath.startsWith("kui-icons/")) return "ui-icons";
+          if (packagePath.startsWith("kui-vue/")) return "ui-lib";
+          if (packagePath.startsWith("echarts/") || packagePath.startsWith("vue-echarts/"))
+            return "charts";
+          if (packagePath.startsWith("vue-router/") || packagePath.startsWith("pinia/"))
+            return "vue-vendor";
+          if (packagePath.startsWith("vue/") || packagePath.startsWith("@vue/")) return "vue";
+          if (packagePath.startsWith("dayjs/")) return "dayjs";
         },
       },
     },

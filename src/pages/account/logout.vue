@@ -9,11 +9,12 @@ meta:
 import { message } from "kui-vue";
 import { onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { clearAuthSession } from "../../utils/auth";
+import { useAuthStore } from "../../stores/auth";
 const router = useRouter();
+const authStore = useAuthStore();
 onMounted(() => {
   message.success("Account logged out, please log in again.");
-  clearAuthSession();
+  authStore.logout();
   setTimeout(() => {
     router.replace("/account/login");
   }, 1000);

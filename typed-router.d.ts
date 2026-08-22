@@ -37,10 +37,42 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       Record<never, never>,
       | '/(admin)/'
+      | '/(admin)/commerce'
+      | '/(admin)/commerce/orders'
+      | '/(admin)/system'
+      | '/(admin)/system/users'
     >,
     '/(admin)/': RouteRecordInfo<
       '/(admin)/',
       '/',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/(admin)/commerce': RouteRecordInfo<
+      '/(admin)/commerce',
+      '/commerce',
+      Record<never, never>,
+      Record<never, never>,
+      | '/(admin)/commerce/orders'
+    >,
+    '/(admin)/commerce/orders': RouteRecordInfo<
+      '/(admin)/commerce/orders',
+      '/commerce/orders',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/(admin)/system': RouteRecordInfo<
+      '/(admin)/system',
+      '/system',
+      Record<never, never>,
+      Record<never, never>,
+      | '/(admin)/system/users'
+    >,
+    '/(admin)/system/users': RouteRecordInfo<
+      '/(admin)/system/users',
+      '/system/users',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -97,6 +129,10 @@ declare module 'vue-router/auto-routes' {
       routes:
         | '/(admin)'
         | '/(admin)/'
+        | '/(admin)/commerce'
+        | '/(admin)/commerce/orders'
+        | '/(admin)/system'
+        | '/(admin)/system/users'
       views:
         | 'default'
       pathParamNames:
@@ -105,6 +141,40 @@ declare module 'vue-router/auto-routes' {
     'src/pages/(admin)/index.vue': {
       routes:
         | '/(admin)/'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/(admin)/commerce.vue': {
+      routes:
+        | '/(admin)/commerce'
+        | '/(admin)/commerce/orders'
+      views:
+        | 'default'
+      pathParamNames:
+        | never
+    }
+    'src/pages/(admin)/commerce/orders.vue': {
+      routes:
+        | '/(admin)/commerce/orders'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/(admin)/system.vue': {
+      routes:
+        | '/(admin)/system'
+        | '/(admin)/system/users'
+      views:
+        | 'default'
+      pathParamNames:
+        | never
+    }
+    'src/pages/(admin)/system/users.vue': {
+      routes:
+        | '/(admin)/system/users'
       views:
         | never
       pathParamNames:

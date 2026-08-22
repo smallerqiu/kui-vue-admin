@@ -12,16 +12,17 @@ import "dayjs/locale/zh-cn";
 import ui_en from "kui-vue/locale/en";
 import ui_zh from "kui-vue/locale/zh-CN";
 import { computed, provide, ref } from "vue";
-import { getAuthUser } from "./utils/auth";
+import { useAuthStore } from "./stores/auth";
 import local_en from "./lang/en";
 import { setTranslate } from "./lang/useTranslate";
 import local_zh from "./lang/zh";
 const lang = ref(localStorage.getItem("lang") || "en");
+const authStore = useAuthStore();
 if (lang.value === "zh") {
   dayjs.locale("zh-cn");
 }
 const userEmail = computed(() => {
-  return getAuthUser().email || "";
+  return authStore.user.email || "";
 });
 
 const messages = computed(() => (lang.value === "en" ? en : zh));

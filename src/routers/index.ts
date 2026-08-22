@@ -2,7 +2,8 @@ import { loading } from "kui-vue";
 import { createRouter, createWebHistory } from "vue-router";
 import { routes } from "vue-router/auto-routes";
 import { createMenuItems } from "../components/system/useMenu";
-import { getToken } from "../utils/auth";
+import { getAuthUser, getToken } from "../utils/auth";
+import { hasRole } from "./permissions";
 //import { buildRoute } from "./utils.ts";
 
 const router = createRouter({
@@ -51,6 +52,9 @@ router.beforeEach(async (to) => {
       : true;
   }
   if (to.path === "/account/login") return "/";
+  if (!hasRole(to.meta.roles, getAuthUser().roles || [])) {
+    return "/error/403";
+  }
   return true;
 });
 router.afterEach((_) => {
