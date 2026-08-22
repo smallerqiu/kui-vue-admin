@@ -171,13 +171,20 @@ const getPath = (tree: any, targetKey: string) => {
   return found ? path.slice().reverse() : [];
 };
 
-const keys = getPath(routes.value, route.path);
-const activeMenu = ref(keys);
+const resolveNavigation = () => {
+  const target = typeof route.meta.activeMenu === "string" ? route.meta.activeMenu : route.path;
+  const keys = getPath(routes.value, target);
+  if (target !== route.path && route.meta.title) {
+    Breadcrumbs.value.push({ path: route.path, meta: route.meta });
+  }
+  return keys;
+};
+const activeMenu = ref(resolveNavigation());
 
 watch(
   [() => route.fullPath, routes],
   () => {
-    const keys = getPath(routes.value, route.path);
+    const keys = resolveNavigation();
     activeMenu.value = keys;
     if (isMobile.value) mobileOpen.value = false;
   },

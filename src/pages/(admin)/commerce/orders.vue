@@ -12,10 +12,10 @@
         <Select v-model="status" clearable placeholder="全部状态" :options="statusOptions" />
       </Space>
       <Table :data="filteredOrders" :columns="columns" row-key="id" :scroll="{ x: 900 }">
-        <template #id="{ value }"><strong class="order-id">{{ value }}</strong></template>
+        <template #id="{ record }"><button class="order-id" type="button" @click="openDetail(record)">{{ record.id }}</button></template>
         <template #amount="{ value }">¥ {{ Number(value).toLocaleString() }}</template>
         <template #status="{ value }"><Tag :color="statusColor(value)">{{ statusLabel(value) }}</Tag></template>
-        <template #action><Button size="small" theme="plain" :icon="Eye">详情</Button></template>
+        <template #action="{ record }"><Button size="small" theme="plain" :icon="Eye" @click="openDetail(record)">详情</Button></template>
       </Table>
     </Card>
   </div>
@@ -26,6 +26,9 @@ import PageHeader from "@/components/system/page-header.vue";
 import { Download, Eye, Search } from "kui-icons";
 import type { Column, StatNumberItem } from "kui-vue";
 import { computed, ref } from "vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
 
 const stats: Array<{ title: string; data: StatNumberItem }> = [
   { title: "今日订单", data: { value: 1286, separator: ",", desc: "全部渠道" } },
@@ -58,13 +61,14 @@ const filteredOrders = computed(() => orders.filter((item) => {
 }));
 const statusLabel = (value: string) => statusOptions.find((item) => item.value === value)?.label || value;
 const statusColor = (value: string) => ({ pending: "orange", paid: "blue", shipped: "cyan", completed: "green", refund: "red" }[value] || "gray");
+const openDetail = (record: { id: string }) => router.push(`/order/${record.id}`);
 </script>
 
 <style scoped lang="less">
 .pro-list-page { max-width: 1600px; margin: 0 auto; padding: 8px 6px 20px; }
 .order-stats { margin-bottom: 16px; }
 .filter-bar { margin-bottom: 16px; }
-.order-id { color: var(--kui-color-primary); font-weight: 600; }
+.order-id { padding: 0; color: var(--kui-color-primary); font: inherit; font-weight: 600; border: 0; background: transparent; cursor: pointer; }
 </style>
 
 <route lang="yaml">
