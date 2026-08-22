@@ -19,25 +19,38 @@
 </template>
 
 <script setup lang="ts">
+import { useTranslate } from "@/lang/useTranslate.ts";
 import * as kuiIcons from "kui-icons";
 import type { IconType, MenuOptionsProps } from "kui-vue";
-import { inject, onMounted, ref, type PropType } from "vue";
+import { onMounted, ref, type PropType } from "vue";
 import RecursiveMenu from "./recursive-menu.vue";
-const $t = inject<(key: string) => string>("$t", (key: string) => key);
+
+type MenuItem = Omit<MenuOptionsProps, "children" | "key" | "meta" | "path"> & {
+  children?: MenuItem[];
+  key: string;
+  meta: {
+    title: string;
+    icon: string;
+  };
+  path: string;
+  hidden?: boolean;
+};
+
+const $t = useTranslate();
 const icons = ref<Record<string, IconType[]>>(kuiIcons);
 const props = defineProps({
-  item: Object as PropType<MenuOptionsProps>,
+  item: Object as PropType<MenuItem>,
   isPopup: Boolean,
 });
 
-const menu = ref<MenuOptionsProps>();
-const menuItem = ref<Record<string, any>>();
-const item = props.item as MenuOptionsProps;
+const menu = ref<MenuItem>();
+const menuItem = ref<MenuItem>();
+const item = props.item as MenuItem;
 
 onMounted(() => {
   const { children } = item;
   if (children) {
-    const showChildren = children.filter((x: any) => !x.hidden && x.meta);
+    const showChildren = children.filter((x) => !x.hidden && x.meta);
     if (showChildren.length > 1) {
       menu.value = item;
     } else if (showChildren.length === 1) {

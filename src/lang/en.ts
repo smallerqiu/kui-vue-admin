@@ -10,4 +10,13 @@ export default {
     desc_500:
       "Service seems to have encountered some problems, please try again later.",
   },
+  menu: {
+    langTip: "切换简体中文",
+    reload: "Reload",
+    close: "Close",
+    close_other: "Close Others",
+    close_left: "Close Left",
+    close_right: "Close Right",
+    log_out: "Logout",
+  },
 };

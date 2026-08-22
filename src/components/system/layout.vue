@@ -100,7 +100,6 @@ const changeLang = inject<() => void>("changeLang");
 const collapsed = ref(false);
 const routes = computed(() => tabViewsStore.routes);
 
-const showLunch = ref(false);
 const user = ref(JSON.parse(localStorage.getItem("user_info") || "{}"));
 
 const localCollapsed = computed(

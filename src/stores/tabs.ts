@@ -111,7 +111,8 @@ export const useTabViewsStore = defineStore("tabViews", {
       localStorage.setItem("routes", JSON.stringify(routes));
     },
     getView(route: any) {
-      const { path, fullPath, query, params, meta, name, icon, loading } = route;
+      const { path, fullPath, query, params, meta, name, icon, loading } =
+        route;
       const view: ViewItem = {
         key: id(fullPath),
         loading: loading === true ? true : false,

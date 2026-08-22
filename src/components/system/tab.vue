@@ -9,7 +9,7 @@
         :time="300"
         @enter="animate.onEnter"
         @beforeEnter="animate.onBeforeEnter"
-        @afterEnter="animate.onAfterEnter"
+        @afterEnter="onAfterEnter"
         @beforeLeave="animate.onBeforeLeave"
         @leave="animate.onLeave"
         @afterLeave="animate.onAfterLeave"
@@ -60,11 +60,7 @@
       <!-- </draggable> -->
     </div>
     <Dropdown trigger="hover" v-if="showDrop" placement="bottom" arrow>
-      <Button
-        :icon="ChevronDown"
-        size="small"
-        class="sys-tab-show-list-btn"
-      ></Button>
+      <Button :icon="ChevronDown" size="small" class="sys-tab-show-list-btn" />
       <template #overlay>
         <Menu @select="dropGo">
           <MenuItem
@@ -80,24 +76,25 @@
   </div>
 </template>
 <script setup lang="ts">
+import { useTranslate } from "@/lang/useTranslate";
+import type { ViewItem } from "@/stores/tabs";
+import { useTabViewsStore } from "@/stores/tabs";
+import { getTransitionHorProp } from "@/utils/transition";
 import id from "hash-sum";
 import * as kuiIcons from "kui-icons";
 import { ChevronDown, Loading, X } from "kui-icons";
 import type { MenuSelectEvent } from "kui-vue";
 import {
   computed,
-  inject,
   nextTick,
   onBeforeMount,
+  onBeforeUnmount,
   onMounted,
   ref,
   watch,
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import type { ViewItem } from "../../stores/tabs";
-import { useTabViewsStore } from "../../stores/tabs";
-import { getTransitionHorProp } from "../../utils/transition";
-const $t = inject<(key: string) => string>("$t", (key: string) => key);
+const $t = useTranslate();
 const route = useRoute();
 const router = useRouter();
 const tab = useTabViewsStore();
@@ -108,26 +105,33 @@ const showDrop = ref(false);
 const observe = ref<ResizeObserver>();
 const rootRef = ref<HTMLElement>();
 
-const views = computed<ViewItem[]>(() => tab.views); //getters.views);
+const views = computed<ViewItem[]>(() => tab.views);
 const current = computed(() => route.fullPath);
 const currentIndex = computed(() =>
-  views.value.findIndex((v) => v.fullPath == current.value),
+  views.value.findIndex((v) => v.fullPath === current.value),
 );
 
 watch(
   () => route.fullPath,
   (_) => {
     tab.addView(route);
-    nextTick(() => {
-      if (rootRef.value)
-        showDrop.value =
-          rootRef.value?.clientWidth < rootRef.value?.scrollWidth;
-      nextTick(() => {
-        scrollToCenter();
-      });
-    });
+    updatePosition();
   },
 );
+const updatePosition = () => {
+  nextTick(() => {
+    if (rootRef.value)
+      showDrop.value = rootRef.value?.clientWidth < rootRef.value?.scrollWidth;
+    nextTick(() => {
+      scrollToCenter();
+    });
+  });
+};
+
+const onAfterEnter = (e: any) => {
+  animate.onAfterEnter(e);
+  updatePosition();
+};
 
 onBeforeMount(() => {
   tab.addView(route);
@@ -136,21 +140,24 @@ onBeforeMount(() => {
 onMounted(() => {
   if (rootRef.value) {
     observe.value = new ResizeObserver(() => {
-      showDrop.value =
-        rootRef.value != undefined &&
-        rootRef.value?.clientWidth < rootRef.value?.scrollWidth;
-      scrollToCenter();
+      updatePosition();
     });
     observe.value.observe(rootRef.value);
   }
 });
 
+onBeforeUnmount(() => {
+  if (observe.value) {
+    observe.value.disconnect();
+  }
+});
+
 const dropGo = (e: { key: string }) => {
-  let view = views.value.find((x: any) => x.fullPath == e.key);
+  let view = views.value.find((x: ViewItem) => x.fullPath === e.key);
   if (view) go(view);
 };
 
-const scrollToCenter = (animate = true) => {
+const scrollToCenter = (smooth = true) => {
   let box = rootRef.value;
   if (!box) return;
   let items = box.children[0]?.children || [];
@@ -161,7 +168,7 @@ const scrollToCenter = (animate = true) => {
     offset -
     parseFloat((box.clientWidth / 2).toFixed(2)) +
     parseFloat((item.clientWidth / 2).toFixed(2));
-  if (animate) {
+  if (smooth) {
     box.scrollTo({ left: scrollDistance, behavior: "smooth" });
   } else {
     box.scrollLeft = scrollDistance;
@@ -179,22 +186,22 @@ const handle = (e: MenuSelectEvent, view: ViewItem) => {
       break;
     case "close-other":
       tab.closeOtherView(view);
-      if (current.value != view.fullPath) {
+      if (current.value !== view.fullPath) {
         go(view);
       }
       break;
     case "close-right":
-      cur_index = views.value.findIndex((x) => x.fullPath == current.value);
+      cur_index = views.value.findIndex((x) => x.fullPath === current.value);
       select_index = views.value.indexOf(view);
-      if (current.value != view.fullPath && cur_index > select_index) {
+      if (current.value !== view.fullPath && cur_index > select_index) {
         go(view);
       }
       tab.closeRightView(view);
       break;
     case "close-left":
-      cur_index = views.value.findIndex((x) => x.fullPath == current.value);
+      cur_index = views.value.findIndex((x) => x.fullPath === current.value);
       select_index = views.value.indexOf(view);
-      if (current.value != view.fullPath && cur_index < select_index) {
+      if (current.value !== view.fullPath && cur_index < select_index) {
         go(view);
       }
       tab.closeLeftView(view);
@@ -206,7 +213,7 @@ const handle = (e: MenuSelectEvent, view: ViewItem) => {
 
 const reload = (view: ViewItem) => {
   let currentId = id(route.fullPath);
-  if (currentId != view.key) {
+  if (currentId !== view.key) {
     tab.reloadSelectView(view);
     return;
   }
@@ -215,13 +222,13 @@ const reload = (view: ViewItem) => {
 
 const close = (view: ViewItem) => {
   let viewsArray = views.value;
-  if (viewsArray.length == 1) return;
-  if (view.fullPath == current.value) {
-    let index = viewsArray.findIndex((x) => x.fullPath == view.fullPath);
+  if (viewsArray.length === 1) return;
+  if (view.fullPath === current.value) {
+    let index = viewsArray.findIndex((x) => x.fullPath === view.fullPath);
 
-    if (index == 0) {
+    if (index === 0) {
       index = 1;
-    } else if (index == viewsArray.length - 1) {
+    } else if (index === viewsArray.length - 1) {
       index = viewsArray.length - 2;
     } else {
       index += 1;
@@ -232,10 +239,7 @@ const close = (view: ViewItem) => {
   } else {
     tab.closeView(view);
   }
-  nextTick(() => {
-    if (!rootRef.value) return;
-    showDrop.value = rootRef.value?.clientWidth < rootRef.value?.scrollWidth;
-  });
+  updatePosition();
 };
 
 const go = (item: ViewItem) => {
@@ -250,10 +254,10 @@ const cls = (item: ViewItem) => {
   return [
     "sys-tab-item",
     {
-      "sys-tab-item-active": item.fullPath == current.value,
-      "sys-tab-item-first": index == 0,
-      "sys-tab-item-prev": index == currentIndex.value - 1,
-      "sys-tab-item-next": index == currentIndex.value + 1,
+      "sys-tab-item-active": item.fullPath === current.value,
+      "sys-tab-item-first": index === 0,
+      "sys-tab-item-prev": index === currentIndex.value - 1,
+      "sys-tab-item-next": index === currentIndex.value + 1,
     },
   ];
 };
@@ -294,7 +298,7 @@ const cls = (item: ViewItem) => {
       display: inline-flex;
       position: relative;
       cursor: pointer;
-      height: 26px;
+      // height: 26px;
       line-height: 26px;
       font-size: 12px;
       margin: 0 4px;

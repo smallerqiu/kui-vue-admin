@@ -7,4 +7,13 @@ export default {
     title_500: "对不起,我们似乎遇到了一些问题.",
     desc_500: "服务似乎遇到了一些问题,请稍后再试。",
   },
+  menu: {
+    langTip: "Switch to English",
+    reload: "刷新",
+    close: "关闭",
+    close_other: "关闭其他",
+    close_left: "关闭左侧",
+    close_right: "关闭右侧",
+    log_out: "退出登陆",
+  },
 };

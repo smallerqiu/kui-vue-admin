@@ -13,6 +13,7 @@ import ui_en from "kui-vue/locale/en";
 import ui_zh from "kui-vue/locale/zh-CN";
 import { computed, provide, ref } from "vue";
 import local_en from "./lang/en";
+import { setTranslate } from "./lang/useTranslate";
 import local_zh from "./lang/zh";
 const lang = ref(localStorage.getItem("lang") || "en");
 if (lang.value === "zh") {
@@ -54,6 +55,7 @@ const t = (obj: any, path: string, defaultValue: any = null) => {
 
 const $t = (key: string, defaultValue?: any) =>
   t(messages.value, key, defaultValue);
+setTranslate($t);
 
 const changeLang = () => {
   const value = lang.value === "en" ? "zh" : "en";

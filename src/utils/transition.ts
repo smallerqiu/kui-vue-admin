@@ -1,5 +1,5 @@
 import type { RendererElement, TransitionProps } from "vue";
-export function getTransitionProp(name: string):TransitionProps {
+export function getTransitionProp(name: string): TransitionProps {
   return {
     name,
     onBeforeEnter(el: RendererElement) {
@@ -48,7 +48,7 @@ export function getTransitionProp(name: string):TransitionProps {
   };
 }
 
-export function getTransitionHorProp(name: string): TransitionProps {
+export function getTransitionHorProp(name: string) {
   return {
     name,
     onBeforeEnter(el: RendererElement) {

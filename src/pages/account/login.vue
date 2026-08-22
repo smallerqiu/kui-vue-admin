@@ -211,8 +211,8 @@ onMounted(async () => {
   .main {
     width: 380px;
     margin: 50px auto 0;
-    .k-tabs {
-      // padding: 0 4px;
+    .k-tabs-tabpanel {
+      padding: 5px;
     }
     .k-tabs-bar {
       border: none;
