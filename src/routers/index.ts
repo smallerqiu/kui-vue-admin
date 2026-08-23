@@ -2,9 +2,9 @@ import { loading } from "kui-vue";
 import { createRouter, createWebHistory } from "vue-router";
 import { routes } from "vue-router/auto-routes";
 import { createMenuItems } from "../components/system/useMenu";
+import { getRuntimeAppName } from "../config/app";
 import { getAuthUser, getToken } from "../utils/auth";
 import { hasPermission, hasRole } from "./permissions";
-import { getRuntimeAppName } from "../config/app";
 //import { buildRoute } from "./utils.ts";
 
 const router = createRouter({
@@ -66,5 +66,20 @@ router.afterEach((to) => {
   document.title = to.meta.title
     ? `${to.meta.title} - ${getRuntimeAppName()}`
     : getRuntimeAppName();
+  const analyticsWindow = window as Window & {
+    _hmt?: { push: (args: unknown[]) => void };
+    gtag?: (...args: unknown[]) => void;
+  };
+  const _hmt = analyticsWindow._hmt;
+  const gtag = analyticsWindow.gtag;
+  if (typeof _hmt != "undefined") _hmt.push(["_trackPageview", to.fullPath]);
+
+  if (typeof gtag !== "undefined") {
+    gtag("config", "G-1KNV6YTVBM", {
+      page_path: to.fullPath,
+      page_title: to.meta.title || document.title,
+      page_location: window.location.origin + to.fullPath,
+    });
+  }
 });
 export default router;
