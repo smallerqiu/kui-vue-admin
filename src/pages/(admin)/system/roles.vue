@@ -4,11 +4,10 @@
       <template #actions><Button type="primary" :icon="Plus" @click="openCreate">新增角色</Button></template>
     </PageHeader>
 
-    <Card bordered>
-      <Flex class="pro-filter-bar" justify="space-between" align="center" wrap>
+    <ListPanel :summary="`${filteredRoles.length} 个角色`">
+      <template #filters>
         <Input v-model="keyword" clearable placeholder="搜索角色名称或编码" :icon="Search" />
-        <span class="summary">{{ filteredRoles.length }} 个角色</span>
-      </Flex>
+      </template>
       <Table :data="filteredRoles" :columns="columns" row-key="id" :scroll="{ x: 850 }">
         <template #name="{ record }">
           <div class="role-name"><span :style="{ background: record.color }"><Icon :type="ShieldCheck" /></span><div><strong>{{ record.name }}</strong><small>{{ record.description }}</small></div></div>
@@ -21,7 +20,7 @@
           </Space>
         </template>
       </Table>
-    </Card>
+    </ListPanel>
 
     <Drawer v-model="editOpen" :title="editingId ? '编辑角色' : '新增角色'" :width="440" @ok="saveRole">
       <Form :model="form" layout="vertical">
@@ -47,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import PageHeader from "@/components/system/page-header.vue";
+import { PageHeader } from "kui-vue";
 import { KeyRound, Pencil, Plus, Search, ShieldCheck } from "kui-icons";
 import { message, type Column, type TableRecord, type TreeNode } from "kui-vue";
 import { computed, reactive, ref } from "vue";
@@ -101,7 +100,6 @@ const savePermissions = () => { if (activeRole.value) activeRole.value.permissio
 </script>
 
 <style scoped lang="less">
-.summary { color: var(--kui-color-text-description); }
 .role-name { display: flex; gap: 10px; align-items: center; }
 .role-name > span { display: grid; width: 34px; height: 34px; flex: none; place-items: center; color: #fff; border-radius: var(--kui-control-radius); }
 .role-name > div { display: flex; min-width: 0; flex-direction: column; gap: 2px; }

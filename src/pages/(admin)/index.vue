@@ -72,9 +72,18 @@
       <GridItem :span="{ xs: 1, lg: 5 }">
         <Card title="快捷入口" bordered class="panel-card">
           <div class="quick-actions">
-            <button v-for="action in quickActions" :key="action.label" type="button">
-              <span><Icon :type="action.icon" /></span>{{ action.label }}
-            </button>
+            <FeatureCard
+              v-for="action in quickActions"
+              :key="action.label"
+              :icon="action.icon"
+              :title="action.label"
+              :color="action.color"
+              size="small"
+              direction="vertical"
+              theme="plain"
+              clickable
+              @click="router.push(action.path)"
+            />
           </div>
           <div class="notice-box">
             <Icon :type="Bell" />
@@ -92,8 +101,10 @@ import TrendChart from "@/components/charts/TrendChart.vue";
 import { Activity, ArrowUpRight, Bell, CalendarDays, ChartNoAxesCombined, Clock, FolderKanban, Plus, RefreshCw, ShoppingCart, Users, Wallet } from "kui-icons";
 import { message, type IconType, type StatNumberItem } from "kui-vue";
 import { computed } from "vue";
+import { useRouter } from "vue-router";
 
 const authStore = useAuthStore();
+const router = useRouter();
 const userName = computed(() => authStore.user.fullName || authStore.user.name || "管理员");
 const today = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "short" }).format(new Date());
 
@@ -120,10 +131,10 @@ const activities = [
   { user: "周宁", text: "创建了 8 月运营复盘任务", time: "1 小时前", type: "任务", color: "#22a06b" },
   { user: "王一", text: "更新了客户增长数据报表", time: "2 小时前", type: "数据", color: "#f59e0b" },
 ];
-const quickActions: Array<{ label: string; icon: IconType[] }> = [
-  { label: "订单管理", icon: ShoppingCart }, { label: "用户中心", icon: Users },
-  { label: "项目管理", icon: FolderKanban }, { label: "财务报表", icon: Wallet },
-  { label: "数据分析", icon: ChartNoAxesCombined }, { label: "操作日志", icon: Activity },
+const quickActions: Array<{ label: string; icon: IconType[]; path: string; color: string }> = [
+  { label: "订单管理", icon: ShoppingCart, path: "/commerce/orders", color: "#3a95ff" }, { label: "客户管理", icon: Users, path: "/crm/customers", color: "#7b61ff" },
+  { label: "项目管理", icon: FolderKanban, path: "/projects", color: "#14b8a6" }, { label: "财务报表", icon: Wallet, path: "/data/analytics", color: "#f59e0b" },
+  { label: "数据分析", icon: ChartNoAxesCombined, path: "/data/analytics", color: "#22a06b" }, { label: "操作日志", icon: Activity, path: "/system/logs", color: "#ef6b73" },
 ];
 const refreshData = () => message.success("数据已更新");
 </script>
@@ -160,11 +171,7 @@ const refreshData = () => message.success("数据已更新");
 }
 .quick-actions {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-  button {
-    display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 13px 6px; color: var(--kui-color-text); font: inherit; border: 0; border-radius: var(--kui-control-radius); background: transparent; cursor: pointer; transition: background var(--kui-motion-duration-fast);
-    &:hover { background: var(--kui-color-item-hover); }
-    span { display: grid; width: 34px; height: 34px; place-items: center; color: var(--kui-color-primary); border-radius: inherit; background: var(--kui-theme-fill-bg); font-size: 17px; }
-  }
+  :deep(.k-feature-card) { height: 100%; }
 }
 .notice-box {
   display: flex; gap: 12px; align-items: flex-start; margin-top: 18px; padding: 14px; color: var(--kui-color-primary); border-radius: var(--kui-card-radius); background: var(--kui-theme-fill-bg);

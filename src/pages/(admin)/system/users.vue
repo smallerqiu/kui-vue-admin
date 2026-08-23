@@ -7,17 +7,42 @@
       </template>
     </PageHeader>
 
-    <Card bordered>
-      <Flex class="filter-bar" justify="space-between" align="center" wrap>
-        <Space wrap>
+    <ListPanel :summary="`共 ${filteredUsers.length} 位用户`" :selected-count="selectedKeys.length">
+      <template #filters>
           <Input v-model="keyword" clearable placeholder="搜索姓名或邮箱" :icon="Search" />
           <Select v-model="status" clearable placeholder="全部状态" :options="statusOptions" />
           <Select v-model="role" clearable placeholder="全部角色" :options="roleOptions" />
-        </Space>
-        <span class="result-count">共 {{ filteredUsers.length }} 位用户</span>
-      </Flex>
+      </template>
 
-      <Table :data="pageUsers" :columns="columns" row-key="id" :scroll="{ x: 900 }">
+      <template #actions>
+        <Space>
+          <Button theme="plain" @click="resetFilters">重置</Button>
+          <Poptip title="显示列" trigger="click">
+            <template #content>
+              <CheckboxGroup v-model="visibleColumnKeys" direction="vertical" :options="columnOptions" />
+            </template>
+            <Button>列设置</Button>
+          </Poptip>
+        </Space>
+      </template>
+
+      <template #selection="{ count }">
+        <Space>
+          <strong>已选择 {{ count }} 项</strong>
+          <Button type="danger" size="small" @click="disableSelected">批量停用</Button>
+          <Button theme="plain" size="small" @click="selectedKeys = []">取消选择</Button>
+        </Space>
+      </template>
+
+      <Table
+        v-model:selected-keys="selectedKeys"
+        checkable
+        :data="pageUsers"
+        :columns="columns"
+        :hidden-column-keys="hiddenColumnKeys"
+        row-key="id"
+        :scroll="{ x: 900 }"
+      >
         <template #user="{ record }">
           <Space>
             <Avatar :size="34" :style="{ background: record.color }">{{ record.name.slice(0, 1) }}</Avatar>
@@ -36,10 +61,10 @@
         </template>
       </Table>
 
-      <Flex class="pagination-bar" justify="flex-end">
+      <template #footer>
         <Page v-model:page="page" :total="filteredUsers.length" :page-size="pageSize" show-total />
-      </Flex>
-    </Card>
+      </template>
+    </ListPanel>
 
     <Drawer v-model="drawerOpen" :title="editingId ? '编辑用户' : '新增用户'" :width="440" @ok="saveUser">
       <Form :model="form" layout="vertical">
@@ -53,9 +78,9 @@
 </template>
 
 <script setup lang="ts">
-import PageHeader from "@/components/system/page-header.vue";
+import { PageHeader } from "kui-vue";
 import { Download, Eye, Pencil, Search, UserPlus } from "kui-icons";
-import { message, type Column, type TableRecord } from "kui-vue";
+import { message, type Column, type TableKey, type TableRecord } from "kui-vue";
 import { computed, reactive, ref, watch } from "vue";
 
 interface UserRow extends TableRecord {
@@ -89,6 +114,15 @@ const roleOptions = [
 const keyword = ref("");
 const status = ref<string>();
 const role = ref<string>();
+const selectedKeys = ref<TableKey[]>([]);
+const configurableColumnKeys = ["role", "department", "status", "lastLogin"];
+const visibleColumnKeys = ref<TableKey[]>([...configurableColumnKeys]);
+const columnOptions = columns
+  .filter((item) => configurableColumnKeys.includes(item.key))
+  .map((item) => ({ label: item.title, value: item.key }));
+const hiddenColumnKeys = computed(() =>
+  configurableColumnKeys.filter((key) => !visibleColumnKeys.value.includes(key))
+);
 const page = ref(1);
 const pageSize = 10;
 const drawerOpen = ref(false);
@@ -102,6 +136,13 @@ const filteredUsers = computed(() => users.value.filter((user) => {
 const pageUsers = computed(() => filteredUsers.value.slice((page.value - 1) * pageSize, page.value * pageSize));
 watch([keyword, status, role], () => { page.value = 1; });
 const roleLabel = (value: string) => roleOptions.find((item) => item.value === value)?.label || value;
+const resetFilters = () => { keyword.value = ""; status.value = undefined; role.value = undefined; };
+const disableSelected = () => {
+  const selected = new Set(selectedKeys.value);
+  users.value.forEach((item) => { if (selected.has(item.id)) item.status = "disabled"; });
+  message.success(`已停用 ${selected.size} 位用户`);
+  selectedKeys.value = [];
+};
 const resetForm = () => Object.assign(form, { name: "", email: "", role: "developer", status: "active" });
 const openCreate = () => { editingId.value = ""; resetForm(); drawerOpen.value = true; };
 const openEdit = (record: UserRow) => { editingId.value = record.id; Object.assign(form, record); drawerOpen.value = true; };
@@ -120,8 +161,6 @@ const saveUser = () => {
 
 <style scoped lang="less">
 .pro-list-page { max-width: 1600px; margin: 0 auto; padding: 8px 6px 20px; }
-.filter-bar { gap: 12px; margin-bottom: 16px; }
-.result-count { color: var(--kui-color-text-description); }
 .user-cell { display: flex; flex-direction: column; gap: 2px; }
 .user-cell span { color: var(--kui-color-text-description); font-size: 12px; }
 .pagination-bar { padding-top: 16px; }

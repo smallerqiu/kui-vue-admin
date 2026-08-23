@@ -6,23 +6,23 @@
     <Grid :cols="{ xs: 1, sm: 2, xl: 4 }" :x-gap="12" :y-gap="12" class="order-stats">
       <GridItem v-for="item in stats" :key="item.title"><StatCard :title="item.title" :items="[item.data]" bordered reverse /></GridItem>
     </Grid>
-    <Card bordered>
-      <Space class="filter-bar" wrap>
+    <ListPanel :summary="`${filteredOrders.length} 条订单`">
+      <template #filters>
         <Input v-model="keyword" clearable placeholder="订单号或客户名称" :icon="Search" />
         <Select v-model="status" clearable placeholder="全部状态" :options="statusOptions" />
-      </Space>
+      </template>
       <Table :data="filteredOrders" :columns="columns" row-key="id" :scroll="{ x: 900 }">
         <template #id="{ record }"><button class="order-id" type="button" @click="openDetail(record)">{{ record.id }}</button></template>
         <template #amount="{ value }">¥ {{ Number(value).toLocaleString() }}</template>
         <template #status="{ value }"><Tag :color="statusColor(value)">{{ statusLabel(value) }}</Tag></template>
         <template #action="{ record }"><Button size="small" theme="plain" :icon="Eye" @click="openDetail(record)">详情</Button></template>
       </Table>
-    </Card>
+    </ListPanel>
   </div>
 </template>
 
 <script setup lang="ts">
-import PageHeader from "@/components/system/page-header.vue";
+import { PageHeader } from "kui-vue";
 import { Download, Eye, Search } from "kui-icons";
 import type { Column, StatNumberItem } from "kui-vue";
 import { computed, ref } from "vue";
@@ -67,7 +67,6 @@ const openDetail = (record: { id: string }) => router.push(`/order/${record.id}`
 <style scoped lang="less">
 .pro-list-page { max-width: 1600px; margin: 0 auto; padding: 8px 6px 20px; }
 .order-stats { margin-bottom: 16px; }
-.filter-bar { margin-bottom: 16px; }
 .order-id { padding: 0; color: var(--kui-color-primary); font: inherit; font-weight: 600; border: 0; background: transparent; cursor: pointer; }
 </style>
 

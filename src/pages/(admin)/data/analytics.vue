@@ -50,7 +50,7 @@
 <script setup lang="ts">
 import DonutChart from "@/components/charts/DonutChart.vue";
 import TrendChart from "@/components/charts/TrendChart.vue";
-import PageHeader from "@/components/system/page-header.vue";
+import { PageHeader } from "kui-vue";
 import { Download, Monitor, Smartphone, Tablet } from "kui-icons";
 import type { IconType, StatNumberItem } from "kui-vue";
 import { computed, ref } from "vue";

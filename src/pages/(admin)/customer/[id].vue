@@ -33,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import PageHeader from "@/components/system/page-header.vue";
+import { PageHeader } from "kui-vue";
 import { customers } from "@/data/customers";
 import { ArrowLeft, Building2, CheckCheck, ContactRound, FileText, Mail, MapPin, Phone, Plus, ShoppingCart } from "kui-icons";
 import type { BadgeStatusType, Column, IconType } from "kui-vue";

@@ -6,15 +6,12 @@
     <Grid :cols="{ xs: 1, sm: 2, xl: 4 }" :x-gap="12" :y-gap="12" class="customer-stats">
       <GridItem v-for="item in stats" :key="item.title"><StatCard :title="item.title" :items="[item.data]" bordered reverse /></GridItem>
     </Grid>
-    <Card bordered>
-      <Flex class="pro-filter-bar" justify="space-between" align="center" wrap>
-        <Space wrap>
+    <ListPanel :summary="`${filteredCustomers.length} 家客户`">
+      <template #filters>
           <Input v-model="keyword" clearable placeholder="搜索客户、联系人或城市" :icon="Search" />
           <Select v-model="level" clearable placeholder="全部等级" :options="levelOptions" />
           <Select v-model="status" clearable placeholder="全部状态" :options="statusOptions" />
-        </Space>
-        <span class="summary">{{ filteredCustomers.length }} 家客户</span>
-      </Flex>
+      </template>
       <Table :data="filteredCustomers" :columns="columns" row-key="id" :scroll="{ x: 1050 }">
         <template #customer="{ record }">
           <button class="customer-cell" type="button" @click="openDetail(record)"><span :style="{ background: record.color }"><Icon :type="Building2" /></span><div><strong>{{ record.name }}</strong><small>{{ record.id }} · {{ record.industry }}</small></div></button>
@@ -24,7 +21,7 @@
         <template #annualValue="{ value }"><strong>¥ {{ Number(value).toLocaleString() }}</strong></template>
         <template #action="{ record }"><Button size="small" theme="plain" :icon="Eye" @click="openDetail(record)">详情</Button></template>
       </Table>
-    </Card>
+    </ListPanel>
 
     <Drawer v-model="drawerOpen" title="新增客户" :width="480" @ok="createCustomer">
       <Form :model="form" layout="vertical">
@@ -42,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import PageHeader from "@/components/system/page-header.vue";
+import { PageHeader } from "kui-vue";
 import { customers, type CustomerLevel, type CustomerRecord, type CustomerStatus } from "@/data/customers";
 import { Building2, Eye, Search, UserRoundPlus } from "kui-icons";
 import { message, type BadgeStatusType, type Column, type StatNumberItem } from "kui-vue";
@@ -81,7 +78,7 @@ const createCustomer = () => {
 </script>
 
 <style scoped lang="less">
-.customer-stats { margin-bottom: 16px; }.summary { color: var(--kui-color-text-description); }
+.customer-stats { margin-bottom: 16px; }
 .customer-cell { display: flex; gap: 10px; align-items: center; padding: 0; color: inherit; font: inherit; text-align: left; border: 0; background: transparent; cursor: pointer; }.customer-cell > span { display: grid; width: 38px; height: 38px; flex: none; place-items: center; color: #fff; border-radius: var(--kui-control-radius); }.customer-cell > div { display: flex; min-width: 0; flex-direction: column; gap: 2px; }.customer-cell strong { color: var(--kui-color-text-title); }.customer-cell small { color: var(--kui-color-text-description); }
 </style>
 

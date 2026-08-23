@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import PageHeader from "@/components/system/page-header.vue";
+import { PageHeader } from "kui-vue";
 import { useNotificationStore, type NotificationItem, type NotificationType } from "@/stores/notifications";
 import { Bell, CheckCheck, PackageCheck, ShieldAlert, Trash2, X } from "kui-icons";
 import type { IconType } from "kui-vue";

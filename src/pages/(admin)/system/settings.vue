@@ -46,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import PageHeader from "@/components/system/page-header.vue";
+import { PageHeader } from "kui-vue";
 import { useSystemSettingsStore } from "@/stores/system-settings";
 import { RotateCcw, Save } from "kui-icons";
 import { message, modal } from "kui-vue";

@@ -37,6 +37,8 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       Record<never, never>,
       | '/(admin)/'
+      | '/(admin)/approvals'
+      | '/(admin)/calendar'
       | '/(admin)/commerce'
       | '/(admin)/commerce/orders'
       | '/(admin)/commerce/products'
@@ -54,10 +56,25 @@ declare module 'vue-router/auto-routes' {
       | '/(admin)/system/roles'
       | '/(admin)/system/settings'
       | '/(admin)/system/users'
+      | '/(admin)/tasks'
     >,
     '/(admin)/': RouteRecordInfo<
       '/(admin)/',
       '/',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/(admin)/approvals': RouteRecordInfo<
+      '/(admin)/approvals',
+      '/approvals',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/(admin)/calendar': RouteRecordInfo<
+      '/(admin)/calendar',
+      '/calendar',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -185,6 +202,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/(admin)/tasks': RouteRecordInfo<
+      '/(admin)/tasks',
+      '/tasks',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/account/login': RouteRecordInfo<
       '/account/login',
       '/account/login',
@@ -237,6 +261,8 @@ declare module 'vue-router/auto-routes' {
       routes:
         | '/(admin)'
         | '/(admin)/'
+        | '/(admin)/approvals'
+        | '/(admin)/calendar'
         | '/(admin)/commerce'
         | '/(admin)/commerce/orders'
         | '/(admin)/commerce/products'
@@ -254,6 +280,7 @@ declare module 'vue-router/auto-routes' {
         | '/(admin)/system/roles'
         | '/(admin)/system/settings'
         | '/(admin)/system/users'
+        | '/(admin)/tasks'
       views:
         | 'default'
       pathParamNames:
@@ -262,6 +289,22 @@ declare module 'vue-router/auto-routes' {
     'src/pages/(admin)/index.vue': {
       routes:
         | '/(admin)/'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/(admin)/approvals.vue': {
+      routes:
+        | '/(admin)/approvals'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/(admin)/calendar.vue': {
+      routes:
+        | '/(admin)/calendar'
       views:
         | never
       pathParamNames:
@@ -406,6 +449,14 @@ declare module 'vue-router/auto-routes' {
     'src/pages/(admin)/system/users.vue': {
       routes:
         | '/(admin)/system/users'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/(admin)/tasks.vue': {
+      routes:
+        | '/(admin)/tasks'
       views:
         | never
       pathParamNames:

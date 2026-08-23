@@ -36,11 +36,9 @@
             </TabPanel>
             <TabPanel key="security" title="账号安全">
               <div class="security-list">
-                <div v-for="item in securityItems" :key="item.title">
-                  <span class="security-icon"><Icon :type="item.icon" /></span>
-                  <div><strong>{{ item.title }}</strong><p>{{ item.description }}</p></div>
-                  <Button size="small" @click="message.info(`${item.title}功能待接入服务端`)">{{ item.action }}</Button>
-                </div>
+                <FeatureCard v-for="item in securityItems" :key="item.title" :icon="item.icon" :title="item.title" :desc="item.description" size="small" theme="plain">
+                  <template #extra><Button size="small" @click="message.info(`${item.title}功能待接入服务端`)">{{ item.action }}</Button></template>
+                </FeatureCard>
               </div>
             </TabPanel>
             <TabPanel key="preference" title="偏好设置">
@@ -58,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import PageHeader from "@/components/system/page-header.vue";
+import { PageHeader } from "kui-vue";
 import { useAuthStore } from "@/stores/auth";
 import { useThemeStore } from "@/stores/theme";
 import { usePreferenceStore } from "@/stores/preferences";
@@ -102,12 +100,10 @@ const toggleTheme = (dark: boolean) => themeStore.setTheme(dark ? "dark" : "ligh
 .profile-meta span { color: var(--kui-color-text-description); }
 .settings-form { max-width: 720px; padding-top: 18px; }
 .security-list, .preference-list { display: grid; padding-top: 12px; }
-.security-list > div { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 17px 0; border-bottom: 1px solid var(--kui-color-border); }
-.security-list > div:last-child, .preference-list > div:last-child { border-bottom: 0; }
-.security-icon { display: grid; width: 38px; height: 38px; place-items: center; color: var(--kui-color-primary); border-radius: var(--kui-control-radius); background: var(--kui-theme-fill-bg); font-size: 18px; }
-.security-list p, .preference-list p { margin: 4px 0 0; color: var(--kui-color-text-description); font-size: 12px; }
+.security-list { gap: 4px; }
+.preference-list p { margin: 4px 0 0; color: var(--kui-color-text-description); font-size: 12px; }
 .preference-list > div { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 17px 0; border-bottom: 1px solid var(--kui-color-border); }
-@media (max-width: 560px) { .security-list > div { grid-template-columns: auto minmax(0, 1fr); } .security-list .k-btn { grid-column: 2; justify-self: start; } }
+@media (max-width: 560px) { .security-list :deep(.k-feature-card) { align-items: flex-start; flex-wrap: wrap; } .security-list :deep(.k-feature-card-extra) { width: 100%; margin-left: 40px; } }
 </style>
 
 <route lang="yaml">

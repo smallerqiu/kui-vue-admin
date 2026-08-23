@@ -63,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import PageHeader from "@/components/system/page-header.vue";
+import { PageHeader } from "kui-vue";
 import { ArrowLeft, CircleCheck, Clock, Package, RotateCcw, Truck } from "kui-icons";
 import { message, modal, type IconType } from "kui-vue";
 import { computed, reactive } from "vue";

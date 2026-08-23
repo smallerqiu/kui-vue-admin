@@ -3,21 +3,21 @@
     <PageHeader title="操作日志" description="审计系统内的重要操作和访问记录。">
       <template #actions><Button :icon="Download">导出日志</Button></template>
     </PageHeader>
-    <Card bordered>
-      <Flex class="pro-filter-bar" justify="space-between" align="center" wrap>
-        <Space wrap>
+    <ListPanel :summary="`${filteredLogs.length} 条日志`">
+      <template #filters>
           <Input v-model="keyword" clearable placeholder="搜索用户、模块或 IP" :icon="Search" />
           <Select v-model="level" clearable placeholder="全部级别" :options="levelOptions" />
           <Select v-model="module" clearable placeholder="全部模块" :options="moduleOptions" />
-        </Space>
+      </template>
+      <template #actions>
         <Button :icon="RotateCcw" @click="resetFilters">重置</Button>
-      </Flex>
+      </template>
       <Table :data="filteredLogs" :columns="columns" row-key="id" :scroll="{ x: 980 }">
         <template #level="{ value }"><Tag :color="levelColor(value)">{{ levelLabel(value) }}</Tag></template>
         <template #operator="{ record }"><div class="operator"><Avatar :size="28">{{ record.operator.slice(0, 1) }}</Avatar><span>{{ record.operator }}</span></div></template>
         <template #action="{ record }"><Button size="small" theme="plain" :icon="Eye" @click="showDetail(record)">详情</Button></template>
       </Table>
-    </Card>
+    </ListPanel>
 
     <Drawer v-model="detailOpen" title="日志详情" :width="560" :footer="false">
       <Descriptions v-if="activeLog" :column="1" bordered size="small">
@@ -35,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import PageHeader from "@/components/system/page-header.vue";
+import { PageHeader } from "kui-vue";
 import { Download, Eye, RotateCcw, Search } from "kui-icons";
 import type { Column, TableRecord } from "kui-vue";
 import { computed, defineAsyncComponent, ref } from "vue";

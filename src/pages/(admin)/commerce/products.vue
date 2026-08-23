@@ -3,16 +3,39 @@
     <PageHeader title="商品管理" description="维护商品信息、库存和上架状态。">
       <template #actions><Button type="primary" :icon="Plus" @click="openCreate">新增商品</Button></template>
     </PageHeader>
-    <Card bordered>
-      <Flex class="pro-filter-bar" justify="space-between" align="center" wrap>
-        <Space wrap>
+    <ListPanel :summary="`${filteredProducts.length} 件商品`" :selected-count="selectedKeys.length">
+      <template #filters>
           <Input v-model="keyword" clearable placeholder="搜索商品名称或 SKU" :icon="Search" />
           <Select v-model="category" clearable placeholder="全部分类" :options="categoryOptions" />
           <Select v-model="status" clearable placeholder="全部状态" :options="statusOptions" />
+      </template>
+      <template #actions>
+        <Space>
+          <Button theme="plain" @click="resetFilters">重置</Button>
+          <Poptip title="显示列" trigger="click">
+            <template #content>
+              <CheckboxGroup v-model="visibleColumnKeys" direction="vertical" :options="columnOptions" />
+            </template>
+            <Button>列设置</Button>
+          </Poptip>
         </Space>
-        <span class="summary">{{ filteredProducts.length }} 件商品</span>
-      </Flex>
-      <Table :data="filteredProducts" :columns="columns" row-key="id" :scroll="{ x: 980 }">
+      </template>
+      <template #selection="{ count }">
+        <Space>
+          <strong>已选择 {{ count }} 项</strong>
+          <Button type="danger" size="small" @click="disableSelected">批量下架</Button>
+          <Button theme="plain" size="small" @click="selectedKeys = []">取消选择</Button>
+        </Space>
+      </template>
+      <Table
+        v-model:selected-keys="selectedKeys"
+        checkable
+        :data="filteredProducts"
+        :columns="columns"
+        :hidden-column-keys="hiddenColumnKeys"
+        row-key="id"
+        :scroll="{ x: 980 }"
+      >
         <template #product="{ record }">
           <div class="product-cell"><span :style="{ background: record.color }"><Icon :type="Package" /></span><div><strong>{{ record.name }}</strong><small>{{ record.sku }}</small></div></div>
         </template>
@@ -21,7 +44,7 @@
         <template #status="{ record }"><Switch v-model="record.enabled" size="small" true-text="上架" false-text="下架" /></template>
         <template #action="{ record }"><Button size="small" theme="plain" :icon="Pencil" @click="openEdit(record)">编辑</Button></template>
       </Table>
-    </Card>
+    </ListPanel>
 
     <Drawer v-model="drawerOpen" :title="editingId ? '编辑商品' : '新增商品'" :width="480" @ok="saveProduct">
       <Form :model="form" layout="vertical">
@@ -39,9 +62,9 @@
 </template>
 
 <script setup lang="ts">
-import PageHeader from "@/components/system/page-header.vue";
+import { PageHeader } from "kui-vue";
 import { Package, Pencil, Plus, Search } from "kui-icons";
-import { message, type Column, type TableRecord } from "kui-vue";
+import { message, type Column, type TableKey, type TableRecord } from "kui-vue";
 import { computed, reactive, ref } from "vue";
 
 interface ProductRow extends TableRecord {
@@ -63,6 +86,15 @@ const products = ref<ProductRow[]>([
 const categoryOptions = [{ label: "软件服务", value: "软件服务" }, { label: "数据服务", value: "数据服务" }, { label: "增值服务", value: "增值服务" }];
 const statusOptions = [{ label: "已上架", value: "enabled" }, { label: "已下架", value: "disabled" }];
 const keyword = ref(""); const category = ref<string>(); const status = ref<string>();
+const selectedKeys = ref<TableKey[]>([]);
+const configurableColumnKeys = ["category", "price", "stock", "sales", "status", "updatedAt"];
+const visibleColumnKeys = ref<TableKey[]>([...configurableColumnKeys]);
+const columnOptions = columns
+  .filter((item) => configurableColumnKeys.includes(item.key))
+  .map((item) => ({ label: item.title, value: item.key }));
+const hiddenColumnKeys = computed(() =>
+  configurableColumnKeys.filter((key) => !visibleColumnKeys.value.includes(key))
+);
 const drawerOpen = ref(false); const editingId = ref("");
 const form = reactive({ name: "", sku: "", category: "软件服务", price: 0, stock: 0, enabled: true });
 const filteredProducts = computed(() => {
@@ -71,6 +103,13 @@ const filteredProducts = computed(() => {
     && (!category.value || item.category === category.value)
     && (!status.value || item.enabled === (status.value === "enabled")));
 });
+const resetFilters = () => { keyword.value = ""; category.value = undefined; status.value = undefined; };
+const disableSelected = () => {
+  const selected = new Set(selectedKeys.value);
+  products.value.forEach((item) => { if (selected.has(item.id)) item.enabled = false; });
+  message.success(`已下架 ${selected.size} 件商品`);
+  selectedKeys.value = [];
+};
 const resetForm = () => Object.assign(form, { name: "", sku: "", category: "软件服务", price: 0, stock: 0, enabled: true });
 const openCreate = () => { editingId.value = ""; resetForm(); drawerOpen.value = true; };
 const openEdit = (record: ProductRow) => { editingId.value = record.id; Object.assign(form, record); drawerOpen.value = true; };
@@ -84,7 +123,6 @@ const saveProduct = () => {
 </script>
 
 <style scoped lang="less">
-.summary { color: var(--kui-color-text-description); }
 .product-cell { display: flex; gap: 10px; align-items: center; }
 .product-cell > span { display: grid; width: 42px; height: 42px; flex: none; place-items: center; color: #fff; border-radius: var(--kui-control-radius); font-size: 20px; }
 .product-cell > div { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
