@@ -1,0 +1,37 @@
+{
+  "name": "create-kui-vue-pro",
+  "version": "1.0.0",
+  "description": "Create a production-ready KUI Vue Pro admin application",
+  "type": "module",
+  "bin": {
+    "create-kui-vue-pro": "./bin/create-kui-vue-pro.mjs"
+  },
+  "files": [
+    "bin",
+    "template"
+  ],
+  "scripts": {
+    "prepack": "node ./scripts/prepare-template.mjs"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "keywords": [
+    "kui",
+    "kui-vue",
+    "vue",
+    "admin",
+    "dashboard",
+    "scaffold"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/smallerqiu/kui-vue-admin.git"
+  },
+  "homepage": "https://vue.k-ui.cn/guide/pro",
+  "bugs": "https://github.com/smallerqiu/kui-vue-admin/issues",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

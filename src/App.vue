@@ -1,6 +1,11 @@
 <template>
   <ConfigProvider :locale="locale">
-    <Watermark v-if="preferenceStore.watermark && userEmail" :content="userEmail" :fullscreen="true" :z-index="1010" />
+    <Watermark
+      v-if="preferenceStore.watermark && userEmail"
+      :content="userEmail"
+      :fullscreen="true"
+      :z-index="1010"
+    />
     <router-view v-slot="{ Component }">
       <component :is="Component" />
     </router-view>

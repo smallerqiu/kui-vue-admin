@@ -1,2 +1,5 @@
+packages:
+  - packages/*
+
 minimumReleaseAgeExclude:
   - kui-vue@5.7.0

@@ -20,7 +20,12 @@ const props = withDefaults(
     lineWrapping?: boolean;
     ariaLabel?: string;
   }>(),
-  { height: 480, lineNumbers: true, lineWrapping: true, ariaLabel: "JSON viewer" }
+  {
+    height: 480,
+    lineNumbers: true,
+    lineWrapping: true,
+    ariaLabel: "JSON viewer",
+  },
 );
 const formattedValue = computed(() => {
   if (typeof props.data === "string") {

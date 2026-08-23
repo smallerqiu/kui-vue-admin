@@ -3,7 +3,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import { routes } from "vue-router/auto-routes";
 import { createMenuItems } from "../components/system/useMenu";
 import { getAuthUser, getToken } from "../utils/auth";
-import { hasRole } from "./permissions";
+import { hasPermission, hasRole } from "./permissions";
 import { getRuntimeAppName } from "../config/app";
 //import { buildRoute } from "./utils.ts";
 
@@ -40,7 +40,8 @@ const router = createRouter({
   },
 });
 
-export const routerInitialized = async () => createMenuItems(router.options.routes);
+export const routerInitialized = async () =>
+  createMenuItems(router.options.routes);
 
 router.beforeEach(async (to) => {
   loading.start();
@@ -56,10 +57,14 @@ router.beforeEach(async (to) => {
   if (!hasRole(to.meta.roles, getAuthUser().roles || [])) {
     return "/error/403";
   }
+  if (!hasPermission(to.meta.permissions, getAuthUser().permissions || []))
+    return "/error/403";
   return true;
 });
 router.afterEach((to) => {
   loading.finish();
-  document.title = to.meta.title ? `${to.meta.title} - ${getRuntimeAppName()}` : getRuntimeAppName();
+  document.title = to.meta.title
+    ? `${to.meta.title} - ${getRuntimeAppName()}`
+    : getRuntimeAppName();
 });
 export default router;

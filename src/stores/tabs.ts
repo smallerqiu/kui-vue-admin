@@ -54,7 +54,9 @@ export const useTabViewsStore = defineStore("tabViews", {
       const { index, keepViewKey } = this.getView(route);
       if (index !== -1) {
         if (keepViewKey) {
-          this.keepViews = this.keepViews.filter((name) => name !== keepViewKey);
+          this.keepViews = this.keepViews.filter(
+            (name) => name !== keepViewKey,
+          );
         }
         route.loading = true;
         setTimeout(() => {
@@ -100,6 +102,18 @@ export const useTabViewsStore = defineStore("tabViews", {
       this.keepViews = [];
       this.updateLocalRoutes();
     },
+    moveView(fromIndex: number, toIndex: number) {
+      if (
+        fromIndex === toIndex ||
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= this.views.length ||
+        toIndex >= this.views.length
+      ) return;
+      const [view] = this.views.splice(fromIndex, 1);
+      this.views.splice(toIndex, 0, view);
+      this.updateLocalRoutes();
+    },
     reloadView(route: any) {
       const { index, keepViewKey } = this.getView(route);
       if (index !== -1 && keepViewKey) {
@@ -107,7 +121,8 @@ export const useTabViewsStore = defineStore("tabViews", {
         this.keepKey = Math.random();
         route.loading = true;
         setTimeout(() => {
-          if (!this.keepViews.includes(keepViewKey)) this.keepViews.push(keepViewKey);
+          if (!this.keepViews.includes(keepViewKey))
+            this.keepViews.push(keepViewKey);
           this.keepKey = id(route.fullPath);
           route.loading = false;
         }, 500);

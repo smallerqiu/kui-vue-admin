@@ -23,17 +23,22 @@ interface TrendPoint {
   value: number;
 }
 
-const props = withDefaults(defineProps<{
-  data: TrendPoint[];
-  name?: string;
-  suffix?: string;
-  color?: string;
-}>(), { name: "访问量", suffix: "k", color: "#54a9ff" });
+const props = withDefaults(
+  defineProps<{
+    data: TrendPoint[];
+    name?: string;
+    suffix?: string;
+    color?: string;
+  }>(),
+  { name: "访问量", suffix: "k", color: "#54a9ff" },
+);
 const themeStore = useThemeStore();
 
 use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
-type ChartOption = ComposeOption<LineSeriesOption | GridComponentOption | TooltipComponentOption>;
+type ChartOption = ComposeOption<
+  LineSeriesOption | GridComponentOption | TooltipComponentOption
+>;
 
 const option = computed<ChartOption>(() => {
   const dark = themeStore.theme === "dark";
@@ -48,7 +53,10 @@ const option = computed<ChartOption>(() => {
       backgroundColor: dark ? "#262626" : "#ffffff",
       borderColor: splitColor,
       textStyle: { color: dark ? "#f5f5f5" : "#262626" },
-      axisPointer: { type: "line", lineStyle: { color: "#54a9ff", opacity: 0.4 } },
+      axisPointer: {
+        type: "line",
+        lineStyle: { color: "#54a9ff", opacity: 0.4 },
+      },
     },
     xAxis: {
       type: "category",
@@ -60,22 +68,31 @@ const option = computed<ChartOption>(() => {
     },
     yAxis: {
       type: "value",
-      axisLabel: { color: textColor, formatter: (value: number) => `${value}${props.suffix}` },
+      axisLabel: {
+        color: textColor,
+        formatter: (value: number) => `${value}${props.suffix}`,
+      },
       splitLine: { lineStyle: { color: splitColor, type: "dashed" } },
     },
-    series: [{
-      name: props.name,
-      type: "line",
-      smooth: true,
-      symbol: "circle",
-      symbolSize: 7,
-      showSymbol: false,
-      data: props.data.map((item) => item.value),
-      lineStyle: { width: 3, color: props.color },
-      itemStyle: { color: props.color, borderWidth: 2, borderColor: dark ? "#1f1f1f" : "#ffffff" },
-      areaStyle: { color: `${props.color}2e` },
-      emphasis: { focus: "series", scale: 1.2 },
-    }],
+    series: [
+      {
+        name: props.name,
+        type: "line",
+        smooth: true,
+        symbol: "circle",
+        symbolSize: 7,
+        showSymbol: false,
+        data: props.data.map((item) => item.value),
+        lineStyle: { width: 3, color: props.color },
+        itemStyle: {
+          color: props.color,
+          borderWidth: 2,
+          borderColor: dark ? "#1f1f1f" : "#ffffff",
+        },
+        areaStyle: { color: `${props.color}2e` },
+        emphasis: { focus: "series", scale: 1.2 },
+      },
+    ],
   };
 });
 </script>

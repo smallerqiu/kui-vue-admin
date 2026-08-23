@@ -5,11 +5,13 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import "./assets/css/index.less";
 import router, { routerInitialized } from "./routers/index.ts";
+import { permission } from "./directives/permission";
 import { useTabViewsStore } from "./stores/tabs.ts";
 const app = createApp(App);
 const pinia = createPinia();
 const tabs = useTabViewsStore(pinia);
 app.use(pinia).use(kui);
+app.directive("permission", permission);
 
 const bootstrap = async () => {
   try {

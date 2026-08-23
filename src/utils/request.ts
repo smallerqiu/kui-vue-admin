@@ -1,6 +1,11 @@
 import { message } from "kui-vue";
 import { customAlphabet } from "nanoid";
-import { clearAuthSession, getToken } from "./auth";
+import {
+  clearAuthSession,
+  getRefreshToken,
+  getToken,
+  updateAccessToken,
+} from "./auth";
 import { appConfig } from "@/config/app";
 
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789";
@@ -16,17 +21,14 @@ export interface ApiResponse<T = any> {
 // 扩展 Fetch 配置
 interface RequestOptions extends RequestInit {
   timeout?: number;
+  _retry?: boolean;
 }
 
 export class ApiError extends Error {
   status: number;
   data?: unknown;
 
-  constructor(
-    message: string,
-    status: number,
-    data?: unknown,
-  ) {
+  constructor(message: string, status: number, data?: unknown) {
     super(message);
     this.name = "ApiError";
     this.status = status;
@@ -48,7 +50,12 @@ const request = {
     data: any = {},
     customOptions: RequestOptions = {},
   ): Promise<T> {
-    const { timeout = 30000, headers: customHeaders, ...requestOptions } = customOptions;
+    const {
+      timeout = 30000,
+      headers: customHeaders,
+      _retry,
+      ...requestOptions
+    } = customOptions;
     const controller = new AbortController();
     const requestId = nanoid();
     this._maps.set(requestId, controller);
@@ -56,9 +63,12 @@ const request = {
     let finalUrl = url;
     if (!url.startsWith("http")) {
       const path = url.startsWith("/") ? url : `/${url}`;
-      finalUrl = appConfig.apiBaseUrl.startsWith("/") && (path === appConfig.apiBaseUrl || path.startsWith(`${appConfig.apiBaseUrl}/`))
-        ? path
-        : `${appConfig.apiBaseUrl}${path}`;
+      finalUrl =
+        appConfig.apiBaseUrl.startsWith("/") &&
+        (path === appConfig.apiBaseUrl ||
+          path.startsWith(`${appConfig.apiBaseUrl}/`))
+          ? path
+          : `${appConfig.apiBaseUrl}${path}`;
     }
 
     const token = getToken();
@@ -92,6 +102,14 @@ const request = {
 
     try {
       const response = await fetch(finalUrl, options);
+      if (response.status === 401 && !_retry && getRefreshToken()) {
+        const refreshed = await this.refreshSession();
+        if (refreshed)
+          return this._base<T>(method, url, data, {
+            ...customOptions,
+            _retry: true,
+          });
+      }
       if (!response.ok) {
         return await this.handleHttpError(response);
       }
@@ -136,6 +154,32 @@ const request = {
    * 异常处理
    */
   _401Lock: false,
+  _refreshPromise: null as Promise<boolean> | null,
+  async refreshSession(): Promise<boolean> {
+    if (this._refreshPromise) return this._refreshPromise;
+    this._refreshPromise = (async () => {
+      try {
+        if (appConfig.useMock) {
+          updateAccessToken(`demo-${Date.now()}`);
+          return true;
+        }
+        const response = await fetch(`${appConfig.apiBaseUrl}/auth/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken: getRefreshToken() }),
+        });
+        if (!response.ok) return false;
+        const result = await response.json();
+        updateAccessToken(result.data?.token || result.token);
+        return true;
+      } catch {
+        return false;
+      } finally {
+        this._refreshPromise = null;
+      }
+    })();
+    return this._refreshPromise;
+  },
 
   async handleHttpError(response: Response): Promise<never> {
     const { status } = response;
@@ -153,13 +197,19 @@ const request = {
         grouping: "login",
       });
       setTimeout(() => {
-        const redirect = encodeURIComponent(location.pathname + location.search);
+        const redirect = encodeURIComponent(
+          location.pathname + location.search,
+        );
         window.location.href = `/account/login?redirect=${redirect}`;
       }, 1000);
     }
 
     const errorData = await response.json().catch(() => ({}));
-    const messageText = errorData.message || errorData.msg || response.statusText || "Request failed";
+    const messageText =
+      errorData.message ||
+      errorData.msg ||
+      response.statusText ||
+      "Request failed";
     throw new ApiError(messageText, status, errorData);
   },
 

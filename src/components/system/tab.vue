@@ -1,11 +1,11 @@
 <template>
   <div class="sys-tab-wrapper">
     <div class="sys-tab-box" ref="rootRef">
-      <!-- <draggable v-model="views" @start="drag = true" @end="drag = false" :options="{ direction: 'horizontal', scroll: false }"> -->
       <transition-group
         class="tab-inner-box"
         tag="div"
         name="sys-tab"
+        move-class="sys-tab-move"
         :time="300"
         @enter="animate.onEnter"
         @beforeEnter="animate.onBeforeEnter"
@@ -14,7 +14,20 @@
         @leave="animate.onLeave"
         @afterLeave="animate.onAfterLeave"
       >
-        <div :class="cls(view)" v-for="view in views" :key="view.key">
+        <div
+          :class="cls(view)"
+          v-for="view in views"
+          :key="view.key"
+          draggable="true"
+          @dragstart="onDragStart($event, view)"
+          @dragover.prevent="onDragOver($event, view)"
+          @drop.prevent="onDrop(view)"
+          @dragend="resetDrag"
+        >
+          <i
+            v-if="dragOverKey === view.key"
+            :class="['sys-tab-drop-indicator', `is-${dropSide}`]"
+          />
           <Dropdown trigger="contextmenu" :key="view.fullPath">
             <div class="sys-tab-item-inner">
               <router-link
@@ -57,7 +70,6 @@
           </Dropdown>
         </div>
       </transition-group>
-      <!-- </draggable> -->
     </div>
     <Dropdown trigger="hover" v-if="showDrop" placement="bottom" arrow>
       <Button :icon="ChevronDown" size="small" class="sys-tab-show-list-btn" />
@@ -104,6 +116,9 @@ const icons = ref<Record<string, any>>(kuiIcons);
 const showDrop = ref(false);
 const observe = ref<ResizeObserver>();
 const rootRef = ref<HTMLElement>();
+const draggedKey = ref("");
+const dragOverKey = ref("");
+const dropSide = ref<"before" | "after">("before");
 
 const views = computed<ViewItem[]>(() => tab.views);
 const current = computed(() => route.fullPath);
@@ -249,12 +264,46 @@ const go = (item: ViewItem) => {
   });
 };
 
+const onDragStart = (event: DragEvent, view: ViewItem) => {
+  draggedKey.value = view.key;
+  event.dataTransfer?.setData("text/plain", view.key);
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+};
+
+const onDragOver = (event: DragEvent, view: ViewItem) => {
+  if (!draggedKey.value || draggedKey.value === view.key) {
+    dragOverKey.value = "";
+    return;
+  }
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+  dragOverKey.value = view.key;
+  dropSide.value = event.clientX < rect.left + rect.width / 2 ? "before" : "after";
+  if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+};
+
+const onDrop = (target: ViewItem) => {
+  const fromIndex = views.value.findIndex((view) => view.key === draggedKey.value);
+  const targetIndex = views.value.findIndex((view) => view.key === target.key);
+  if (fromIndex < 0 || targetIndex < 0 || fromIndex === targetIndex) return resetDrag();
+  let toIndex = targetIndex + (dropSide.value === "after" ? 1 : 0);
+  if (fromIndex < toIndex) toIndex -= 1;
+  tab.moveView(fromIndex, toIndex);
+  resetDrag();
+  nextTick(updatePosition);
+};
+
+const resetDrag = () => {
+  draggedKey.value = "";
+  dragOverKey.value = "";
+};
+
 const cls = (item: ViewItem) => {
   let index = views.value.indexOf(item);
   return [
     "sys-tab-item",
     {
       "sys-tab-item-active": item.fullPath === current.value,
+      "sys-tab-item-dragging": item.key === draggedKey.value,
       "sys-tab-item-first": index === 0,
       "sys-tab-item-prev": index === currentIndex.value - 1,
       "sys-tab-item-next": index === currentIndex.value + 1,
@@ -298,10 +347,11 @@ const cls = (item: ViewItem) => {
       display: inline-flex;
       position: relative;
       cursor: pointer;
-      // height: 26px;
+      height: 26px;
       line-height: 26px;
       font-size: 12px;
       margin: 0 4px;
+      user-select: none;
       &::before,
       &::after {
         content: "";
@@ -385,6 +435,28 @@ const cls = (item: ViewItem) => {
         }
       }
     }
+
+    .sys-tab-item-dragging {
+      opacity: 0.4;
+    }
+
+    .sys-tab-drop-indicator {
+      position: absolute;
+      z-index: 120;
+      top: 3px;
+      bottom: 5px;
+      width: 2px;
+      border-radius: 2px;
+      background: var(--kui-color-primary);
+      pointer-events: none;
+
+      &.is-before { left: -5px; }
+      &.is-after { right: -5px; }
+    }
+
+    .sys-tab-move {
+      transition: transform 180ms var(--kui-motion-easing);
+    }
     .sys-tab-item-first,
     .sys-tab-item-next {
       .sys-tab-item-inner::before {
@@ -405,6 +477,7 @@ const cls = (item: ViewItem) => {
       padding-bottom: 8px;
       position: relative;
       z-index: 100;
+      height: 100%;
       background-color: var(--kui-color-bg);
       &::before {
         box-shadow: 12px 12px 0px 9px var(--kui-color-bg);

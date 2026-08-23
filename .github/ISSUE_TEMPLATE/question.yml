@@ -1,0 +1,30 @@
+name: Question
+description: 咨询 KUI Vue Pro 的使用、配置或集成问题
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: 问题描述
+      description: 请说明目标、当前做法和遇到的困难
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: 相关配置或代码
+      description: 请提供最小必要代码，并删除密码、Token 等敏感信息
+      render: shell
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      placeholder: 1.0.0
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交确认
+      options:
+        - label: 我已阅读 README 并搜索已有 Issue
+          required: true

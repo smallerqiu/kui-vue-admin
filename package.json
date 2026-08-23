@@ -1,7 +1,7 @@
 {
   "name": "kui-vue-admin",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "packageManager": "pnpm@11.19.0",
   "scripts": {
@@ -12,7 +12,9 @@
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "pnpm typecheck && pnpm test"
+    "test:e2e": "playwright test",
+    "check": "pnpm typecheck && pnpm test",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.0",
@@ -22,9 +24,9 @@
     "@codemirror/lang-yaml": "^6.1.3",
     "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.43.9",
+    "big.js": "^7.0.1",
     "cm6-theme-solarized-dark": "^0.2.0",
     "cm6-theme-solarized-light": "^0.2.0",
-    "big.js": "^7.0.1",
     "crypto-js": "^4.2.0",
     "dayjs": "^1.11.23",
     "echarts": "^6.1.0",
@@ -38,6 +40,7 @@
     "vue-router": "^5.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@types/big.js": "^7.0.0",
     "@types/crypto-js": "^4.2.2",
     "@types/hash-sum": "^1.0.2",

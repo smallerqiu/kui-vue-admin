@@ -8,7 +8,11 @@ interface Preferences {
 
 const readPreferences = (): Preferences => {
   try {
-    return { notification: true, watermark: true, ...JSON.parse(localStorage.getItem("preferences") || "{}") };
+    return {
+      notification: true,
+      watermark: true,
+      ...JSON.parse(localStorage.getItem("preferences") || "{}"),
+    };
   } catch {
     return { notification: true, watermark: true };
   }
@@ -20,7 +24,13 @@ export const usePreferenceStore = defineStore("preferences", () => {
   const watermark = ref(initial.watermark);
 
   watch([notification, watermark], () => {
-    localStorage.setItem("preferences", JSON.stringify({ notification: notification.value, watermark: watermark.value }));
+    localStorage.setItem(
+      "preferences",
+      JSON.stringify({
+        notification: notification.value,
+        watermark: watermark.value,
+      }),
+    );
   });
 
   return { notification, watermark };

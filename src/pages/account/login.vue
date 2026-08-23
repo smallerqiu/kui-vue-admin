@@ -1,12 +1,17 @@
 <template>
   <div class="login-page">
     <aside class="login-intro">
-      <div class="intro-brand"><img src="@/assets/img/logo.svg" /><span>{{ appConfig.name }}</span></div>
+      <div class="intro-brand">
+        <img src="@/assets/img/logo.svg" /><span>{{ appConfig.name }}</span>
+      </div>
       <div class="intro-content">
         <Tag theme="fill">Enterprise Admin</Tag>
         <h1>专注业务，<br />不重复搭建后台基础设施。</h1>
         <p>完善的权限、数据分析与响应式工作台，为企业应用提供可靠起点。</p>
-        <div class="intro-points"><span>✓ TypeScript</span><span>✓ RBAC 权限</span><span>✓ 深浅主题</span></div>
+        <div class="intro-points">
+          <span>✓ TypeScript</span><span>✓ RBAC 权限</span
+          ><span>✓ 深浅主题</span>
+        </div>
       </div>
       <small>Powered by KUI Vue</small>
     </aside>
@@ -17,73 +22,97 @@
       </Space>
       <div class="desc">欢迎回来，请登录你的账号</div>
       <div class="main">
-      <Form
-        ref="refForm"
-        name="rules"
-        :model="form"
-        :rules="rules"
-        @submit="submit"
-        :wrapperCol="wrapperCol"
-        :labelCol="labelCol"
-        size="large"
-      >
-        <Tabs v-model="current">
-          <TabPanel key="account" title="账号密码登录">
-            <FormItem prop="email">
-              <Input v-model="form.email" placeholder="邮箱：admin@k-ui.cn" :icon="User" clearable />
-            </FormItem>
-            <FormItem prop="password">
-              <Input
-                placeholder="Password: 123456"
-                :icon="Lock"
-                type="password"
-                v-model="form.password"
-                visible-password-icon
-                @keyup.enter="submit"
+        <Form
+          ref="refForm"
+          name="rules"
+          :model="form"
+          :rules="rules"
+          @submit="submit"
+          :wrapperCol="wrapperCol"
+          :labelCol="labelCol"
+          size="large"
+        >
+          <Tabs v-model="current">
+            <TabPanel key="account" title="账号密码登录">
+              <FormItem prop="email">
+                <Input
+                  v-model="form.email"
+                  placeholder="邮箱：admin@k-ui.cn"
+                  :icon="User"
+                  clearable
+                />
+              </FormItem>
+              <FormItem prop="password">
+                <Input
+                  placeholder="Password: 123456"
+                  :icon="Lock"
+                  type="password"
+                  v-model="form.password"
+                  visible-password-icon
+                  @keyup.enter="submit"
+                />
+              </FormItem>
+            </TabPanel>
+            <TabPanel key="phone" title="手机号登录">
+              <FormItem prop="phone">
+                <Input
+                  v-model="form.phone"
+                  placeholder="手机号：13888888888"
+                  :icon="Phone"
+                  clearable
+                />
+              </FormItem>
+              <FormItem prop="code">
+                <Space compact block>
+                  <Input
+                    v-model="form.code"
+                    placeholder="验证码：123456"
+                    :icon="Sailboat"
+                    style="flex: 1"
+                    @keyup.enter="submit"
+                  />
+                  <Button :disabled="countdown > 0" @click="sendCode">{{
+                    countdown ? `${countdown}s` : "发送验证码"
+                  }}</Button>
+                </Space>
+              </FormItem>
+            </TabPanel>
+          </Tabs>
+          <FormItem>
+            <Flex justify="space-between" style="width: 100%">
+              <Checkbox v-model="remember" label="记住登录状态" />
+              <a
+                class="forget-password"
+                target="_self"
+                href="javascript:void(0);"
+                @click="handleForgotPassword"
+                >忘记密码
+              </a>
+            </Flex>
+          </FormItem>
+          <FormItem>
+            <Button block type="primary" htmlType="submit" :loading="loading">
+              登录
+            </Button>
+          </FormItem>
+        </Form>
+        <Divider>其他登录方式</Divider>
+        <Flex align="center" justify="center">
+          <Space>
+            <div id="wechat-login-button">
+              <Button
+                :icon="LogoWechat"
+                @click="message.info('微信登录待接入 OAuth 服务')"
               />
-            </FormItem>
-          </TabPanel>
-          <TabPanel key="phone" title="手机号登录">
-            <FormItem prop="phone">
-              <Input v-model="form.phone" placeholder="手机号：13888888888" :icon="Phone" clearable />
-            </FormItem>
-            <FormItem prop="code">
-              <Space compact block>
-                <Input v-model="form.code" placeholder="验证码：123456" :icon="Sailboat" style="flex: 1" @keyup.enter="submit" />
-                <Button :disabled="countdown > 0" @click="sendCode">{{ countdown ? `${countdown}s` : "发送验证码" }}</Button>
-              </Space>
-            </FormItem>
-          </TabPanel>
-        </Tabs>
-        <FormItem>
-          <Flex justify="space-between" style="width: 100%">
-            <Checkbox v-model="remember" label="记住登录状态" />
-            <a
-              class="forget-password"
-              target="_self"
-              href="javascript:void(0);"
-              @click="handleForgotPassword"
-              >忘记密码
-            </a>
-          </Flex>
-        </FormItem>
-        <FormItem>
-          <Button block type="primary" htmlType="submit" :loading="loading">
-            登录
-          </Button>
-        </FormItem>
-      </Form>
-      <Divider>其他登录方式</Divider>
-      <Flex align="center" justify="center">
-        <Space>
-          <div id="wechat-login-button">
-            <Button :icon="LogoWechat" @click="message.info('微信登录待接入 OAuth 服务')" />
-          </div>
-          <div id="google-login-button">
-            <Button :icon="LogoGoogle" @click="message.info('Google 登录待接入 OAuth 服务')" />
-          </div>
-        </Space>
-      </Flex>
+            </div>
+            <div id="google-login-button">
+              <Button
+                :icon="LogoGoogle"
+                @click="message.info('Google 登录待接入 OAuth 服务')"
+              />
+            </div>
+          </Space>
+        </Flex>
       </div>
       <p class="demo-tip">演示账号：admin@k-ui.cn / 123456</p>
     </main>
@@ -102,6 +131,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "../../stores/auth";
 import Theme from "../../components/system/theme.vue";
 import { appConfig } from "../../config/app";
+import { loginApi } from "@/api/auth";
 // import { request } from "@/utils/request";
 const route = useRoute();
 const router = useRouter();
@@ -140,41 +170,53 @@ const accountRules: Record<string, FormRule[]> = {
   ],
 };
 const phoneRules: Record<string, FormRule[]> = {
-  phone: [{ required: true, message: "请输入手机号" }, { type: "mobile", message: "请输入正确的手机号" }],
-  code: [{ required: true, message: "请输入验证码" }, { min: 6, max: 6, message: "验证码为 6 位数字" }],
+  phone: [
+    { required: true, message: "请输入手机号" },
+    { type: "mobile", message: "请输入正确的手机号" },
+  ],
+  code: [
+    { required: true, message: "请输入验证码" },
+    { min: 6, max: 6, message: "验证码为 6 位数字" },
+  ],
 };
-const rules = computed(() => current.value === "account" ? accountRules : phoneRules);
+const rules = computed(() =>
+  current.value === "account" ? accountRules : phoneRules,
+);
 const wrapperCol = ref({ span: 24 });
 const labelCol = ref({});
 
 const getSafeRedirect = () => {
-  const redirect = typeof route.query.redirect === "string" ? route.query.redirect : "/";
-  return redirect.startsWith("/") && !redirect.startsWith("//") ? redirect : "/";
+  const redirect =
+    typeof route.query.redirect === "string" ? route.query.redirect : "/";
+  return redirect.startsWith("/") && !redirect.startsWith("//")
+    ? redirect
+    : "/";
 };
 
 const postLogin = () => {
   if (loading.value) return;
   loading.value = true;
 
-  setTimeout(() => {
-    const valid = current.value === "account"
-      ? form.email === "admin@k-ui.cn" && form.password === "123456"
-      : form.phone === "13888888888" && form.code === "123456";
-    if (!valid) {
+  const account = current.value === "account" ? form.email : form.phone;
+  const password = current.value === "account" ? form.password : form.code;
+  loginApi(account, password)
+    .then((result) => {
+      localStorage.setItem("remember_login", remember.value ? "1" : "0");
+      authStore.login(
+        result.token,
+        result.user,
+        remember.value,
+        result.refreshToken,
+      );
+      message.success("登录成功");
+      router.replace(getSafeRedirect()).finally(() => {
+        loading.value = false;
+      });
+    })
+    .catch((error) => {
       loading.value = false;
-      message.error(current.value === "account" ? "邮箱或密码错误" : "手机号或验证码错误");
-      return;
-    }
-    localStorage.setItem("remember_login", remember.value ? "1" : "0");
-    authStore.login(`demo-${Date.now()}`, {
-      name: "admin",
-      fullName: "Administrator",
-      email: "admin@k-ui.cn",
-      roles: ["admin"],
-    }, remember.value);
-    message.success("登录成功");
-    router.replace(getSafeRedirect()).finally(() => { loading.value = false; });
-  }, 650);
+      message.error(error.message);
+    });
 };
 
 const submit = () => {
@@ -186,7 +228,8 @@ const submit = () => {
 };
 
 const sendCode = () => {
-  if (!/^1\d{10}$/.test(form.phone)) return message.warning("请先输入正确的手机号");
+  if (!/^1\d{10}$/.test(form.phone))
+    return message.warning("请先输入正确的手机号");
   message.success("演示验证码：123456");
   countdown.value = 60;
   countdownTimer = setInterval(() => {
@@ -194,7 +237,9 @@ const sendCode = () => {
     if (countdown.value <= 0 && countdownTimer) clearInterval(countdownTimer);
   }, 1000);
 };
-onBeforeUnmount(() => { if (countdownTimer) clearInterval(countdownTimer); });
+onBeforeUnmount(() => {
+  if (countdownTimer) clearInterval(countdownTimer);
+});
 </script>
 <style lang="less">
 .login-page {
@@ -216,13 +261,43 @@ onBeforeUnmount(() => { if (countdownTimer) clearInterval(countdownTimer); });
     radial-gradient(circle at 15% 15%, #ffffff24, transparent 32%),
     linear-gradient(145deg, #2678dc, #6654d9 68%, #7b61ff);
 }
-.intro-brand { display: flex; gap: 10px; align-items: center; font-size: 18px; font-weight: 650; }
-.intro-brand img { width: 34px; height: 34px; }
-.intro-content { max-width: 520px; }
-.intro-content h1 { margin: 20px 0; font-size: clamp(34px, 4vw, 56px); line-height: 1.18; letter-spacing: -1px; }
-.intro-content p { max-width: 470px; margin: 0; color: #ffffffc9; font-size: 16px; line-height: 1.8; }
-.intro-points { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 28px; color: #ffffffe6; }
-.login-intro > small { color: #ffffffa8; }
+.intro-brand {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 18px;
+  font-weight: 650;
+}
+.intro-brand img {
+  width: 34px;
+  height: 34px;
+}
+.intro-content {
+  max-width: 520px;
+}
+.intro-content h1 {
+  margin: 20px 0;
+  font-size: clamp(34px, 4vw, 56px);
+  line-height: 1.18;
+  letter-spacing: -1px;
+}
+.intro-content p {
+  max-width: 470px;
+  margin: 0;
+  color: #ffffffc9;
+  font-size: 16px;
+  line-height: 1.8;
+}
+.intro-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-top: 28px;
+  color: #ffffffe6;
+}
+.login-intro > small {
+  color: #ffffffa8;
+}
 
 .login-box {
   align-self: center;
@@ -283,11 +358,27 @@ onBeforeUnmount(() => { if (countdownTimer) clearInterval(countdownTimer); });
     }
   }
 }
-.demo-tip { margin: 22px 0 0; color: var(--kui-color-text-description); text-align: center; font-size: 12px; }
+.demo-tip {
+  margin: 22px 0 0;
+  color: var(--kui-color-text-description);
+  text-align: center;
+  font-size: 12px;
+}
 
 @media (max-width: 900px) {
-  .login-page { display: block; }
-  .login-intro { display: none; }
-  .login-box { display: flex; min-height: 100vh; flex-direction: column; justify-content: center; margin-top: 0; margin-bottom: 0; }
+  .login-page {
+    display: block;
+  }
+  .login-intro {
+    display: none;
+  }
+  .login-box {
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+    justify-content: center;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
 }
 </style>

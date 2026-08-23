@@ -19,6 +19,12 @@ withDefaults(
     lineWrapping?: boolean;
     ariaLabel?: string;
   }>(),
-  { modelValue: "", height: 480, lineNumbers: true, lineWrapping: true, ariaLabel: "YAML viewer" }
+  {
+    modelValue: "",
+    height: 480,
+    lineNumbers: true,
+    lineWrapping: true,
+    ariaLabel: "YAML viewer",
+  },
 );
 </script>

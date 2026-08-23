@@ -7,6 +7,7 @@ declare module "vue-router" {
     order?: number;
     showInMenu?: boolean;
     roles?: string[];
+    permissions?: string[];
     activeMenu?: string; // 用于高亮非菜单页面的父级菜单
   }
 }

@@ -1,30 +1,35 @@
 <template>
   <Sider
-    :class="['sys-sider', { 'sys-sider-collapsed': collapsed }]"
-    collapsible
-    :collapsed="collapsed"
+    :class="['sys-sider', { 'sys-sider-collapsed': collapsed && !top, 'sys-sider-top': top }]"
+    :collapsible="!top"
+    :collapsed="top ? false : collapsed"
     :width="200"
     :collapsed-width="60"
   >
     <div class="logo-box">
       <img src="/favicon.svg" class="logo" />
       <transition name="sys-sider-title">
-        <span class="sys-sider-title" v-show="!collapsed">{{ systemSettings.settings.shortName }}</span>
+        <span class="sys-sider-title" v-show="top || !collapsed">{{
+          systemSettings.settings.shortName
+        }}</span>
       </transition>
     </div>
     <Menu
       class="sys-menu"
       v-model="activeMenu"
       @openChange="openChange"
-      :openKeys="openKeys"
-      :inlineCollapsed="collapsed"
+      :openKeys="menuOpenKeys"
+      :inlineCollapsed="top ? false : collapsed"
       style="border: none"
       @select="go"
-      mode="inline"
+      :mode="top ? 'horizontal' : 'inline'"
     >
       <RecursiveMenu v-for="item in routes" :item="item" :key="item.key" />
       <!-- <MenuItem v-for="route in routes" :route="route" :key="route.key" /> -->
     </Menu>
+    <div class="app-version" :class="{ collapsed: collapsed && !top }">
+      {{ collapsed && !top ? "1.0" : `Version ${appConfig.version}` }}
+    </div>
   </Sider>
 </template>
 <script setup lang="ts">
@@ -34,6 +39,7 @@ import { useRouter } from "vue-router";
 import RecursiveMenu from "./recursive-menu.vue";
 import type { AdminMenuItem } from "./useMenu";
 import { useSystemSettingsStore } from "@/stores/system-settings";
+import { appConfig } from "@/config/app";
 
 const router = useRouter();
 const systemSettings = useSystemSettingsStore();
@@ -43,6 +49,7 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  top: Boolean,
   activeMenu: Array as PropType<string[]>,
   routes: {
     type: Array as PropType<AdminMenuItem[]>,
@@ -58,8 +65,13 @@ const activeMenu = computed(() => {
 const localOpenKeys = localStorage.getItem("openKeys");
 const defaultOpenKeys = JSON.parse(localOpenKeys || "[]");
 const openKeys = ref(defaultOpenKeys);
+const emptyOpenKeys: string[] = [];
+const menuOpenKeys = computed(() => props.top ? emptyOpenKeys : openKeys.value);
 
 const openChange = (keys: string[]) => {
+  // Horizontal submenus are transient popups. Do not persist their hover state
+  // or reuse the inline sidebar's expanded groups as active top-level items.
+  if (props.top) return;
   localStorage.setItem("openKeys", JSON.stringify(keys));
   openKeys.value = keys;
 };
@@ -149,6 +161,13 @@ const go = (event: MenuSelectEvent) => {
       width: 100%;
     }
   }
+  .app-version {
+    padding: 10px;
+    color: var(--kui-color-text-placeholder);
+    font-size: 11px;
+    text-align: center;
+    border-top: 1px solid var(--kui-color-border);
+  }
 }
 
 @keyframes sys-sider-title {
@@ -182,6 +201,50 @@ const go = (event: MenuSelectEvent) => {
   .logo-box {
     padding-left: calc(50% - 16px);
     transition: padding 0.2s ease-in-out 0.2s;
+  }
+}
+
+.sys-sider-top {
+  width: calc(100% - 20px) !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 64px !important;
+  flex: 0 0 64px !important;
+  flex-direction: row;
+  align-items: center;
+  overflow: visible;
+
+  .logo-box {
+    flex: 0 0 170px;
+    width: 170px;
+    padding: 0 14px;
+
+    .sys-sider-title {
+      width: auto;
+      max-width: 112px;
+    }
+  }
+
+  .sys-menu {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 62px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar { display: none; }
+  }
+
+  .app-version {
+    flex: 0 0 auto;
+    padding: 0 16px;
+    border-top: 0;
+    border-left: 1px solid var(--kui-color-border);
+    line-height: 32px;
+    white-space: nowrap;
   }
 }
 </style>

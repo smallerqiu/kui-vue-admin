@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: KUI Vue 文档
+    url: https://vue.k-ui.cn
+    about: 查询组件 API、示例和主题配置
+  - name: GitHub Discussions
+    url: https://github.com/smallerqiu/kui-vue-admin/discussions
+    about: 适合开放式讨论、经验分享和方案交流

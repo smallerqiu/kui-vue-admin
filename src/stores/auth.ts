@@ -14,10 +14,12 @@ export const useAuthStore = defineStore("auth", {
   }),
   getters: {
     roles: (state) => state.user.roles || [],
+    permissions: (state) => state.user.permissions || [],
+    dataScope: (state) => state.user.dataScope || "self",
   },
   actions: {
-    login(token: string, user: AuthUser, persistent = true) {
-      setAuthSession(token, user, persistent);
+    login(token: string, user: AuthUser, persistent = true, refreshToken = "") {
+      setAuthSession(token, user, persistent, refreshToken);
       this.token = token;
       this.user = user;
     },
@@ -28,7 +30,11 @@ export const useAuthStore = defineStore("auth", {
     },
     updateUser(user: AuthUser) {
       this.user = { ...this.user, ...user };
-      setAuthSession(this.token, this.user, Boolean(localStorage.getItem("token")));
+      setAuthSession(
+        this.token,
+        this.user,
+        Boolean(localStorage.getItem("token")),
+      );
     },
   },
 });

@@ -5,7 +5,11 @@
     :title="$t(`route.${item.key}`) || item.meta.title"
     :icon="item.meta.icon ? icons[item.meta.icon] : undefined"
   >
-    <RecursiveMenu :item="data" :key="data.key" v-for="data in visibleChildren" />
+    <RecursiveMenu
+      :item="data"
+      :key="data.key"
+      v-for="data in visibleChildren"
+    />
   </SubMenu>
   <MenuItem
     :key="item.path"

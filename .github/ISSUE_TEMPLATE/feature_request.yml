@@ -1,0 +1,44 @@
+name: Feature Request
+description: 提议新能力或现有功能改进
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 需求背景
+      description: 你遇到了什么问题或使用限制？
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: 建议方案
+      description: 描述期望的 API、交互或使用方式
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 可选方案
+      description: 你尝试过哪些替代方案？
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 影响范围
+      options:
+        - 应用框架与布局
+        - 权限与路由
+        - 业务页面模板
+        - 构建、部署与工程化
+        - 文档与示例
+        - 其他
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交确认
+      options:
+        - label: 我已搜索已有 Issue，未发现相同建议
+          required: true

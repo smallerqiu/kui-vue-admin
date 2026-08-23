@@ -15,7 +15,12 @@ import { javascript } from "@codemirror/lang-javascript";
 import { json } from "@codemirror/lang-json";
 import { yaml } from "@codemirror/lang-yaml";
 import { Compartment, EditorState, type Extension } from "@codemirror/state";
-import { EditorView, highlightActiveLine, keymap, lineNumbers } from "@codemirror/view";
+import {
+  EditorView,
+  highlightActiveLine,
+  keymap,
+  lineNumbers,
+} from "@codemirror/view";
 import { solarizedDark } from "cm6-theme-solarized-dark";
 import { solarizedLight } from "cm6-theme-solarized-light";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
@@ -38,7 +43,7 @@ const props = withDefaults(
     lineNumbers: true,
     lineWrapping: true,
     ariaLabel: "Code editor",
-  }
+  },
 );
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 const themeStore = useThemeStore();
@@ -48,7 +53,7 @@ const themeCompartment = new Compartment();
 const languageCompartment = new Compartment();
 const editableCompartment = new Compartment();
 const resolvedHeight = computed(() =>
-  typeof props.height === "number" ? `${props.height}px` : props.height
+  typeof props.height === "number" ? `${props.height}px` : props.height,
 );
 function languageExtension(): Extension {
   if (props.language === "yaml") return yaml();
@@ -74,7 +79,10 @@ function createView() {
       if (update.docChanged && !props.readonly)
         emit("update:modelValue", update.state.doc.toString());
     }),
-    EditorView.theme({ "&": { height: "100%" }, ".cm-scroller": { overflow: "auto" } }),
+    EditorView.theme({
+      "&": { height: "100%" },
+      ".cm-scroller": { overflow: "auto" },
+    }),
   ];
   if (props.lineNumbers) extensions.push(lineNumbers());
   if (props.lineWrapping) extensions.push(EditorView.lineWrapping);
@@ -88,23 +96,33 @@ watch(
   (value) => {
     const editor = view.value;
     if (!editor || value === editor.state.doc.toString()) return;
-    editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: value } });
-  }
+    editor.dispatch({
+      changes: { from: 0, to: editor.state.doc.length, insert: value },
+    });
+  },
 );
 watch(
   () => props.language,
-  () => view.value?.dispatch({ effects: languageCompartment.reconfigure(languageExtension()) })
+  () =>
+    view.value?.dispatch({
+      effects: languageCompartment.reconfigure(languageExtension()),
+    }),
 );
 watch(
   () => props.readonly,
-  () => view.value?.dispatch({ effects: editableCompartment.reconfigure(editableExtensions()) })
+  () =>
+    view.value?.dispatch({
+      effects: editableCompartment.reconfigure(editableExtensions()),
+    }),
 );
 watch(
   () => themeStore.theme,
   () =>
     view.value?.dispatch({
-      effects: themeCompartment.reconfigure(themeStore.isDark ? solarizedDark : solarizedLight),
-    })
+      effects: themeCompartment.reconfigure(
+        themeStore.isDark ? solarizedDark : solarizedLight,
+      ),
+    }),
 );
 onMounted(createView);
 onBeforeUnmount(() => view.value?.destroy());

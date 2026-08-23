@@ -1,11 +1,16 @@
 <template>
-  <Layout class="layout-back">
-    <div v-if="isMobile && mobileOpen" class="mobile-sider-mask" @click="mobileOpen = false"></div>
+  <Layout :class="['layout-back', `layout-${layoutMode}`]">
+    <div
+      v-if="isMobile && mobileOpen"
+      class="mobile-sider-mask"
+      @click="mobileOpen = false"
+    ></div>
     <Sider
       :class="{ 'mobile-sider': isMobile, 'mobile-sider-open': mobileOpen }"
       :routes="routes"
       :collapsed="isMobile ? false : collapsed"
       :activeMenu="activeMenu"
+      :top="layoutMode === 'top'"
       @select="mobileOpen = false"
     />
     <Content class="k-sys-main">
@@ -13,11 +18,23 @@
         <Flex class="top-nav" justify="space-between">
           <Space class="top-nav-start">
             <Button
-              :icon="isMobile ? MenuIcon : (!collapsed ? PanelLeftClose : PanelRightClose)"
+              v-if="isMobile || layoutMode !== 'top'"
+              :icon="
+                isMobile
+                  ? MenuIcon
+                  : !collapsed
+                    ? PanelLeftClose
+                    : PanelRightClose
+              "
               @click="toggle"
               size="small"
             />
-            <Button class="command-trigger" size="small" :icon="Search" @click="commandMenuRef?.open()">
+            <Button
+              class="command-trigger"
+              size="small"
+              :icon="Search"
+              @click="commandMenuRef?.open()"
+            >
               <span>搜索</span><kbd>⌘ K</kbd>
             </Button>
             <ButtonGroup class="history-actions">
@@ -63,7 +80,9 @@
               </Button>
               <template #overlay>
                 <Menu>
-                  <MenuItem key="profile" @click="router.push('/profile')">个人中心</MenuItem>
+                  <MenuItem key="profile" @click="router.push('/profile')"
+                    >个人中心</MenuItem
+                  >
                   <MenuItem key="logout">
                     <a href="javascript:;" @click="logout">{{
                       $t("menu.log_out")
@@ -96,7 +115,8 @@ import { useTabViewsStore } from "@/stores/tabs.ts";
 import { useAuthStore } from "@/stores/auth";
 import { useThemeStore } from "@/stores/theme.ts";
 import { useNotificationStore } from "@/stores/notifications";
-import { filterMenuByRoles } from "@/routers/permissions";
+import { useSystemSettingsStore } from "@/stores/system-settings";
+import { filterMenuByAccess } from "@/routers/permissions";
 import * as kuiIcons from "kui-icons";
 import {
   ChevronLeft,
@@ -118,6 +138,8 @@ const themeStore = useThemeStore();
 const tabViewsStore = useTabViewsStore();
 const authStore = useAuthStore();
 const notificationStore = useNotificationStore();
+const systemSettings = useSystemSettingsStore();
+const layoutMode = computed(() => systemSettings.settings.layoutMode || "side");
 const route = useRoute();
 const router = useRouter();
 
@@ -128,7 +150,13 @@ const collapsed = ref(false);
 const isMobile = ref(false);
 const mobileOpen = ref(false);
 const commandMenuRef = ref<InstanceType<typeof CommandMenu>>();
-const routes = computed(() => filterMenuByRoles(tabViewsStore.routes, authStore.roles));
+const routes = computed(() =>
+  filterMenuByAccess(
+    tabViewsStore.routes,
+    authStore.roles,
+    authStore.permissions,
+  ),
+);
 const user = computed(() => authStore.user);
 
 const localCollapsed = computed(
@@ -172,7 +200,10 @@ const getPath = (tree: any, targetKey: string) => {
 };
 
 const resolveNavigation = () => {
-  const target = typeof route.meta.activeMenu === "string" ? route.meta.activeMenu : route.path;
+  const target =
+    typeof route.meta.activeMenu === "string"
+      ? route.meta.activeMenu
+      : route.path;
   const keys = getPath(routes.value, target);
   if (target !== route.path && route.meta.title) {
     Breadcrumbs.value.push({ path: route.path, meta: route.meta });
@@ -181,14 +212,11 @@ const resolveNavigation = () => {
 };
 const activeMenu = ref(resolveNavigation());
 
-watch(
-  [() => route.fullPath, routes],
-  () => {
-    const keys = resolveNavigation();
-    activeMenu.value = keys;
-    if (isMobile.value) mobileOpen.value = false;
-  },
-);
+watch([() => route.fullPath, routes], () => {
+  const keys = resolveNavigation();
+  activeMenu.value = keys;
+  if (isMobile.value) mobileOpen.value = false;
+});
 const toggle = () => {
   if (isMobile.value) {
     mobileOpen.value = !mobileOpen.value;
@@ -223,7 +251,12 @@ const switchMode = (event: MouseEvent) => {
     justify-content: flex-start;
     color: var(--kui-color-text-description);
 
-    kbd { margin-left: auto; color: var(--kui-color-text-placeholder); font: inherit; font-size: 11px; }
+    kbd {
+      margin-left: auto;
+      color: var(--kui-color-text-placeholder);
+      font: inherit;
+      font-size: 11px;
+    }
   }
 
   .header-nav {
@@ -260,6 +293,17 @@ const switchMode = (event: MouseEvent) => {
     color: #999;
   }
 }
+.layout-top {
+  flex-direction: column;
+
+  > .k-layout-sider {
+    position: relative;
+    top: auto;
+  }
+}
+.layout-mix .sys-sider {
+  box-shadow: var(--kui-shadow-card);
+}
 
 .mobile-sider-mask {
   position: fixed;
@@ -269,7 +313,11 @@ const switchMode = (event: MouseEvent) => {
   animation: mobile-mask-in var(--kui-motion-duration-fast);
 }
 
-@keyframes mobile-mask-in { from { opacity: 0; } }
+@keyframes mobile-mask-in {
+  from {
+    opacity: 0;
+  }
+}
 
 @media (max-width: 860px) {
   .layout-back {
@@ -289,15 +337,60 @@ const switchMode = (event: MouseEvent) => {
       box-shadow: var(--kui-pop-shadow);
     }
 
-    .mobile-sider-open { transform: translateX(0); }
-    .header-nav { padding: 0 8px 4px; }
-    .container { padding: 6px 4px 10px; }
-    .history-actions, .header-breadcrumb { display: none; }
-    .command-trigger { min-width: auto; }
-    .command-trigger span, .command-trigger kbd { display: none; }
-    .top-nav-start { min-width: 0; }
-    .top-nav .k-space:last-child > .k-tooltip:first-child { display: none; }
-    .top-nav .k-avatar + span { display: none; }
+    .mobile-sider-open {
+      transform: translateX(0);
+    }
+    .header-nav {
+      padding: 0 8px 4px;
+    }
+    .container {
+      padding: 6px 4px 10px;
+    }
+    .history-actions,
+    .header-breadcrumb {
+      display: none;
+    }
+    .command-trigger {
+      min-width: auto;
+    }
+    .command-trigger span,
+    .command-trigger kbd {
+      display: none;
+    }
+    .top-nav-start {
+      min-width: 0;
+    }
+    .top-nav .k-space:last-child > .k-tooltip:first-child {
+      display: none;
+    }
+    .top-nav .k-avatar + span {
+      display: none;
+    }
+  }
+
+  .layout-top > .sys-sider {
+    width: min(280px, calc(100vw - 52px)) !important;
+    min-height: 100vh !important;
+    max-height: 100vh !important;
+    height: 100vh !important;
+    flex-direction: column;
+    align-items: stretch;
+
+    .logo-box {
+      width: auto;
+      flex: 0 0 auto;
+      padding: 10px;
+    }
+
+    .sys-menu {
+      height: auto;
+      overflow: auto;
+    }
+
+    .app-version {
+      border-left: 0;
+      border-top: 1px solid var(--kui-color-border);
+    }
   }
 }
 </style>

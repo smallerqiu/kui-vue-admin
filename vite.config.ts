@@ -58,13 +58,23 @@ export default defineConfig({
           const packagePath = packageSegments[packageSegments.length - 1] || "";
           if (packagePath.startsWith("kui-icons/")) return "ui-icons";
           if (packagePath.startsWith("kui-vue/")) return "ui-lib";
-          if (packagePath.startsWith("echarts/") || packagePath.startsWith("vue-echarts/"))
+          if (
+            packagePath.startsWith("echarts/") ||
+            packagePath.startsWith("vue-echarts/")
+          )
             return "charts";
-          if (packagePath.startsWith("@codemirror/") || packagePath.startsWith("cm6-theme-"))
+          if (
+            packagePath.startsWith("@codemirror/") ||
+            packagePath.startsWith("cm6-theme-")
+          )
             return "code-editor";
-          if (packagePath.startsWith("vue-router/") || packagePath.startsWith("pinia/"))
+          if (
+            packagePath.startsWith("vue-router/") ||
+            packagePath.startsWith("pinia/")
+          )
             return "vue-vendor";
-          if (packagePath.startsWith("vue/") || packagePath.startsWith("@vue/")) return "vue";
+          if (packagePath.startsWith("vue/") || packagePath.startsWith("@vue/"))
+            return "vue";
           if (packagePath.startsWith("dayjs/")) return "dayjs";
         },
       },
