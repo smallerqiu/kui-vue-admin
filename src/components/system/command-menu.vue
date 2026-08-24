@@ -12,16 +12,23 @@
       <input
         ref="inputRef"
         v-model="keyword"
+        role="combobox"
+        aria-controls="command-results"
+        :aria-activedescendant="results[activeIndex] ? `command-result-${activeIndex}` : undefined"
         placeholder="搜索菜单或页面…"
         @keydown="handleKeydown"
       />
       <kbd>ESC</kbd>
     </div>
-    <div class="command-results">
+    <div id="command-results" class="command-results" role="listbox">
       <button
         v-for="(item, index) in results"
+        :id="`command-result-${index}`"
+        ref="resultRefs"
         :key="item.path"
         type="button"
+        role="option"
+        :aria-selected="index === activeIndex"
         :class="{ active: index === activeIndex }"
         @mouseenter="activeIndex = index"
         @click="go(item.path)"
@@ -74,6 +81,7 @@ const visible = ref(false);
 const keyword = ref("");
 const activeIndex = ref(0);
 const inputRef = ref<HTMLInputElement>();
+const resultRefs = ref<HTMLButtonElement[]>([]);
 const flatten = (items: AdminMenuItem[], parents: string[] = []): SearchItem[] =>
   items.flatMap((item) => {
     const current = {
@@ -99,9 +107,13 @@ const results = computed(() => {
       : allItems.value
   ).slice(0, 10);
 });
+const scrollToActive = () =>
+  nextTick(() => resultRefs.value[activeIndex.value]?.scrollIntoView({ block: "nearest" }));
 watch(results, () => {
   activeIndex.value = 0;
+  scrollToActive();
 });
+watch(activeIndex, scrollToActive);
 watch(visible, (opened) => {
   if (opened) nextTick(() => inputRef.value?.focus());
   else keyword.value = "";
@@ -114,16 +126,22 @@ const go = (path: string) => {
   router.push(path);
 };
 const handleKeydown = (event: KeyboardEvent) => {
+  const count = results.value.length;
   if (event.key === "ArrowDown") {
     event.preventDefault();
-    activeIndex.value = Math.min(activeIndex.value + 1, results.value.length - 1);
+    event.stopPropagation();
+    if (count) activeIndex.value = (activeIndex.value + 1) % count;
   }
   if (event.key === "ArrowUp") {
     event.preventDefault();
-    activeIndex.value = Math.max(activeIndex.value - 1, 0);
+    event.stopPropagation();
+    if (count) activeIndex.value = (activeIndex.value - 1 + count) % count;
   }
-  if (event.key === "Enter" && results.value[activeIndex.value])
+  if (event.key === "Enter" && results.value[activeIndex.value]) {
+    event.preventDefault();
+    event.stopPropagation();
     go(results.value[activeIndex.value].path);
+  }
   if (event.key === "Escape") visible.value = false;
 };
 const handleShortcut = (event: KeyboardEvent) => {
@@ -189,7 +207,9 @@ defineExpose({ open });
   cursor: pointer;
 }
 .command-results > button.active {
-  background: var(--kui-color-item-hover);
+  color: var(--kui-color-primary);
+  background: var(--kui-color-item-selected);
+  box-shadow: inset 3px 0 var(--kui-color-primary);
 }
 .command-results > button > span:nth-child(2) {
   display: flex;

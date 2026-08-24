@@ -16,7 +16,7 @@
     </div>
     <Menu
       class="sys-menu"
-      v-model="activeMenu"
+      :model-value="props.activeMenu || []"
       @openChange="openChange"
       :openKeys="menuOpenKeys"
       :inlineCollapsed="top ? false : collapsed"
@@ -57,10 +57,6 @@ const props = defineProps({
   },
 });
 const routes = computed(() => props.routes);
-
-const activeMenu = computed(() => {
-  return props.activeMenu;
-});
 
 const localOpenKeys = localStorage.getItem("openKeys");
 const defaultOpenKeys = JSON.parse(localOpenKeys || "[]");

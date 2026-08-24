@@ -1,7 +1,7 @@
 <template>
   <section class="sys-main">
     <router-view v-slot="{ Component }">
-      <transition name="fade">
+      <transition name="route-fade" mode="out-in">
         <keep-alive :include="keepViews" :max="100">
           <component :is="Component" :key="key" />
         </keep-alive>
@@ -33,32 +33,18 @@ const key = computed(() => tab.keepKey);
   height: 100%;
 }
 
-.route-fade-enter-active,
-.route-fade-enter-to {
-  animation: route-fade 0.1s;
-  overflow: hidden;
-}
-
-.route-fade-leave-active {
-  animation: route-fade 0.1s reverse;
-}
-
 .route-fade-enter-active {
-  animation: fade-in 0.1s ease;
+  animation: route-fade 0.14s ease-out;
 }
 
 .route-fade-leave-active {
-  animation: fade-out 0.1s cubic-bezier(1, 0.5, 0.8, 1);
+  animation: route-fade 0.1s ease-in reverse;
 }
 
-.route-fade-enter,
-.route-fade-leave-to {
-  position: absolute;
-  left: 0;
-  top: 0;
-  opacity: 0;
-  min-height: 100vh;
-  min-width: 100vw;
-  overflow: hidden;
+@media (prefers-reduced-motion: reduce) {
+  .route-fade-enter-active,
+  .route-fade-leave-active {
+    animation: none;
+  }
 }
 </style>
