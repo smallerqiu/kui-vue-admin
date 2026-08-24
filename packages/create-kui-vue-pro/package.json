@@ -1,6 +1,6 @@
 {
   "name": "create-kui-vue-pro",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Create a production-ready KUI Vue Pro admin application",
   "type": "module",
   "bin": {
