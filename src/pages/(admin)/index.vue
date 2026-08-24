@@ -14,35 +14,28 @@
 
     <Grid :cols="{ xs: 1, sm: 2, xl: 4 }" :x-gap="16" :y-gap="16">
       <GridItem v-for="item in metrics" :key="item.title">
-        <StatCard
-          class="metric-card"
-          :title="item.title"
-          :items="[item.data]"
-          bordered
-          reverse
-        />
+        <StatCard class="metric-card" :title="item.title" :items="[item.data]" bordered reverse />
       </GridItem>
     </Grid>
 
-    <Grid
-      class="dashboard-content"
-      :cols="{ xs: 1, lg: 12 }"
-      :x-gap="16"
-      :y-gap="16"
-    >
+    <Grid class="dashboard-content" :cols="{ xs: 1, lg: 12 }" :x-gap="16" :y-gap="16">
       <GridItem :span="{ xs: 1, lg: 8 }">
         <Card title="访问趋势" bordered class="panel-card">
           <template #extra>
             <Space size="small">
               <Tag theme="fill">近 7 天</Tag>
-              <Button size="small" theme="plain" :icon="ArrowUpRight"
-                >详情</Button
-              >
+              <Button size="small" theme="plain" :icon="ArrowUpRight">详情</Button>
             </Space>
           </template>
           <div class="trend-summary">
-            <div><span>总访问量</span><strong>48,260</strong></div>
-            <div><span>独立访客</span><strong>12,846</strong></div>
+            <div>
+              <span>总访问量</span>
+              <strong>48,260</strong>
+            </div>
+            <div>
+              <span>独立访客</span>
+              <strong>12,846</strong>
+            </div>
           </div>
           <TrendChart :data="trend" aria-label="最近七天访问趋势图" />
         </Card>
@@ -50,29 +43,19 @@
 
       <GridItem :span="{ xs: 1, lg: 4 }">
         <Card title="项目进度" bordered class="panel-card">
-          <template #extra
-            ><Button size="small" theme="plain">全部项目</Button></template
-          >
+          <template #extra><Button size="small" theme="plain">全部项目</Button></template>
           <div class="project-list">
-            <div
-              v-for="project in projects"
-              :key="project.name"
-              class="project-item"
-            >
+            <div v-for="project in projects" :key="project.name" class="project-item">
               <Flex justify="space-between" align="center">
                 <div>
                   <strong>{{ project.name }}</strong>
                   <p>{{ project.owner }} · {{ project.deadline }}</p>
                 </div>
-                <Tag :theme="project.status === '进行中' ? 'fill' : 'plain'">{{
-                  project.status
-                }}</Tag>
+                <Tag :theme="project.status === '进行中' ? 'fill' : 'plain'">
+                  {{ project.status }}
+                </Tag>
               </Flex>
-              <Progress
-                :percent="project.percent"
-                :show-info="false"
-                size="small"
-              />
+              <Progress :percent="project.percent" :show-info="false" size="small" />
             </div>
           </div>
         </Card>
@@ -80,23 +63,21 @@
 
       <GridItem :span="{ xs: 1, lg: 7 }">
         <Card title="近期活动" bordered class="panel-card">
-          <template #extra
-            ><Button size="small" theme="plain">查看全部</Button></template
-          >
+          <template #extra><Button size="small" theme="plain">查看全部</Button></template>
           <div class="activity-list">
-            <div
-              v-for="activity in activities"
-              :key="activity.text"
-              class="activity-item"
-            >
-              <Avatar :size="34" :style="{ background: activity.color }">{{
-                activity.user.slice(0, 1)
-              }}</Avatar>
+            <div v-for="activity in activities" :key="activity.text" class="activity-item">
+              <Avatar :size="34" :style="{ background: activity.color }">
+                {{ activity.user.slice(0, 1) }}
+              </Avatar>
               <div class="activity-content">
                 <p>
-                  <strong>{{ activity.user }}</strong> {{ activity.text }}
+                  <strong>{{ activity.user }}</strong>
+                  {{ activity.text }}
                 </p>
-                <span><Icon :type="Clock" /> {{ activity.time }}</span>
+                <span>
+                  <Icon :type="Clock" />
+                  {{ activity.time }}
+                </span>
               </div>
               <Tag size="small" theme="fill">{{ activity.type }}</Tag>
             </div>
@@ -156,9 +137,7 @@ import { useRouter } from "vue-router";
 
 const authStore = useAuthStore();
 const router = useRouter();
-const userName = computed(
-  () => authStore.user.fullName || authStore.user.name || "管理员",
-);
+const userName = computed(() => authStore.user.fullName || authStore.user.name || "管理员");
 const today = new Intl.DateTimeFormat("zh-CN", {
   month: "long",
   day: "numeric",

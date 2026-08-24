@@ -14,11 +14,9 @@ describe("permission helpers", () => {
       { id: 2, ownerId: "u2", departmentId: "d1" },
       { id: 3, ownerId: "u3", departmentId: "d2" },
     ];
-    expect(
-      filterByDataScope(rows, { dataScope: "department", departmentId: "d1" }),
-    ).toHaveLength(2);
-    expect(
-      filterByDataScope(rows, { dataScope: "self", userId: "u2" }),
-    ).toEqual([rows[1]]);
+    expect(filterByDataScope(rows, { dataScope: "department", departmentId: "d1" })).toHaveLength(
+      2,
+    );
+    expect(filterByDataScope(rows, { dataScope: "self", userId: "u2" })).toEqual([rows[1]]);
   });
 });

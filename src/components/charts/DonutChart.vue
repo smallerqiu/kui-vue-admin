@@ -19,15 +19,10 @@ interface DonutItem {
   value: number;
   color?: string;
 }
-const props = withDefaults(
-  defineProps<{ data: DonutItem[]; unit?: string }>(),
-  { unit: "%" },
-);
+const props = withDefaults(defineProps<{ data: DonutItem[]; unit?: string }>(), { unit: "%" });
 const themeStore = useThemeStore();
 use([PieChart, LegendComponent, TooltipComponent, CanvasRenderer]);
-type ChartOption = ComposeOption<
-  PieSeriesOption | LegendComponentOption | TooltipComponentOption
->;
+type ChartOption = ComposeOption<PieSeriesOption | LegendComponentOption | TooltipComponentOption>;
 
 const option = computed<ChartOption>(() => {
   const dark = themeStore.theme === "dark";

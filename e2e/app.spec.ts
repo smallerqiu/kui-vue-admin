@@ -7,11 +7,7 @@ test("login and open protected administration pages", async ({ page }) => {
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByText("Version 1.0.0")).toBeVisible();
   await page.goto("/commerce/orders");
-  await expect(
-    page.getByText("订单管理", { exact: true }).last(),
-  ).toBeVisible();
+  await expect(page.getByText("订单管理", { exact: true }).last()).toBeVisible();
   await page.goto("/system/menus");
-  await expect(
-    page.getByText("维护菜单、权限码和可见状态。", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("维护菜单、权限码和可见状态。", { exact: true })).toBeVisible();
 });

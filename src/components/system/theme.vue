@@ -16,9 +16,7 @@ onMounted(() => {
   monitor.addEventListener("change", matchMode);
 });
 onBeforeUnmount(() => monitor.removeEventListener("change", matchMode));
-watch(
-  localTheme,
-  (mode) => document.documentElement.setAttribute("theme-mode", mode),
-  { immediate: true },
-);
+watch(localTheme, (mode) => document.documentElement.setAttribute("theme-mode", mode), {
+  immediate: true,
+});
 </script>

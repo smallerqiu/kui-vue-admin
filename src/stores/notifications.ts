@@ -72,9 +72,7 @@ const readStored = () => {
 
 export const useNotificationStore = defineStore("notifications", () => {
   const items = ref<NotificationItem[]>(readStored());
-  const unreadCount = computed(
-    () => items.value.filter((item) => !item.read).length,
-  );
+  const unreadCount = computed(() => items.value.filter((item) => !item.read).length);
   const markRead = (id: string) => {
     const item = items.value.find((notification) => notification.id === id);
     if (item) item.read = true;
@@ -90,10 +88,8 @@ export const useNotificationStore = defineStore("notifications", () => {
     items.value = items.value.filter((item) => !item.read);
   };
 
-  watch(
-    items,
-    (value) => localStorage.setItem("notifications", JSON.stringify(value)),
-    { deep: true },
-  );
+  watch(items, (value) => localStorage.setItem("notifications", JSON.stringify(value)), {
+    deep: true,
+  });
   return { items, unreadCount, markRead, markAllRead, remove, clearRead };
 });

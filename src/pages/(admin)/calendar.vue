@@ -1,11 +1,9 @@
 <template>
   <div class="calendar-page">
     <PageHeader title="团队日程" description="汇总会议、项目节点和个人安排。">
-      <template #actions
-        ><Button type="primary" :icon="Plus" @click="openCreate(today)"
-          >新建日程</Button
-        ></template
-      >
+      <template #actions>
+        <Button type="primary" :icon="Plus" @click="openCreate(today)">新建日程</Button>
+      </template>
     </PageHeader>
 
     <Grid :cols="{ xs: 1, xl: 12 }" :x-gap="16" :y-gap="16">
@@ -16,22 +14,23 @@
             :events="calendarEvents"
             @event-click="handleCalendarEvent"
           >
-            <template #extra
-              ><Select
+            <template #extra>
+              <Select
                 v-model="category"
                 clearable
                 placeholder="全部日程"
                 :options="categoryOptions"
-            /></template>
+              />
+            </template>
           </Calendar>
         </Card>
       </GridItem>
 
       <GridItem :span="{ xs: 1, xl: 3 }">
         <Card bordered title="当日日程" class="agenda-card">
-          <template #extra
-            ><Tag theme="fill">{{ selectedDate }}</Tag></template
-          >
+          <template #extra>
+            <Tag theme="fill">{{ selectedDate }}</Tag>
+          </template>
           <div v-if="selectedEvents.length" class="agenda-list">
             <button
               v-for="event in selectedEvents"
@@ -39,37 +38,30 @@
               type="button"
               @click="openDetail(event)"
             >
-              <span
-                :style="{ background: categoryMap[event.category].color }"
-              ></span>
+              <span :style="{ background: categoryMap[event.category].color }"></span>
               <div>
-                <strong>{{ event.title }}</strong
-                ><small
-                  ><Icon :type="Clock" /> {{ event.time }} ·
-                  {{ categoryMap[event.category].label }}</small
-                ><small
-                  ><Icon :type="event.online ? Video : MapPin" />
-                  {{ event.location }}</small
-                >
+                <strong>{{ event.title }}</strong>
+                <small>
+                  <Icon :type="Clock" />
+                  {{ event.time }} · {{ categoryMap[event.category].label }}
+                </small>
+                <small>
+                  <Icon :type="event.online ? Video : MapPin" />
+                  {{ event.location }}
+                </small>
               </div>
             </button>
           </div>
           <Empty v-else description="当天暂无日程" />
-          <Button
-            block
-            theme="plain"
-            :icon="Plus"
-            @click="openCreate(selectedDate)"
-            >添加日程</Button
-          >
+          <Button block theme="plain" :icon="Plus" @click="openCreate(selectedDate)">
+            添加日程
+          </Button>
         </Card>
         <Card bordered title="日程分类" class="legend-card">
           <div v-for="item in categoryOptions" :key="item.value">
-            <span :style="{ background: categoryMap[item.value].color }"></span
-            >{{ item.label
-            }}<em>{{
-              events.filter((event) => event.category === item.value).length
-            }}</em>
+            <span :style="{ background: categoryMap[item.value].color }"></span>
+            {{ item.label }}
+            <em>{{ events.filter((event) => event.category === item.value).length }}</em>
           </div>
         </Card>
       </GridItem>
@@ -82,38 +74,29 @@
       @ok="saveEvent"
     >
       <Form :model="form" layout="vertical">
-        <FormItem label="日程标题"
-          ><Input v-model="form.title" clearable placeholder="请输入日程标题"
-        /></FormItem>
+        <FormItem label="日程标题">
+          <Input v-model="form.title" clearable placeholder="请输入日程标题" />
+        </FormItem>
         <Grid :cols="2" :x-gap="12">
-          <GridItem
-            ><FormItem label="日期"
-              ><DatePicker v-model="form.date" block /></FormItem
-          ></GridItem>
-          <GridItem
-            ><FormItem label="时间"
-              ><Input v-model="form.time" placeholder="例如 10:30" /></FormItem
-          ></GridItem>
-          <GridItem
-            ><FormItem label="分类"
-              ><Select
-                v-model="form.category"
-                block
-                :options="categoryOptions" /></FormItem
-          ></GridItem>
-          <GridItem
-            ><FormItem label="参与人"
-              ><Input
-                v-model="form.attendees"
-                placeholder="例如 6 人" /></FormItem
-          ></GridItem>
+          <GridItem>
+            <FormItem label="日期"><DatePicker v-model="form.date" block /></FormItem>
+          </GridItem>
+          <GridItem>
+            <FormItem label="时间"><Input v-model="form.time" placeholder="例如 10:30" /></FormItem>
+          </GridItem>
+          <GridItem>
+            <FormItem label="分类">
+              <Select v-model="form.category" block :options="categoryOptions" />
+            </FormItem>
+          </GridItem>
+          <GridItem>
+            <FormItem label="参与人">
+              <Input v-model="form.attendees" placeholder="例如 6 人" />
+            </FormItem>
+          </GridItem>
         </Grid>
-        <FormItem label="地点或会议链接"
-          ><Input v-model="form.location" clearable
-        /></FormItem>
-        <FormItem label="日程说明"
-          ><TextArea v-model="form.description" :rows="3"
-        /></FormItem>
+        <FormItem label="地点或会议链接"><Input v-model="form.location" clearable /></FormItem>
+        <FormItem label="日程说明"><TextArea v-model="form.description" :rows="3" /></FormItem>
         <FormItem label="线上会议"><Switch v-model="form.online" /></FormItem>
       </Form>
     </Drawer>
@@ -126,35 +109,34 @@
     >
       <template v-if="selectedEvent">
         <div class="event-detail-head">
-          <span
-            :style="{ background: categoryMap[selectedEvent.category].color }"
-          ></span>
+          <span :style="{ background: categoryMap[selectedEvent.category].color }"></span>
           <div>
-            <strong>{{ selectedEvent.title }}</strong
-            ><small>{{ categoryMap[selectedEvent.category].label }}</small>
+            <strong>{{ selectedEvent.title }}</strong>
+            <small>{{ categoryMap[selectedEvent.category].label }}</small>
           </div>
         </div>
         <div class="event-detail-list">
           <p>
-            <Icon :type="CalendarDays" />{{ selectedEvent.date }}
+            <Icon :type="CalendarDays" />
+            {{ selectedEvent.date }}
             {{ selectedEvent.time }}
           </p>
           <p>
-            <Icon :type="selectedEvent.online ? Video : MapPin" />{{
-              selectedEvent.location
-            }}
+            <Icon :type="selectedEvent.online ? Video : MapPin" />
+            {{ selectedEvent.location }}
           </p>
-          <p><Icon :type="Users" />{{ selectedEvent.attendees }}</p>
+          <p>
+            <Icon :type="Users" />
+            {{ selectedEvent.attendees }}
+          </p>
         </div>
         <p class="event-description">
           {{ selectedEvent.description || "暂无补充说明" }}
         </p>
-        <Space
-          ><Button type="primary" @click="editSelected">编辑日程</Button
-          ><Button type="danger" theme="plain" @click="removeSelected"
-            >删除</Button
-          ></Space
-        >
+        <Space>
+          <Button type="primary" @click="editSelected">编辑日程</Button>
+          <Button type="danger" theme="plain" @click="removeSelected">删除</Button>
+        </Space>
       </template>
     </Modal>
   </div>
@@ -260,9 +242,7 @@ const events = ref<CalendarEvent[]>([
   },
 ]);
 const filteredEvents = computed(() =>
-  events.value.filter(
-    (event) => !category.value || event.category === category.value,
-  ),
+  events.value.filter((event) => !category.value || event.category === category.value),
 );
 const calendarEvents = computed<CalendarEventData[]>(() =>
   filteredEvents.value.map((event) => ({
@@ -311,9 +291,7 @@ const openDetail = (event: CalendarEvent) => {
   detailOpen.value = true;
 };
 const handleCalendarEvent = (event: CalendarEventData) =>
-  openDetail(
-    events.value.find((item) => item.id === event.key) as CalendarEvent,
-  );
+  openDetail(events.value.find((item) => item.id === event.key) as CalendarEvent);
 const editSelected = () => {
   if (!selectedEvent.value) return;
   editingId.value = selectedEvent.value.id;
@@ -332,9 +310,7 @@ const saveEvent = () => {
 };
 const removeSelected = () => {
   if (!selectedEvent.value) return;
-  events.value = events.value.filter(
-    (event) => event.id !== selectedEvent.value?.id,
-  );
+  events.value = events.value.filter((event) => event.id !== selectedEvent.value?.id);
   detailOpen.value = false;
   message.success("日程已删除");
 };

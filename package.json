@@ -32,7 +32,7 @@
     "echarts": "^6.1.0",
     "hash-sum": "^2.0.0",
     "kui-icons": "^5.0.0",
-    "kui-vue": "link:../kui-vue",
+    "kui-vue": "^5.8.0",
     "nanoid": "^6.0.1",
     "pinia": "^4.0.3",
     "vue": "^3.5.41",

@@ -34,9 +34,7 @@ const generateRandomString = (length: number) =>
   Array.from(
     { length },
     () =>
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"[
-        (Math.random() * 62) | 0
-      ],
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"[(Math.random() * 62) | 0],
   ).join("");
 
 export function customEncode(username?: string) {

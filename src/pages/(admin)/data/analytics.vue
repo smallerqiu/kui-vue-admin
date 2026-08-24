@@ -2,67 +2,44 @@
   <div class="pro-list-page">
     <PageHeader title="经营分析" description="追踪收入、转化和渠道表现。">
       <template #actions>
-        <RadioGroup
-          v-model="period"
-          theme="card"
-          type="button"
-          :options="periodOptions"
-        />
+        <RadioGroup v-model="period" theme="card" type="button" :options="periodOptions" />
         <Button :icon="Download">导出报告</Button>
       </template>
     </PageHeader>
 
     <Grid :cols="{ xs: 1, sm: 2, xl: 4 }" :x-gap="16" :y-gap="16">
-      <GridItem v-for="item in metrics" :key="item.title"
-        ><StatCard :title="item.title" :items="[item.data]" bordered reverse
-      /></GridItem>
+      <GridItem v-for="item in metrics" :key="item.title">
+        <StatCard :title="item.title" :items="[item.data]" bordered reverse />
+      </GridItem>
     </Grid>
 
-    <Grid
-      class="analytics-content"
-      :cols="{ xs: 1, lg: 12 }"
-      :x-gap="16"
-      :y-gap="16"
-    >
+    <Grid class="analytics-content" :cols="{ xs: 1, lg: 12 }" :x-gap="16" :y-gap="16">
       <GridItem :span="{ xs: 1, lg: 8 }">
         <Card title="收入趋势" bordered class="panel-card">
-          <template #extra
-            ><Tag theme="fill">{{ periodLabel }}</Tag></template
-          >
-          <TrendChart
-            :data="revenueTrend"
-            name="收入"
-            suffix=" 万"
-            color="#7b61ff"
-          />
+          <template #extra>
+            <Tag theme="fill">{{ periodLabel }}</Tag>
+          </template>
+          <TrendChart :data="revenueTrend" name="收入" suffix=" 万" color="#7b61ff" />
         </Card>
       </GridItem>
       <GridItem :span="{ xs: 1, lg: 4 }">
-        <Card title="订单渠道" bordered class="panel-card"
-          ><DonutChart :data="channelData" unit=" 单"
-        /></Card>
+        <Card title="订单渠道" bordered class="panel-card">
+          <DonutChart :data="channelData" unit=" 单" />
+        </Card>
       </GridItem>
 
       <GridItem :span="{ xs: 1, lg: 7 }">
         <Card title="核心转化漏斗" bordered class="panel-card">
           <div class="funnel-list">
-            <div
-              v-for="(item, index) in funnel"
-              :key="item.name"
-              class="funnel-item"
-            >
-              <Flex justify="space-between"
-                ><span>{{ item.name }}</span
-                ><strong>{{ item.value.toLocaleString() }}</strong></Flex
-              >
+            <div v-for="(item, index) in funnel" :key="item.name" class="funnel-item">
+              <Flex justify="space-between">
+                <span>{{ item.name }}</span>
+                <strong>{{ item.value.toLocaleString() }}</strong>
+              </Flex>
               <div class="funnel-track">
-                <span
-                  :style="{ width: `${item.percent}%`, background: item.color }"
-                ></span>
+                <span :style="{ width: `${item.percent}%`, background: item.color }"></span>
               </div>
-              <small v-if="index < funnel.length - 1"
-                >转化率 {{ funnel[index + 1].rate }}%</small
-              >
+              <small v-if="index < funnel.length - 1">转化率 {{ funnel[index + 1].rate }}%</small>
             </div>
           </div>
         </Card>
@@ -73,14 +50,11 @@
             <div v-for="device in devices" :key="device.name">
               <span class="device-icon"><Icon :type="device.icon" /></span>
               <div>
-                <Flex justify="space-between"
-                  ><strong>{{ device.name }}</strong
-                  ><span>{{ device.percent }}%</span></Flex
-                ><Progress
-                  :percent="device.percent"
-                  :show-info="false"
-                  size="small"
-                />
+                <Flex justify="space-between">
+                  <strong>{{ device.name }}</strong>
+                  <span>{{ device.percent }}%</span>
+                </Flex>
+                <Progress :percent="device.percent" :show-info="false" size="small" />
               </div>
             </div>
           </div>

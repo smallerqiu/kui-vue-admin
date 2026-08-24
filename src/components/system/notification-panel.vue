@@ -2,15 +2,12 @@
   <div class="notification-panel">
     <Flex class="notification-head" justify="space-between" align="center">
       <div>
-        <strong>通知</strong><span>{{ store.unreadCount }} 条未读</span>
+        <strong>通知</strong>
+        <span>{{ store.unreadCount }} 条未读</span>
       </div>
-      <Button
-        v-if="store.unreadCount"
-        size="small"
-        theme="plain"
-        @click="store.markAllRead"
-        >全部已读</Button
-      >
+      <Button v-if="store.unreadCount" size="small" theme="plain" @click="store.markAllRead">
+        全部已读
+      </Button>
     </Flex>
     <div class="notification-list">
       <button
@@ -20,25 +17,21 @@
         :class="{ unread: !item.read }"
         @click="openItem(item)"
       >
-        <span class="notification-icon" :class="`notification-${item.type}`"
-          ><Icon :type="icons[item.type]"
-        /></span>
-        <span class="notification-copy"
-          ><strong>{{ item.title }}</strong
-          ><small>{{ item.content }}</small
-          ><em>{{ item.time }}</em></span
-        >
+        <span class="notification-icon" :class="`notification-${item.type}`">
+          <Icon :type="icons[item.type]" />
+        </span>
+        <span class="notification-copy">
+          <strong>{{ item.title }}</strong>
+          <small>{{ item.content }}</small>
+          <em>{{ item.time }}</em>
+        </span>
         <i v-if="!item.read"></i>
       </button>
       <Empty v-if="!recentItems.length" description="暂无通知" />
     </div>
-    <Button
-      class="notification-footer"
-      block
-      theme="plain"
-      @click="router.push('/notifications')"
-      >查看全部通知</Button
-    >
+    <Button class="notification-footer" block theme="plain" @click="router.push('/notifications')">
+      查看全部通知
+    </Button>
   </div>
 </template>
 

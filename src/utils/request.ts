@@ -1,11 +1,6 @@
 import { message } from "kui-vue";
 import { customAlphabet } from "nanoid";
-import {
-  clearAuthSession,
-  getRefreshToken,
-  getToken,
-  updateAccessToken,
-} from "./auth";
+import { clearAuthSession, getRefreshToken, getToken, updateAccessToken } from "./auth";
 import { appConfig } from "@/config/app";
 
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789";
@@ -50,12 +45,7 @@ const request = {
     data: any = {},
     customOptions: RequestOptions = {},
   ): Promise<T> {
-    const {
-      timeout = 30000,
-      headers: customHeaders,
-      _retry,
-      ...requestOptions
-    } = customOptions;
+    const { timeout = 30000, headers: customHeaders, _retry, ...requestOptions } = customOptions;
     const controller = new AbortController();
     const requestId = nanoid();
     this._maps.set(requestId, controller);
@@ -65,8 +55,7 @@ const request = {
       const path = url.startsWith("/") ? url : `/${url}`;
       finalUrl =
         appConfig.apiBaseUrl.startsWith("/") &&
-        (path === appConfig.apiBaseUrl ||
-          path.startsWith(`${appConfig.apiBaseUrl}/`))
+        (path === appConfig.apiBaseUrl || path.startsWith(`${appConfig.apiBaseUrl}/`))
           ? path
           : `${appConfig.apiBaseUrl}${path}`;
     }
@@ -134,12 +123,7 @@ const request = {
    * 过滤空值
    */
   filterNull(obj: any): Record<string, string> {
-    if (
-      !(obj instanceof Object) ||
-      obj instanceof FormData ||
-      Array.isArray(obj)
-    )
-      return obj;
+    if (!(obj instanceof Object) || obj instanceof FormData || Array.isArray(obj)) return obj;
     const params: Record<string, any> = {};
     Object.keys(obj).forEach((key) => {
       if (obj[key] !== null && obj[key] !== undefined && obj[key] !== "") {
@@ -184,11 +168,7 @@ const request = {
   async handleHttpError(response: Response): Promise<never> {
     const { status } = response;
     const whiteList = ["/account/login"];
-    if (
-      status === 401 &&
-      !whiteList.includes(location.pathname) &&
-      !this._401Lock
-    ) {
+    if (status === 401 && !whiteList.includes(location.pathname) && !this._401Lock) {
       this._401Lock = true;
       clearAuthSession();
       message.show({
@@ -197,19 +177,14 @@ const request = {
         grouping: "login",
       });
       setTimeout(() => {
-        const redirect = encodeURIComponent(
-          location.pathname + location.search,
-        );
+        const redirect = encodeURIComponent(location.pathname + location.search);
         window.location.href = `/account/login?redirect=${redirect}`;
       }, 1000);
     }
 
     const errorData = await response.json().catch(() => ({}));
     const messageText =
-      errorData.message ||
-      errorData.msg ||
-      response.statusText ||
-      "Request failed";
+      errorData.message || errorData.msg || response.statusText || "Request failed";
     throw new ApiError(messageText, status, errorData);
   },
 

@@ -1,35 +1,15 @@
 <template>
   <div class="pro-list-page">
     <PageHeader title="商品管理" description="维护商品信息、库存和上架状态。">
-      <template #actions
-        ><Button type="primary" :icon="Plus" @click="openCreate"
-          >新增商品</Button
-        ></template
-      >
+      <template #actions>
+        <Button type="primary" :icon="Plus" @click="openCreate">新增商品</Button>
+      </template>
     </PageHeader>
-    <ListPanel
-      :summary="`${filteredProducts.length} 件商品`"
-      :selected-count="selectedKeys.length"
-    >
+    <ListPanel :summary="`${filteredProducts.length} 件商品`" :selected-count="selectedKeys.length">
       <template #filters>
-        <Input
-          v-model="keyword"
-          clearable
-          placeholder="搜索商品名称或 SKU"
-          :icon="Search"
-        />
-        <Select
-          v-model="category"
-          clearable
-          placeholder="全部分类"
-          :options="categoryOptions"
-        />
-        <Select
-          v-model="status"
-          clearable
-          placeholder="全部状态"
-          :options="statusOptions"
-        />
+        <Input v-model="keyword" clearable placeholder="搜索商品名称或 SKU" :icon="Search" />
+        <Select v-model="category" clearable placeholder="全部分类" :options="categoryOptions" />
+        <Select v-model="status" clearable placeholder="全部状态" :options="statusOptions" />
       </template>
       <template #actions>
         <Space>
@@ -46,12 +26,8 @@
       <template #selection="{ count }">
         <Space>
           <strong>已选择 {{ count }} 项</strong>
-          <Button type="danger" size="small" @click="disableSelected"
-            >批量下架</Button
-          >
-          <Button theme="plain" size="small" @click="selectedKeys = []"
-            >取消选择</Button
-          >
+          <Button type="danger" size="small" @click="disableSelected">批量下架</Button>
+          <Button theme="plain" size="small" @click="selectedKeys = []">取消选择</Button>
         </Space>
       </template>
       <Table
@@ -65,39 +41,25 @@
       >
         <template #product="{ record }">
           <div class="product-cell">
-            <span :style="{ background: record.color }"
-              ><Icon :type="Package"
-            /></span>
+            <span :style="{ background: record.color }"><Icon :type="Package" /></span>
             <div>
-              <strong>{{ record.name }}</strong
-              ><small>{{ record.sku }}</small>
+              <strong>{{ record.name }}</strong>
+              <small>{{ record.sku }}</small>
             </div>
           </div>
         </template>
-        <template #price="{ value }"
-          ><strong>¥ {{ Number(value).toLocaleString() }}</strong></template
-        >
-        <template #stock="{ value }"
-          ><span :class="{ 'stock-low': Number(value) < 20 }">{{
-            value
-          }}</span></template
-        >
-        <template #status="{ record }"
-          ><Switch
-            v-model="record.enabled"
-            size="small"
-            true-text="上架"
-            false-text="下架"
-        /></template>
-        <template #action="{ record }"
-          ><Button
-            size="small"
-            theme="plain"
-            :icon="Pencil"
-            @click="openEdit(record)"
-            >编辑</Button
-          ></template
-        >
+        <template #price="{ value }">
+          <strong>¥ {{ Number(value).toLocaleString() }}</strong>
+        </template>
+        <template #stock="{ value }">
+          <span :class="{ 'stock-low': Number(value) < 20 }">{{ value }}</span>
+        </template>
+        <template #status="{ record }">
+          <Switch v-model="record.enabled" size="small" true-text="上架" false-text="下架" />
+        </template>
+        <template #action="{ record }">
+          <Button size="small" theme="plain" :icon="Pencil" @click="openEdit(record)">编辑</Button>
+        </template>
       </Table>
     </ListPanel>
 
@@ -108,35 +70,28 @@
       @ok="saveProduct"
     >
       <Form :model="form" layout="vertical">
-        <FormItem label="商品名称"
-          ><Input v-model="form.name" clearable placeholder="请输入商品名称"
-        /></FormItem>
+        <FormItem label="商品名称">
+          <Input v-model="form.name" clearable placeholder="请输入商品名称" />
+        </FormItem>
         <Grid :cols="2" :x-gap="12">
-          <GridItem
-            ><FormItem label="SKU"
-              ><Input v-model="form.sku" clearable /></FormItem
-          ></GridItem>
-          <GridItem
-            ><FormItem label="分类"
-              ><Select
-                v-model="form.category"
-                block
-                :options="categoryOptions" /></FormItem
-          ></GridItem>
-          <GridItem
-            ><FormItem label="销售价格"
-              ><InputNumber
-                v-model="form.price"
-                :min="0"
-                prefix="¥" /></FormItem
-          ></GridItem>
-          <GridItem
-            ><FormItem label="库存"
-              ><InputNumber
-                v-model="form.stock"
-                :min="0"
-                suffix="件" /></FormItem
-          ></GridItem>
+          <GridItem>
+            <FormItem label="SKU"><Input v-model="form.sku" clearable /></FormItem>
+          </GridItem>
+          <GridItem>
+            <FormItem label="分类">
+              <Select v-model="form.category" block :options="categoryOptions" />
+            </FormItem>
+          </GridItem>
+          <GridItem>
+            <FormItem label="销售价格">
+              <InputNumber v-model="form.price" :min="0" prefix="¥" />
+            </FormItem>
+          </GridItem>
+          <GridItem>
+            <FormItem label="库存">
+              <InputNumber v-model="form.stock" :min="0" suffix="件" />
+            </FormItem>
+          </GridItem>
         </Grid>
         <FormItem label="立即上架"><Switch v-model="form.enabled" /></FormItem>
       </Form>
@@ -290,8 +245,7 @@ const openEdit = (record: ProductRow) => {
   drawerOpen.value = true;
 };
 const saveProduct = () => {
-  if (!form.name.trim() || !form.sku.trim())
-    return message.warning("请填写商品名称和 SKU");
+  if (!form.name.trim() || !form.sku.trim()) return message.warning("请填写商品名称和 SKU");
   const target = products.value.find((item) => item.id === editingId.value);
   if (target) Object.assign(target, form, { updatedAt: "刚刚" });
   else

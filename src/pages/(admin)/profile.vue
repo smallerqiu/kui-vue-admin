@@ -1,32 +1,35 @@
 <template>
   <div class="profile-page">
-    <PageHeader
-      title="个人中心"
-      description="管理账号信息、安全设置和使用偏好。"
-    />
+    <PageHeader title="个人中心" description="管理账号信息、安全设置和使用偏好。" />
     <Grid :cols="{ xs: 1, lg: 12 }" :x-gap="16" :y-gap="16">
       <GridItem :span="{ xs: 1, lg: 4 }">
         <Card bordered class="profile-card">
           <div class="profile-summary">
-            <Avatar :size="76" style="background: #3a95ff">{{
-              displayName.slice(0, 1)
-            }}</Avatar>
+            <Avatar :size="76" style="background: #3a95ff">{{ displayName.slice(0, 1) }}</Avatar>
             <h2>{{ displayName }}</h2>
             <p>{{ authStore.user.email || "admin@k-ui.cn" }}</p>
-            <Space wrap
-              ><Tag v-for="role in authStore.roles" :key="role" theme="fill">{{
-                role
-              }}</Tag></Space
-            >
+            <Space wrap>
+              <Tag v-for="role in authStore.roles" :key="role" theme="fill">{{ role }}</Tag>
+            </Space>
           </div>
           <Divider />
           <div class="profile-meta">
-            <div><span>所属部门</span><strong>平台研发中心</strong></div>
             <div>
-              <span>账号状态</span><Badge status="success" text="正常" />
+              <span>所属部门</span>
+              <strong>平台研发中心</strong>
             </div>
-            <div><span>上次登录</span><strong>今天 09:42</strong></div>
-            <div><span>登录地点</span><strong>中国 · 武汉</strong></div>
+            <div>
+              <span>账号状态</span>
+              <Badge status="success" text="正常" />
+            </div>
+            <div>
+              <span>上次登录</span>
+              <strong>今天 09:42</strong>
+            </div>
+            <div>
+              <span>登录地点</span>
+              <strong>中国 · 武汉</strong>
+            </div>
           </div>
         </Card>
       </GridItem>
@@ -36,28 +39,26 @@
             <TabPanel key="basic" title="基本信息">
               <Form :model="basicForm" layout="vertical" class="settings-form">
                 <Grid :cols="{ xs: 1, sm: 2 }" :x-gap="16">
-                  <GridItem
-                    ><FormItem label="显示名称"
-                      ><Input
-                        v-model="basicForm.fullName"
-                        clearable /></FormItem
-                  ></GridItem>
-                  <GridItem
-                    ><FormItem label="登录账号"
-                      ><Input v-model="basicForm.name" disabled /></FormItem
-                  ></GridItem>
-                  <GridItem
-                    ><FormItem label="邮箱"
-                      ><Input v-model="basicForm.email" clearable /></FormItem
-                  ></GridItem>
-                  <GridItem
-                    ><FormItem label="手机号"
-                      ><Input v-model="basicForm.phone" clearable /></FormItem
-                  ></GridItem>
+                  <GridItem>
+                    <FormItem label="显示名称">
+                      <Input v-model="basicForm.fullName" clearable />
+                    </FormItem>
+                  </GridItem>
+                  <GridItem>
+                    <FormItem label="登录账号">
+                      <Input v-model="basicForm.name" disabled />
+                    </FormItem>
+                  </GridItem>
+                  <GridItem>
+                    <FormItem label="邮箱"><Input v-model="basicForm.email" clearable /></FormItem>
+                  </GridItem>
+                  <GridItem>
+                    <FormItem label="手机号">
+                      <Input v-model="basicForm.phone" clearable />
+                    </FormItem>
+                  </GridItem>
                 </Grid>
-                <FormItem label="个人简介"
-                  ><Input v-model="basicForm.bio" clearable
-                /></FormItem>
+                <FormItem label="个人简介"><Input v-model="basicForm.bio" clearable /></FormItem>
                 <Button type="primary" @click="saveBasic">保存修改</Button>
               </Form>
             </TabPanel>
@@ -72,13 +73,11 @@
                   size="small"
                   theme="plain"
                 >
-                  <template #extra
-                    ><Button
-                      size="small"
-                      @click="message.info(`${item.title}功能待接入服务端`)"
-                      >{{ item.action }}</Button
-                    ></template
-                  >
+                  <template #extra>
+                    <Button size="small" @click="message.info(`${item.title}功能待接入服务端`)">
+                      {{ item.action }}
+                    </Button>
+                  </template>
                 </FeatureCard>
               </div>
             </TabPanel>
@@ -89,10 +88,7 @@
                     <strong>深色模式</strong>
                     <p>切换后台整体颜色模式</p>
                   </div>
-                  <Switch
-                    :model-value="themeStore.theme === 'dark'"
-                    @change="toggleTheme"
-                  />
+                  <Switch :model-value="themeStore.theme === 'dark'" @change="toggleTheme" />
                 </div>
                 <div>
                   <div>
@@ -130,9 +126,7 @@ const authStore = useAuthStore();
 const themeStore = useThemeStore();
 const preferenceStore = usePreferenceStore();
 const activeTab = ref("basic");
-const displayName = computed(
-  () => authStore.user.fullName || authStore.user.name || "管理员",
-);
+const displayName = computed(() => authStore.user.fullName || authStore.user.name || "管理员");
 const basicForm = reactive({
   fullName: String(authStore.user.fullName || "Administrator"),
   name: String(authStore.user.name || "admin"),
@@ -178,8 +172,7 @@ const saveBasic = () => {
   });
   message.success("个人信息已保存");
 };
-const toggleTheme = (dark: boolean) =>
-  themeStore.setTheme(dark ? "dark" : "light");
+const toggleTheme = (dark: boolean) => themeStore.setTheme(dark ? "dark" : "light");
 </script>
 
 <style scoped lang="less">

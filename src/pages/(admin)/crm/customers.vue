@@ -1,45 +1,20 @@
 <template>
   <div class="pro-list-page">
-    <PageHeader
-      title="客户管理"
-      description="统一管理企业客户、跟进状态和客户价值。"
-    >
-      <template #actions
-        ><Button type="primary" :icon="UserRoundPlus" @click="drawerOpen = true"
-          >新增客户</Button
-        ></template
-      >
+    <PageHeader title="客户管理" description="统一管理企业客户、跟进状态和客户价值。">
+      <template #actions>
+        <Button type="primary" :icon="UserRoundPlus" @click="drawerOpen = true">新增客户</Button>
+      </template>
     </PageHeader>
-    <Grid
-      :cols="{ xs: 1, sm: 2, xl: 4 }"
-      :x-gap="12"
-      :y-gap="12"
-      class="customer-stats"
-    >
-      <GridItem v-for="item in stats" :key="item.title"
-        ><StatCard :title="item.title" :items="[item.data]" bordered reverse
-      /></GridItem>
+    <Grid :cols="{ xs: 1, sm: 2, xl: 4 }" :x-gap="12" :y-gap="12" class="customer-stats">
+      <GridItem v-for="item in stats" :key="item.title">
+        <StatCard :title="item.title" :items="[item.data]" bordered reverse />
+      </GridItem>
     </Grid>
     <ListPanel :summary="`${filteredCustomers.length} 家客户`">
       <template #filters>
-        <Input
-          v-model="keyword"
-          clearable
-          placeholder="搜索客户、联系人或城市"
-          :icon="Search"
-        />
-        <Select
-          v-model="level"
-          clearable
-          placeholder="全部等级"
-          :options="levelOptions"
-        />
-        <Select
-          v-model="status"
-          clearable
-          placeholder="全部状态"
-          :options="statusOptions"
-        />
+        <Input v-model="keyword" clearable placeholder="搜索客户、联系人或城市" :icon="Search" />
+        <Select v-model="level" clearable placeholder="全部等级" :options="levelOptions" />
+        <Select v-model="status" clearable placeholder="全部状态" :options="statusOptions" />
       </template>
       <template #actions>
         <Space>
@@ -61,84 +36,55 @@
         :scroll="{ x: 1050 }"
       >
         <template #customer="{ record }">
-          <button
-            class="customer-cell"
-            type="button"
-            @click="openDetail(record)"
-          >
-            <span :style="{ background: record.color }"
-              ><Icon :type="Building2"
-            /></span>
+          <button class="customer-cell" type="button" @click="openDetail(record)">
+            <span :style="{ background: record.color }"><Icon :type="Building2" /></span>
             <div>
-              <strong>{{ record.name }}</strong
-              ><small>{{ record.id }} · {{ record.industry }}</small>
+              <strong>{{ record.name }}</strong>
+              <small>{{ record.id }} · {{ record.industry }}</small>
             </div>
           </button>
         </template>
-        <template #level="{ value }"
-          ><Tag :color="levelColor(value)">{{
-            levelLabel(value)
-          }}</Tag></template
-        >
-        <template #status="{ value }"
-          ><Badge :status="statusBadge(value)" :text="statusLabel(value)"
-        /></template>
-        <template #annualValue="{ value }"
-          ><strong>¥ {{ Number(value).toLocaleString() }}</strong></template
-        >
-        <template #action="{ record }"
-          ><Button
-            size="small"
-            theme="plain"
-            :icon="Eye"
-            @click="openDetail(record)"
-            >详情</Button
-          ></template
-        >
+        <template #level="{ value }">
+          <Tag :color="levelColor(value)">{{ levelLabel(value) }}</Tag>
+        </template>
+        <template #status="{ value }">
+          <Badge :status="statusBadge(value)" :text="statusLabel(value)" />
+        </template>
+        <template #annualValue="{ value }">
+          <strong>¥ {{ Number(value).toLocaleString() }}</strong>
+        </template>
+        <template #action="{ record }">
+          <Button size="small" theme="plain" :icon="Eye" @click="openDetail(record)">详情</Button>
+        </template>
       </Table>
     </ListPanel>
 
-    <Drawer
-      v-model="drawerOpen"
-      title="新增客户"
-      :width="480"
-      @ok="createCustomer"
-    >
+    <Drawer v-model="drawerOpen" title="新增客户" :width="480" @ok="createCustomer">
       <Form :model="form" layout="vertical">
-        <FormItem label="企业名称"
-          ><Input v-model="form.name" clearable
-        /></FormItem>
+        <FormItem label="企业名称"><Input v-model="form.name" clearable /></FormItem>
         <Grid :cols="2" :x-gap="12">
-          <GridItem
-            ><FormItem label="所属行业"
-              ><Input v-model="form.industry" clearable /></FormItem
-          ></GridItem>
-          <GridItem
-            ><FormItem label="客户等级"
-              ><Select
-                v-model="form.level"
-                block
-                :options="levelOptions" /></FormItem
-          ></GridItem>
-          <GridItem
-            ><FormItem label="联系人"
-              ><Input v-model="form.contact" clearable /></FormItem
-          ></GridItem>
-          <GridItem
-            ><FormItem label="联系电话"
-              ><Input v-model="form.phone" clearable /></FormItem
-          ></GridItem>
+          <GridItem>
+            <FormItem label="所属行业"><Input v-model="form.industry" clearable /></FormItem>
+          </GridItem>
+          <GridItem>
+            <FormItem label="客户等级">
+              <Select v-model="form.level" block :options="levelOptions" />
+            </FormItem>
+          </GridItem>
+          <GridItem>
+            <FormItem label="联系人"><Input v-model="form.contact" clearable /></FormItem>
+          </GridItem>
+          <GridItem>
+            <FormItem label="联系电话"><Input v-model="form.phone" clearable /></FormItem>
+          </GridItem>
         </Grid>
-        <FormItem label="联系邮箱"
-          ><Input v-model="form.email" clearable
-        /></FormItem>
+        <FormItem label="联系邮箱"><Input v-model="form.email" clearable /></FormItem>
       </Form>
     </Drawer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { PageHeader } from "kui-vue";
 import {
   customers,
   type CustomerLevel,
@@ -148,6 +94,7 @@ import {
 import { Building2, Eye, Search, UserRoundPlus } from "kui-icons";
 import {
   message,
+  PageHeader,
   type BadgeStatusType,
   type Column,
   type StatNumberItem,
@@ -213,10 +160,7 @@ const filteredCustomers = computed(() => {
   const query = keyword.value.trim().toLowerCase();
   return customerData.value.filter(
     (item) =>
-      (!query ||
-        `${item.name}${item.contact}${item.city}`
-          .toLowerCase()
-          .includes(query)) &&
+      (!query || `${item.name}${item.contact}${item.city}`.toLowerCase().includes(query)) &&
       (!level.value || item.level === level.value) &&
       (!status.value || item.status === status.value),
   );
@@ -224,8 +168,7 @@ const filteredCustomers = computed(() => {
 const levelLabel = (value: string) =>
   levelOptions.find((item) => item.value === value)?.label || value;
 const levelColor = (value: string) =>
-  ({ strategic: "purple", enterprise: "blue", growth: "green" })[value] ||
-  "gray";
+  ({ strategic: "purple", enterprise: "blue", growth: "green" })[value] || "gray";
 const statusLabel = (value: string) =>
   statusOptions.find((item) => item.value === value)?.label || value;
 const statusBadge = (value: string): BadgeStatusType =>
@@ -236,11 +179,9 @@ const resetFilters = () => {
   level.value = undefined;
   status.value = undefined;
 };
-const openDetail = (record: CustomerRecord) =>
-  router.push(`/customer/${record.id}`);
+const openDetail = (record: CustomerRecord) => router.push(`/customer/${record.id}`);
 const createCustomer = () => {
-  if (!form.name.trim() || !form.contact.trim())
-    return message.warning("请填写企业名称和联系人");
+  if (!form.name.trim() || !form.contact.trim()) return message.warning("请填写企业名称和联系人");
   customerData.value.unshift({
     id: `C${Date.now()}`,
     ...form,

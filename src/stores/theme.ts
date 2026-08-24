@@ -6,9 +6,7 @@ export const useThemeStore = defineStore("theme", {
   state: () => ({
     theme:
       localStorage.getItem("theme-mode") ||
-      (window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light"),
+      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
   }),
   getters: {
     isDark: (state) => state.theme === "dark",

@@ -48,13 +48,9 @@ const readSettings = (): SystemSettings => {
 export const useSystemSettingsStore = defineStore("system-settings", () => {
   const settings = reactive<SystemSettings>(readSettings());
   const applyTheme = () =>
-    document.documentElement.style.setProperty(
-      "--kui-color-primary",
-      settings.primaryColor,
-    );
+    document.documentElement.style.setProperty("--kui-color-primary", settings.primaryColor);
   const reset = () => Object.assign(settings, defaultSystemSettings);
-  const save = () =>
-    localStorage.setItem("system_settings", JSON.stringify(settings));
+  const save = () => localStorage.setItem("system_settings", JSON.stringify(settings));
   watch(() => settings.primaryColor, applyTheme, { immediate: true });
   return { settings, reset, save };
 });

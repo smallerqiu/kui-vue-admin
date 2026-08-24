@@ -1,40 +1,32 @@
 <template>
   <div class="pro-list-page">
-    <PageHeader title="菜单管理" description="维护菜单、权限码和可见状态。"
-      ><template #actions
-        ><Button type="primary" :icon="Plus" @click="openCreate"
-          >新增菜单</Button
-        ></template
-      ></PageHeader
-    ><ListPanel :summary="`${menus.length} 个菜单节点`"
-      ><Table :data="menus" :columns="columns" row-key="id"
-        ><template #type="{ value }"
-          ><Tag theme="fill">{{
-            value === "menu" ? "菜单" : "按钮"
-          }}</Tag></template
-        ><template #visible="{ record }"
-          ><Switch v-model="record.visible" size="small" /></template
-        ><template #action="{ record }"
-          ><Button size="small" theme="plain" @click="openEdit(record)"
-            >编辑</Button
-          ></template
-        ></Table
-      ></ListPanel
-    ><Drawer
-      v-model="open"
-      :title="editing ? '编辑菜单' : '新增菜单'"
-      :width="440"
-      @ok="save"
-      ><Form layout="vertical"
-        ><FormItem label="名称"><Input v-model="form.name" /></FormItem
-        ><FormItem label="路由/权限码"><Input v-model="form.code" /></FormItem
-        ><FormItem label="节点类型"
-          ><RadioGroup v-model="form.type" :options="typeOptions" /></FormItem
-        ><FormItem label="排序"
-          ><InputNumber v-model="form.order" :min="0" /></FormItem
-        ><FormItem label="显示"
-          ><Switch v-model="form.visible" /></FormItem></Form
-    ></Drawer>
+    <PageHeader title="菜单管理" description="维护菜单、权限码和可见状态。">
+      <template #actions>
+        <Button type="primary" :icon="Plus" @click="openCreate">新增菜单</Button>
+      </template>
+    </PageHeader>
+    <ListPanel :summary="`${menus.length} 个菜单节点`">
+      <Table :data="menus" :columns="columns" row-key="id">
+        <template #type="{ value }">
+          <Tag theme="fill">{{ value === "menu" ? "菜单" : "按钮" }}</Tag>
+        </template>
+        <template #visible="{ record }"><Switch v-model="record.visible" size="small" /></template>
+        <template #action="{ record }">
+          <Button size="small" theme="plain" @click="openEdit(record)">编辑</Button>
+        </template>
+      </Table>
+    </ListPanel>
+    <Drawer v-model="open" :title="editing ? '编辑菜单' : '新增菜单'" :width="440" @ok="save">
+      <Form layout="vertical">
+        <FormItem label="名称"><Input v-model="form.name" /></FormItem>
+        <FormItem label="路由/权限码"><Input v-model="form.code" /></FormItem>
+        <FormItem label="节点类型">
+          <RadioGroup v-model="form.type" :options="typeOptions" />
+        </FormItem>
+        <FormItem label="排序"><InputNumber v-model="form.order" :min="0" /></FormItem>
+        <FormItem label="显示"><Switch v-model="form.visible" /></FormItem>
+      </Form>
+    </Drawer>
   </div>
 </template>
 <script setup lang="ts">
@@ -121,8 +113,7 @@ const openEdit = (row: MenuRow) => {
   open.value = true;
 };
 const save = () => {
-  if (!form.name || !form.code)
-    return message.warning("请填写名称和路由/权限码");
+  if (!form.name || !form.code) return message.warning("请填写名称和路由/权限码");
   const row = menus.value.find((i) => i.id === editing.value);
   if (row) Object.assign(row, form);
   else menus.value.push({ id: `M${Date.now()}`, ...form });

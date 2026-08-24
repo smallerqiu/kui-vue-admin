@@ -7,10 +7,7 @@ export interface LoginResult {
   refreshToken: string;
   user: AuthUser;
 }
-export const loginApi = async (
-  account: string,
-  password: string,
-): Promise<LoginResult> => {
+export const loginApi = async (account: string, password: string): Promise<LoginResult> => {
   if (appConfig.useMock) {
     await new Promise((resolve) => setTimeout(resolve, 350));
     if (

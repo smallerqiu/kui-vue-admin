@@ -6,9 +6,25 @@ const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = resolve(packageRoot, "../..");
 const templateRoot = resolve(packageRoot, "template");
 const entries = [
-  ".env.example", ".github", "CHANGELOG.md", "Dockerfile", "README.md", "deploy", "docs",
-  "e2e", "index.html", "playwright.config.ts", "public", "src", "tests", "tsconfig.app.json",
-  "tsconfig.json", "tsconfig.node.json", "typed-router.d.ts", "vite.config.ts", "vitest.config.ts",
+  ".env.example",
+  ".github",
+  "CHANGELOG.md",
+  "Dockerfile",
+  "README.md",
+  "deploy",
+  "docs",
+  "e2e",
+  "index.html",
+  "playwright.config.ts",
+  "public",
+  "src",
+  "tests",
+  "tsconfig.app.json",
+  "tsconfig.json",
+  "tsconfig.node.json",
+  "typed-router.d.ts",
+  "vite.config.ts",
+  "vitest.config.ts",
 ];
 
 rmSync(templateRoot, { recursive: true, force: true });

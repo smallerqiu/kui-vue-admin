@@ -14,8 +14,7 @@ const TOKEN_KEY = "token";
 const USER_KEY = "user_info";
 const REFRESH_TOKEN_KEY = "refresh_token";
 
-const getSessionStorage = () =>
-  localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage;
+const getSessionStorage = () => (localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage);
 
 export const getToken = () =>
   localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || "";
@@ -31,11 +30,8 @@ export const getAuthUser = (): AuthUser => {
 };
 
 export const getRefreshToken = () =>
-  localStorage.getItem(REFRESH_TOKEN_KEY) ||
-  sessionStorage.getItem(REFRESH_TOKEN_KEY) ||
-  "";
-export const updateAccessToken = (token: string) =>
-  getSessionStorage().setItem(TOKEN_KEY, token);
+  localStorage.getItem(REFRESH_TOKEN_KEY) || sessionStorage.getItem(REFRESH_TOKEN_KEY) || "";
+export const updateAccessToken = (token: string) => getSessionStorage().setItem(TOKEN_KEY, token);
 export const setAuthSession = (
   token: string,
   user: AuthUser,

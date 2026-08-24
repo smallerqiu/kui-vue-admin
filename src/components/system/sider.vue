@@ -9,9 +9,9 @@
     <div class="logo-box">
       <img src="/favicon.svg" class="logo" />
       <transition name="sys-sider-title">
-        <span class="sys-sider-title" v-show="top || !collapsed">{{
-          systemSettings.settings.shortName
-        }}</span>
+        <span class="sys-sider-title" v-show="top || !collapsed">
+          {{ systemSettings.settings.shortName }}
+        </span>
       </transition>
     </div>
     <Menu
@@ -66,7 +66,7 @@ const localOpenKeys = localStorage.getItem("openKeys");
 const defaultOpenKeys = JSON.parse(localOpenKeys || "[]");
 const openKeys = ref(defaultOpenKeys);
 const emptyOpenKeys: string[] = [];
-const menuOpenKeys = computed(() => props.top ? emptyOpenKeys : openKeys.value);
+const menuOpenKeys = computed(() => (props.top ? emptyOpenKeys : openKeys.value));
 
 const openChange = (keys: string[]) => {
   // Horizontal submenus are transient popups. Do not persist their hover state
@@ -235,7 +235,9 @@ const go = (event: MenuSelectEvent) => {
     overflow-y: hidden;
     scrollbar-width: none;
 
-    &::-webkit-scrollbar { display: none; }
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
   .app-version {

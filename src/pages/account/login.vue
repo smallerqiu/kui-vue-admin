@@ -2,15 +2,21 @@
   <div class="login-page">
     <aside class="login-intro">
       <div class="intro-brand">
-        <img src="@/assets/img/logo.svg" /><span>{{ appConfig.name }}</span>
+        <img src="@/assets/img/logo.svg" />
+        <span>{{ appConfig.name }}</span>
       </div>
       <div class="intro-content">
         <Tag theme="fill">Enterprise Admin</Tag>
-        <h1>专注业务，<br />不重复搭建后台基础设施。</h1>
+        <h1>
+          专注业务，
+          <br />
+          不重复搭建后台基础设施。
+        </h1>
         <p>完善的权限、数据分析与响应式工作台，为企业应用提供可靠起点。</p>
         <div class="intro-points">
-          <span>✓ TypeScript</span><span>✓ RBAC 权限</span
-          ><span>✓ 深浅主题</span>
+          <span>✓ TypeScript</span>
+          <span>✓ RBAC 权限</span>
+          <span>✓ 深浅主题</span>
         </div>
       </div>
       <small>Powered by KUI Vue</small>
@@ -71,9 +77,9 @@
                     style="flex: 1"
                     @keyup.enter="submit"
                   />
-                  <Button :disabled="countdown > 0" @click="sendCode">{{
-                    countdown ? `${countdown}s` : "发送验证码"
-                  }}</Button>
+                  <Button :disabled="countdown > 0" @click="sendCode">
+                    {{ countdown ? `${countdown}s` : "发送验证码" }}
+                  </Button>
                 </Space>
               </FormItem>
             </TabPanel>
@@ -86,30 +92,23 @@
                 target="_self"
                 href="javascript:void(0);"
                 @click="handleForgotPassword"
-                >忘记密码
+              >
+                忘记密码
               </a>
             </Flex>
           </FormItem>
           <FormItem>
-            <Button block type="primary" htmlType="submit" :loading="loading">
-              登录
-            </Button>
+            <Button block type="primary" htmlType="submit" :loading="loading">登录</Button>
           </FormItem>
         </Form>
         <Divider>其他登录方式</Divider>
         <Flex align="center" justify="center">
           <Space>
             <div id="wechat-login-button">
-              <Button
-                :icon="LogoWechat"
-                @click="message.info('微信登录待接入 OAuth 服务')"
-              />
+              <Button :icon="LogoWechat" @click="message.info('微信登录待接入 OAuth 服务')" />
             </div>
             <div id="google-login-button">
-              <Button
-                :icon="LogoGoogle"
-                @click="message.info('Google 登录待接入 OAuth 服务')"
-              />
+              <Button :icon="LogoGoogle" @click="message.info('Google 登录待接入 OAuth 服务')" />
             </div>
           </Space>
         </Flex>
@@ -179,18 +178,13 @@ const phoneRules: Record<string, FormRule[]> = {
     { min: 6, max: 6, message: "验证码为 6 位数字" },
   ],
 };
-const rules = computed(() =>
-  current.value === "account" ? accountRules : phoneRules,
-);
+const rules = computed(() => (current.value === "account" ? accountRules : phoneRules));
 const wrapperCol = ref({ span: 24 });
 const labelCol = ref({});
 
 const getSafeRedirect = () => {
-  const redirect =
-    typeof route.query.redirect === "string" ? route.query.redirect : "/";
-  return redirect.startsWith("/") && !redirect.startsWith("//")
-    ? redirect
-    : "/";
+  const redirect = typeof route.query.redirect === "string" ? route.query.redirect : "/";
+  return redirect.startsWith("/") && !redirect.startsWith("//") ? redirect : "/";
 };
 
 const postLogin = () => {
@@ -202,12 +196,7 @@ const postLogin = () => {
   loginApi(account, password)
     .then((result) => {
       localStorage.setItem("remember_login", remember.value ? "1" : "0");
-      authStore.login(
-        result.token,
-        result.user,
-        remember.value,
-        result.refreshToken,
-      );
+      authStore.login(result.token, result.user, remember.value, result.refreshToken);
       message.success("登录成功");
       router.replace(getSafeRedirect()).finally(() => {
         loading.value = false;
@@ -228,8 +217,7 @@ const submit = () => {
 };
 
 const sendCode = () => {
-  if (!/^1\d{10}$/.test(form.phone))
-    return message.warning("请先输入正确的手机号");
+  if (!/^1\d{10}$/.test(form.phone)) return message.warning("请先输入正确的手机号");
   message.success("演示验证码：123456");
   countdown.value = 60;
   countdownTimer = setInterval(() => {

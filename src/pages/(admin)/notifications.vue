@@ -3,18 +3,11 @@
     <PageHeader title="通知中心" description="查看订单、任务、安全和系统通知。">
       <template #actions>
         <Button :icon="CheckCheck" @click="store.markAllRead">全部已读</Button>
-        <Button theme="plain" :icon="Trash2" @click="store.clearRead"
-          >清除已读</Button
-        >
+        <Button theme="plain" :icon="Trash2" @click="store.clearRead">清除已读</Button>
       </template>
     </PageHeader>
     <Card bordered>
-      <RadioGroup
-        v-model="filter"
-        theme="card"
-        type="button"
-        :options="filters"
-      />
+      <RadioGroup v-model="filter" theme="card" type="button" :options="filters" />
       <div class="full-notification-list">
         <article
           v-for="item in filteredItems"
@@ -22,23 +15,18 @@
           :class="{ unread: !item.read }"
           @click="openItem(item)"
         >
-          <span class="item-icon" :class="`item-${item.type}`"
-            ><Icon :type="icons[item.type]"
-          /></span>
+          <span class="item-icon" :class="`item-${item.type}`">
+            <Icon :type="icons[item.type]" />
+          </span>
           <div>
-            <Flex align="center" wrap
-              ><h3>{{ item.title }}</h3>
-              <Tag v-if="!item.read" size="small" color="blue">未读</Tag></Flex
-            >
+            <Flex align="center" wrap>
+              <h3>{{ item.title }}</h3>
+              <Tag v-if="!item.read" size="small" color="blue">未读</Tag>
+            </Flex>
             <p>{{ item.content }}</p>
             <small>{{ item.time }}</small>
           </div>
-          <Button
-            size="small"
-            theme="plain"
-            :icon="X"
-            @click.stop="store.remove(item.id)"
-          />
+          <Button size="small" theme="plain" :icon="X" @click.stop="store.remove(item.id)" />
         </article>
         <Empty v-if="!filteredItems.length" description="没有符合条件的通知" />
       </div>
@@ -53,14 +41,7 @@ import {
   type NotificationItem,
   type NotificationType,
 } from "@/stores/notifications";
-import {
-  Bell,
-  CheckCheck,
-  PackageCheck,
-  ShieldAlert,
-  Trash2,
-  X,
-} from "kui-icons";
+import { Bell, CheckCheck, PackageCheck, ShieldAlert, Trash2, X } from "kui-icons";
 import type { IconType } from "kui-vue";
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
@@ -83,8 +64,7 @@ const icons: Record<NotificationType, IconType[]> = {
 const filteredItems = computed(() =>
   store.items.filter((item) => {
     if (filter.value === "unread") return !item.read;
-    if (filter.value === "system")
-      return item.type === "system" || item.type === "security";
+    if (filter.value === "system") return item.type === "system" || item.type === "security";
     return filter.value === "all" || item.type === filter.value;
   }),
 );

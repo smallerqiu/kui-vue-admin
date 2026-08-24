@@ -1,15 +1,10 @@
 <template>
   <div class="settings-page">
-    <PageHeader
-      title="系统设置"
-      description="配置组织信息、安全策略和系统通知。"
-    >
-      <template #actions
-        ><Button :icon="RotateCcw" @click="resetSettings">恢复默认</Button
-        ><Button type="primary" :icon="Save" @click="save"
-          >保存设置</Button
-        ></template
-      >
+    <PageHeader title="系统设置" description="配置组织信息、安全策略和系统通知。">
+      <template #actions>
+        <Button :icon="RotateCcw" @click="resetSettings">恢复默认</Button>
+        <Button type="primary" :icon="Save" @click="save">保存设置</Button>
+      </template>
     </PageHeader>
     <Card bordered>
       <Tabs v-model="activeTab">
@@ -21,48 +16,45 @@
             </div>
             <Form :model="settings" layout="vertical" class="setting-form">
               <Grid :cols="{ xs: 1, sm: 2 }" :x-gap="16">
-                <GridItem
-                  ><FormItem label="组织名称"
-                    ><Input
-                      v-model="settings.organizationName"
-                      clearable /></FormItem
-                ></GridItem>
-                <GridItem
-                  ><FormItem label="系统简称"
-                    ><Input v-model="settings.shortName" clearable /></FormItem
-                ></GridItem>
-                <GridItem
-                  ><FormItem label="访问域名"
-                    ><Input v-model="settings.domain" clearable /></FormItem
-                ></GridItem>
-                <GridItem
-                  ><FormItem label="默认时区"
-                    ><Select
-                      v-model="settings.timezone"
-                      block
-                      :options="timezoneOptions" /></FormItem
-                ></GridItem>
-                <GridItem
-                  ><FormItem label="默认语言"
-                    ><Select
-                      v-model="settings.locale"
-                      block
-                      :options="localeOptions" /></FormItem
-                ></GridItem>
-                <GridItem
-                  ><FormItem label="品牌主色"
-                    ><ColorPicker
+                <GridItem>
+                  <FormItem label="组织名称">
+                    <Input v-model="settings.organizationName" clearable />
+                  </FormItem>
+                </GridItem>
+                <GridItem>
+                  <FormItem label="系统简称">
+                    <Input v-model="settings.shortName" clearable />
+                  </FormItem>
+                </GridItem>
+                <GridItem>
+                  <FormItem label="访问域名">
+                    <Input v-model="settings.domain" clearable />
+                  </FormItem>
+                </GridItem>
+                <GridItem>
+                  <FormItem label="默认时区">
+                    <Select v-model="settings.timezone" block :options="timezoneOptions" />
+                  </FormItem>
+                </GridItem>
+                <GridItem>
+                  <FormItem label="默认语言">
+                    <Select v-model="settings.locale" block :options="localeOptions" />
+                  </FormItem>
+                </GridItem>
+                <GridItem>
+                  <FormItem label="品牌主色">
+                    <ColorPicker
                       v-model="settings.primaryColor"
                       show-text
-                      :presets="colorPresets" /></FormItem
-                ></GridItem>
-                <GridItem
-                  ><FormItem label="导航布局"
-                    ><Select
-                      v-model="settings.layoutMode"
-                      block
-                      :options="layoutOptions" /></FormItem
-                ></GridItem>
+                      :presets="colorPresets"
+                    />
+                  </FormItem>
+                </GridItem>
+                <GridItem>
+                  <FormItem label="导航布局">
+                    <Select v-model="settings.layoutMode" block :options="layoutOptions" />
+                  </FormItem>
+                </GridItem>
               </Grid>
             </Form>
           </section>
@@ -98,12 +90,7 @@
                   <strong>密码有效期</strong>
                   <p>到期后要求成员修改登录密码。</p>
                 </div>
-                <InputNumber
-                  v-model="settings.passwordExpiry"
-                  :min="0"
-                  :max="365"
-                  suffix="天"
-                />
+                <InputNumber v-model="settings.passwordExpiry" :min="0" :max="365" suffix="天" />
               </div>
             </div>
           </section>
@@ -168,14 +155,7 @@ const layoutOptions = [
   { label: "顶部导航", value: "top" },
   { label: "混合导航", value: "mix" },
 ];
-const colorPresets = [
-  "#54a9ff",
-  "#7b61ff",
-  "#00a870",
-  "#f59e0b",
-  "#ef6c77",
-  "#0ea5e9",
-];
+const colorPresets = ["#54a9ff", "#7b61ff", "#00a870", "#f59e0b", "#ef6c77", "#0ea5e9"];
 const save = () => {
   store.save();
   message.success("系统设置已保存");

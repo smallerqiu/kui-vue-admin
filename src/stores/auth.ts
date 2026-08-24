@@ -30,11 +30,7 @@ export const useAuthStore = defineStore("auth", {
     },
     updateUser(user: AuthUser) {
       this.user = { ...this.user, ...user };
-      setAuthSession(
-        this.token,
-        this.user,
-        Boolean(localStorage.getItem("token")),
-      );
+      setAuthSession(this.token, this.user, Boolean(localStorage.getItem("token")));
     },
   },
 });

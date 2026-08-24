@@ -1,35 +1,28 @@
 <template>
   <div class="order-detail-page">
-    <PageHeader
-      :title="`订单 ${order.id}`"
-      description="查看订单状态、客户信息和操作记录。"
-    >
+    <PageHeader :title="`订单 ${order.id}`" description="查看订单状态、客户信息和操作记录。">
       <template #actions>
         <Button :icon="ArrowLeft" @click="router.back()">返回</Button>
-        <Button v-if="order.status === 'pending'" @click="openPrice"
-          >调整价格</Button
-        >
-        <Button
-          v-if="order.status === 'pending'"
-          color="red"
-          theme="outline"
-          @click="closeOrder"
-          >关闭订单</Button
-        >
+        <Button v-if="order.status === 'pending'" @click="openPrice">调整价格</Button>
+        <Button v-if="order.status === 'pending'" color="red" theme="outline" @click="closeOrder">
+          关闭订单
+        </Button>
         <Button
           v-if="['paid', 'partial_shipped'].includes(order.status)"
           type="primary"
           :icon="Truck"
           @click="openShipping"
-          >订单发货</Button
         >
+          订单发货
+        </Button>
         <Button
           v-if="!['pending', 'closed', 'refund'].includes(order.status)"
           color="red"
           theme="outline"
           @click="openAfterSale"
-          >发起售后</Button
         >
+          发起售后
+        </Button>
       </template>
     </PageHeader>
 
@@ -38,16 +31,16 @@
         <div class="status-summary">
           <span class="status-icon"><Icon :type="statusIcon" /></span>
           <div>
-            <Space
-              ><h2>{{ statusLabel }}</h2>
-              <Tag :color="statusColor">{{ statusLabel }}</Tag></Space
-            >
+            <Space>
+              <h2>{{ statusLabel }}</h2>
+              <Tag :color="statusColor">{{ statusLabel }}</Tag>
+            </Space>
             <p>{{ statusDescription }}</p>
           </div>
         </div>
         <div class="order-total">
-          <span>实付金额</span
-          ><strong>¥ {{ order.paidAmount.toLocaleString() }}</strong>
+          <span>实付金额</span>
+          <strong>¥ {{ order.paidAmount.toLocaleString() }}</strong>
         </div>
       </Flex>
       <Steps
@@ -62,11 +55,7 @@
         <Space vertical block :size="16">
           <Card title="商品信息" bordered>
             <div class="product-list">
-              <div
-                v-for="item in order.items"
-                :key="item.id"
-                class="product-row"
-              >
+              <div v-for="item in order.items" :key="item.id" class="product-row">
                 <Image :src="item.image" :width="64" :height="64" fit="cover" />
                 <div>
                   <strong>{{ item.name }}</strong>
@@ -74,111 +63,76 @@
                   <small>SKU：{{ item.sku }}</small>
                 </div>
                 <div class="product-price">
-                  <strong>¥ {{ item.price.toLocaleString() }}</strong
-                  ><span>× {{ item.quantity }}</span>
+                  <strong>¥ {{ item.price.toLocaleString() }}</strong>
+                  <span>× {{ item.quantity }}</span>
                 </div>
               </div>
             </div>
             <div class="amount-summary">
-              <span
-                >商品金额<strong
-                  >¥ {{ order.goodsAmount.toLocaleString() }}</strong
-                ></span
-              >
-              <span
-                >运费<strong>{{
-                  order.freight ? `¥ ${order.freight}` : "免运费"
-                }}</strong></span
-              >
-              <span
-                >优惠<strong class="discount"
-                  >- ¥ {{ order.discount.toLocaleString() }}</strong
-                ></span
-              >
-              <span class="paid"
-                >实付款<strong
-                  >¥ {{ order.paidAmount.toLocaleString() }}</strong
-                ></span
-              >
+              <span>
+                商品金额
+                <strong>¥ {{ order.goodsAmount.toLocaleString() }}</strong>
+              </span>
+              <span>
+                运费
+                <strong>{{ order.freight ? `¥ ${order.freight}` : "免运费" }}</strong>
+              </span>
+              <span>
+                优惠
+                <strong class="discount">- ¥ {{ order.discount.toLocaleString() }}</strong>
+              </span>
+              <span class="paid">
+                实付款
+                <strong>¥ {{ order.paidAmount.toLocaleString() }}</strong>
+              </span>
             </div>
           </Card>
           <Card title="收货与配送" bordered>
-            <template #extra
-              ><Button size="small" theme="plain" @click="openAddress"
-                >修改地址</Button
-              ></template
-            >
+            <template #extra>
+              <Button size="small" theme="plain" @click="openAddress">修改地址</Button>
+            </template>
             <Descriptions :column="2" bordered size="small">
-              <DescriptionsItem label="收货人">{{
-                order.contact
-              }}</DescriptionsItem>
-              <DescriptionsItem label="联系电话">{{
-                order.phone
-              }}</DescriptionsItem>
-              <DescriptionsItem label="收货地址" :span="2">{{
-                order.address
-              }}</DescriptionsItem>
-              <DescriptionsItem label="配送方式">{{
-                order.shippingCompany || "待选择"
-              }}</DescriptionsItem>
-              <DescriptionsItem label="物流单号">{{
-                order.trackingNo || "尚未发货"
-              }}</DescriptionsItem>
+              <DescriptionsItem label="收货人">{{ order.contact }}</DescriptionsItem>
+              <DescriptionsItem label="联系电话">{{ order.phone }}</DescriptionsItem>
+              <DescriptionsItem label="收货地址" :span="2">{{ order.address }}</DescriptionsItem>
+              <DescriptionsItem label="配送方式">
+                {{ order.shippingCompany || "待选择" }}
+              </DescriptionsItem>
+              <DescriptionsItem label="物流单号">
+                {{ order.trackingNo || "尚未发货" }}
+              </DescriptionsItem>
             </Descriptions>
           </Card>
           <Card title="订单信息" bordered>
-            <template #extra
-              ><Button size="small" theme="plain" @click="openRemark"
-                >商家备注</Button
-              ></template
-            >
+            <template #extra>
+              <Button size="small" theme="plain" @click="openRemark">商家备注</Button>
+            </template>
             <Descriptions :column="2" bordered size="small">
-              <DescriptionsItem label="订单编号">{{
-                order.id
-              }}</DescriptionsItem>
-              <DescriptionsItem label="创建时间">{{
-                order.createdAt
-              }}</DescriptionsItem>
-              <DescriptionsItem label="支付方式">{{
-                order.paymentMethod
-              }}</DescriptionsItem>
-              <DescriptionsItem label="支付时间">{{
-                order.paymentAt || "尚未支付"
-              }}</DescriptionsItem>
-              <DescriptionsItem label="订单来源">{{
-                order.source
-              }}</DescriptionsItem>
-              <DescriptionsItem label="商品件数"
-                >{{ itemCount }} 件</DescriptionsItem
-              >
-              <DescriptionsItem label="客户备注" :span="2">{{
-                order.note || "无"
-              }}</DescriptionsItem>
-              <DescriptionsItem label="商家备注" :span="2">{{
-                order.merchantRemark || "无"
-              }}</DescriptionsItem>
+              <DescriptionsItem label="订单编号">{{ order.id }}</DescriptionsItem>
+              <DescriptionsItem label="创建时间">{{ order.createdAt }}</DescriptionsItem>
+              <DescriptionsItem label="支付方式">{{ order.paymentMethod }}</DescriptionsItem>
+              <DescriptionsItem label="支付时间">
+                {{ order.paymentAt || "尚未支付" }}
+              </DescriptionsItem>
+              <DescriptionsItem label="订单来源">{{ order.source }}</DescriptionsItem>
+              <DescriptionsItem label="商品件数">{{ itemCount }} 件</DescriptionsItem>
+              <DescriptionsItem label="客户备注" :span="2">
+                {{ order.note || "无" }}
+              </DescriptionsItem>
+              <DescriptionsItem label="商家备注" :span="2">
+                {{ order.merchantRemark || "无" }}
+              </DescriptionsItem>
             </Descriptions>
           </Card>
           <Card v-if="order.shipments?.length" title="发货记录" bordered>
-            <div
-              v-for="shipment in order.shipments"
-              :key="shipment.id"
-              class="shipment-row"
-            >
+            <div v-for="shipment in order.shipments" :key="shipment.id" class="shipment-row">
               <div>
-                <strong
-                  >{{ shipment.company }} · {{ shipment.trackingNo }}</strong
-                ><small>{{ shipment.createdAt }}</small>
+                <strong>{{ shipment.company }} · {{ shipment.trackingNo }}</strong>
+                <small>{{ shipment.createdAt }}</small>
               </div>
-              <Tag color="blue"
-                >{{
-                  shipment.items.reduce(
-                    (total, item) => total + item.quantity,
-                    0,
-                  )
-                }}
-                件商品</Tag
-              >
+              <Tag color="blue">
+                {{ shipment.items.reduce((total, item) => total + item.quantity, 0) }} 件商品
+              </Tag>
             </div>
           </Card>
         </Space>
@@ -187,9 +141,9 @@
         <Space vertical block :size="16">
           <Card title="客户信息" bordered>
             <div class="customer-head">
-              <Avatar :size="42" style="background: #3a95ff">{{
-                order.customer.slice(0, 1)
-              }}</Avatar>
+              <Avatar :size="42" style="background: #3a95ff">
+                {{ order.customer.slice(0, 1) }}
+              </Avatar>
               <div>
                 <strong>{{ order.customer }}</strong>
                 <p>企业认证客户</p>
@@ -197,13 +151,18 @@
             </div>
             <Divider />
             <div class="customer-meta">
-              <span
-                >下单人<strong>{{ order.buyer }}</strong></span
-              ><span
-                >联系人<strong>{{ order.contact }}</strong></span
-              ><span
-                >联系电话<strong>{{ order.phone }}</strong></span
-              >
+              <span>
+                下单人
+                <strong>{{ order.buyer }}</strong>
+              </span>
+              <span>
+                联系人
+                <strong>{{ order.contact }}</strong>
+              </span>
+              <span>
+                联系电话
+                <strong>{{ order.phone }}</strong>
+              </span>
             </div>
           </Card>
           <Card title="操作记录" bordered>
@@ -213,7 +172,8 @@
                 :key="event.title"
                 :class="{ active: index === 0 }"
               >
-                <i></i><strong>{{ event.title }}</strong>
+                <i></i>
+                <strong>{{ event.title }}</strong>
                 <p>{{ event.description }}</p>
                 <small>{{ event.time }}</small>
               </div>
@@ -223,39 +183,27 @@
       </GridItem>
     </Grid>
 
-    <Drawer
-      v-model="shippingOpen"
-      title="订单发货"
-      :width="500"
-      @ok="submitShipping"
-    >
+    <Drawer v-model="shippingOpen" title="订单发货" :width="500" @ok="submitShipping">
       <Form layout="vertical">
         <Grid :cols="2" :x-gap="12">
-          <GridItem
-            ><FormItem label="物流公司"
-              ><Select
-                v-model="shippingForm.company"
-                block
-                :options="shippingCompanies" /></FormItem
-          ></GridItem>
-          <GridItem
-            ><FormItem label="物流单号"
-              ><Input
-                v-model="shippingForm.trackingNo"
-                clearable
-                placeholder="请输入物流单号" /></FormItem
-          ></GridItem>
+          <GridItem>
+            <FormItem label="物流公司">
+              <Select v-model="shippingForm.company" block :options="shippingCompanies" />
+            </FormItem>
+          </GridItem>
+          <GridItem>
+            <FormItem label="物流单号">
+              <Input v-model="shippingForm.trackingNo" clearable placeholder="请输入物流单号" />
+            </FormItem>
+          </GridItem>
         </Grid>
         <FormItem label="本次发货商品">
           <div class="shipping-products">
             <div v-for="item in shippableItems" :key="item.id">
               <Image :src="item.image" :width="44" :height="44" fit="cover" />
               <div>
-                <strong>{{ item.name }}</strong
-                ><small
-                  >待发
-                  {{ item.quantity - (item.shippedQuantity || 0) }} 件</small
-                >
+                <strong>{{ item.name }}</strong>
+                <small>待发 {{ item.quantity - (item.shippedQuantity || 0) }} 件</small>
               </div>
               <InputNumber
                 v-model="shippingForm.quantities[item.id]"
@@ -268,84 +216,57 @@
       </Form>
     </Drawer>
 
-    <Modal
-      v-model="addressOpen"
-      title="修改收货信息"
-      :width="500"
-      @ok="saveAddress"
-    >
-      <Form layout="vertical"
-        ><Grid :cols="2" :x-gap="12"
-          ><GridItem
-            ><FormItem label="收货人"
-              ><Input v-model="addressForm.contact" /></FormItem></GridItem
-          ><GridItem
-            ><FormItem label="联系电话"
-              ><Input v-model="addressForm.phone" /></FormItem></GridItem></Grid
-        ><FormItem label="详细地址"
-          ><TextArea v-model="addressForm.address" :rows="3" /></FormItem
-      ></Form>
+    <Modal v-model="addressOpen" title="修改收货信息" :width="500" @ok="saveAddress">
+      <Form layout="vertical">
+        <Grid :cols="2" :x-gap="12">
+          <GridItem>
+            <FormItem label="收货人"><Input v-model="addressForm.contact" /></FormItem>
+          </GridItem>
+          <GridItem>
+            <FormItem label="联系电话"><Input v-model="addressForm.phone" /></FormItem>
+          </GridItem>
+        </Grid>
+        <FormItem label="详细地址"><TextArea v-model="addressForm.address" :rows="3" /></FormItem>
+      </Form>
     </Modal>
-    <Modal
-      v-model="priceOpen"
-      title="调整订单价格"
-      :width="420"
-      @ok="savePrice"
-    >
-      <Form layout="vertical"
-        ><FormItem label="优惠金额"
-          ><InputNumber
+    <Modal v-model="priceOpen" title="调整订单价格" :width="420" @ok="savePrice">
+      <Form layout="vertical">
+        <FormItem label="优惠金额">
+          <InputNumber
             v-model="priceDiscount"
             :min="0"
             :max="order.goodsAmount + order.freight"
             prefix="¥"
-        /></FormItem>
+          />
+        </FormItem>
         <p class="price-preview">
-          调整后应付：<strong
-            >¥
-            {{
-              (
-                order.goodsAmount +
-                order.freight -
-                priceDiscount
-              ).toLocaleString()
-            }}</strong
-          >
-        </p></Form
-      >
+          调整后应付：
+          <strong>
+            ¥ {{ (order.goodsAmount + order.freight - priceDiscount).toLocaleString() }}
+          </strong>
+        </p>
+      </Form>
     </Modal>
     <Modal v-model="remarkOpen" title="商家备注" :width="440" @ok="saveRemark">
-      <TextArea
-        v-model="merchantRemark"
-        :rows="4"
-        placeholder="仅后台人员可见"
-      />
+      <TextArea v-model="merchantRemark" :rows="4" placeholder="仅后台人员可见" />
     </Modal>
-    <Modal
-      v-model="afterSaleOpen"
-      title="发起售后"
-      :width="500"
-      @ok="submitAfterSale"
-    >
-      <Form layout="vertical"
-        ><FormItem label="售后类型"
-          ><RadioGroup
-            v-model="afterSaleForm.type"
-            :options="afterSaleTypes" /></FormItem
-        ><FormItem label="售后商品"
-          ><CheckboxGroup
+    <Modal v-model="afterSaleOpen" title="发起售后" :width="500" @ok="submitAfterSale">
+      <Form layout="vertical">
+        <FormItem label="售后类型">
+          <RadioGroup v-model="afterSaleForm.type" :options="afterSaleTypes" />
+        </FormItem>
+        <FormItem label="售后商品">
+          <CheckboxGroup
             v-model="afterSaleForm.itemIds"
             direction="vertical"
-            :options="afterSaleItemOptions" /></FormItem
-        ><FormItem label="退款金额"
-          ><InputNumber
-            v-model="afterSaleForm.amount"
-            :min="0"
-            :max="order.paidAmount"
-            prefix="¥" /></FormItem
-        ><FormItem label="售后原因"
-          ><TextArea v-model="afterSaleForm.reason" :rows="3" /></FormItem
-      ></Form>
+            :options="afterSaleItemOptions"
+          />
+        </FormItem>
+        <FormItem label="退款金额">
+          <InputNumber v-model="afterSaleForm.amount" :min="0" :max="order.paidAmount" prefix="¥" />
+        </FormItem>
+        <FormItem label="售后原因"><TextArea v-model="afterSaleForm.reason" :rows="3" /></FormItem>
+      </Form>
     </Modal>
   </div>
 </template>
@@ -363,9 +284,7 @@ const route = useRoute();
 const router = useRouter();
 const orderStore = useOrderStore();
 const requestedId = String(route.params.id);
-const order = computed<OrderRecord>(
-  () => orderStore.getOrder(requestedId) || orderStore.orders[0],
-);
+const order = computed<OrderRecord>(() => orderStore.getOrder(requestedId) || orderStore.orders[0]);
 const statusMap: Record<
   string,
   {
@@ -458,25 +377,23 @@ const addressOpen = ref(false);
 const priceOpen = ref(false);
 const remarkOpen = ref(false);
 const afterSaleOpen = ref(false);
-const shippingCompanies = ["顺丰速运", "京东物流", "中通快递", "圆通速递"].map(
-  (value) => ({ label: value, value }),
-);
+const shippingCompanies = ["顺丰速运", "京东物流", "中通快递", "圆通速递"].map((value) => ({
+  label: value,
+  value,
+}));
 const shippingForm = reactive({
   company: "顺丰速运",
   trackingNo: "",
   quantities: {} as Record<string, number>,
 });
 const shippableItems = computed(() =>
-  order.value.items.filter(
-    (item) => (item.shippedQuantity || 0) < item.quantity,
-  ),
+  order.value.items.filter((item) => (item.shippedQuantity || 0) < item.quantity),
 );
 const openShipping = () => {
   shippingForm.trackingNo = "";
   shippingForm.quantities = {};
   shippableItems.value.forEach((item) => {
-    shippingForm.quantities[item.id] =
-      item.quantity - (item.shippedQuantity || 0);
+    shippingForm.quantities[item.id] = item.quantity - (item.shippedQuantity || 0);
   });
   shippingOpen.value = true;
 };
@@ -514,11 +431,7 @@ const openAddress = () => {
   addressOpen.value = true;
 };
 const saveAddress = () => {
-  if (
-    !addressForm.contact.trim() ||
-    !addressForm.phone.trim() ||
-    !addressForm.address.trim()
-  )
+  if (!addressForm.contact.trim() || !addressForm.phone.trim() || !addressForm.address.trim())
     return message.warning("请填写完整收货信息");
   orderStore.updateAddress(order.value.id, addressForm);
   addressOpen.value = false;

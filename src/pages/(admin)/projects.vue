@@ -1,47 +1,29 @@
 <template>
   <div class="project-page">
-    <PageHeader
-      title="项目中心"
-      description="集中查看项目进度、成员协作与近期交付。"
-    >
+    <PageHeader title="项目中心" description="集中查看项目进度、成员协作与近期交付。">
       <template #actions>
-        <Button type="primary" :icon="Plus" @click="openCreate"
-          >新建项目</Button
-        >
+        <Button type="primary" :icon="Plus" @click="openCreate">新建项目</Button>
       </template>
     </PageHeader>
 
     <Grid :cols="{ xs: 1, sm: 2, xl: 4 }" :x-gap="16" :y-gap="16">
       <GridItem v-for="item in overview" :key="item.label">
         <Card size="small" bordered class="overview-card">
-          <span :style="{ color: item.color, background: `${item.color}18` }"
-            ><Icon :type="item.icon"
-          /></span>
+          <span :style="{ color: item.color, background: `${item.color}18` }">
+            <Icon :type="item.icon" />
+          </span>
           <div>
-            <strong>{{ item.value }}</strong
-            ><small>{{ item.label }}</small>
+            <strong>{{ item.value }}</strong>
+            <small>{{ item.label }}</small>
           </div>
         </Card>
       </GridItem>
     </Grid>
 
-    <ListPanel
-      class="project-list-card"
-      :summary="`共 ${filteredProjects.length} 个项目`"
-    >
+    <ListPanel class="project-list-card" :summary="`共 ${filteredProjects.length} 个项目`">
       <template #filters>
-        <Input
-          v-model="keyword"
-          clearable
-          placeholder="搜索项目名称或负责人"
-          :icon="Search"
-        />
-        <RadioGroup
-          v-model="status"
-          theme="card"
-          type="button"
-          :options="statusOptions"
-        />
+        <Input v-model="keyword" clearable placeholder="搜索项目名称或负责人" :icon="Search" />
+        <RadioGroup v-model="status" theme="card" type="button" :options="statusOptions" />
       </template>
 
       <Grid :cols="{ xs: 1, md: 2, xl: 3 }" :x-gap="16" :y-gap="16">
@@ -58,28 +40,30 @@
                 <Icon :type="FolderKanban" />
               </span>
               <div class="project-title">
-                <strong>{{ project.name }}</strong
-                ><small>{{ project.code }}</small>
+                <strong>{{ project.name }}</strong>
+                <small>{{ project.code }}</small>
               </div>
-              <Tag :color="statusMap[project.status].color" theme="fill">{{
-                statusMap[project.status].label
-              }}</Tag>
+              <Tag :color="statusMap[project.status].color" theme="fill">
+                {{ statusMap[project.status].label }}
+              </Tag>
             </div>
             <p>{{ project.description }}</p>
             <Flex justify="space-between" class="project-meta">
-              <span><Icon :type="User" /> {{ project.owner }}</span>
-              <span><Icon :type="Calendar" /> {{ project.deadline }}</span>
+              <span>
+                <Icon :type="User" />
+                {{ project.owner }}
+              </span>
+              <span>
+                <Icon :type="Calendar" />
+                {{ project.deadline }}
+              </span>
             </Flex>
             <div class="project-progress">
-              <Flex justify="space-between"
-                ><span>整体进度</span
-                ><strong>{{ project.progress }}%</strong></Flex
-              >
-              <Progress
-                :percent="project.progress"
-                :show-info="false"
-                size="small"
-              />
+              <Flex justify="space-between">
+                <span>整体进度</span>
+                <strong>{{ project.progress }}%</strong>
+              </Flex>
+              <Progress :percent="project.progress" :show-info="false" size="small" />
             </div>
             <Flex justify="space-between" align="center" class="project-footer">
               <AvatarGroup :max-count="4" size="small">
@@ -87,16 +71,13 @@
                   v-for="member in project.members"
                   :key="member"
                   :style="{ background: avatarColor(member) }"
-                  >{{ member.slice(-1) }}</Avatar
                 >
+                  {{ member.slice(-1) }}
+                </Avatar>
               </AvatarGroup>
-              <Button
-                size="small"
-                theme="plain"
-                :icon="ArrowRight"
-                @click="openDetail(project)"
-                >查看详情</Button
-              >
+              <Button size="small" theme="plain" :icon="ArrowRight" @click="openDetail(project)">
+                查看详情
+              </Button>
             </Flex>
           </Card>
         </GridItem>
@@ -104,38 +85,25 @@
       <Empty v-if="!filteredProjects.length" description="没有匹配的项目" />
     </ListPanel>
 
-    <Drawer
-      v-model="drawerOpen"
-      title="新建项目"
-      :width="480"
-      @ok="createProject"
-    >
+    <Drawer v-model="drawerOpen" title="新建项目" :width="480" @ok="createProject">
       <Form :model="form" layout="vertical">
-        <FormItem label="项目名称"
-          ><Input v-model="form.name" clearable placeholder="请输入项目名称"
-        /></FormItem>
+        <FormItem label="项目名称">
+          <Input v-model="form.name" clearable placeholder="请输入项目名称" />
+        </FormItem>
         <Grid :cols="2" :x-gap="12">
-          <GridItem
-            ><FormItem label="项目代号"
-              ><Input
-                v-model="form.code"
-                clearable
-                placeholder="例如 KUI-PRO" /></FormItem
-          ></GridItem>
-          <GridItem
-            ><FormItem label="负责人"
-              ><Input v-model="form.owner" clearable /></FormItem
-          ></GridItem>
+          <GridItem>
+            <FormItem label="项目代号">
+              <Input v-model="form.code" clearable placeholder="例如 KUI-PRO" />
+            </FormItem>
+          </GridItem>
+          <GridItem>
+            <FormItem label="负责人"><Input v-model="form.owner" clearable /></FormItem>
+          </GridItem>
         </Grid>
-        <FormItem label="项目说明"
-          ><TextArea
-            v-model="form.description"
-            :rows="4"
-            placeholder="简要描述项目目标"
-        /></FormItem>
-        <FormItem label="计划交付日期"
-          ><DatePicker v-model="form.deadline" block
-        /></FormItem>
+        <FormItem label="项目说明">
+          <TextArea v-model="form.description" :rows="4" placeholder="简要描述项目目标" />
+        </FormItem>
+        <FormItem label="计划交付日期"><DatePicker v-model="form.deadline" block /></FormItem>
       </Form>
     </Drawer>
 
@@ -157,52 +125,46 @@
             <Icon :type="FolderKanban" />
           </span>
           <div>
-            <strong>{{ selectedProject.name }}</strong
-            ><small>{{ selectedProject.code }}</small>
+            <strong>{{ selectedProject.name }}</strong>
+            <small>{{ selectedProject.code }}</small>
           </div>
-          <Tag :color="statusMap[selectedProject.status].color" theme="fill">{{
-            statusMap[selectedProject.status].label
-          }}</Tag>
+          <Tag :color="statusMap[selectedProject.status].color" theme="fill">
+            {{ statusMap[selectedProject.status].label }}
+          </Tag>
         </div>
         <p class="detail-description">{{ selectedProject.description }}</p>
         <Grid :cols="2" :x-gap="12" :y-gap="12" class="detail-facts">
-          <GridItem
-            ><small>负责人</small
-            ><strong>{{ selectedProject.owner }}</strong></GridItem
-          >
-          <GridItem
-            ><small>计划交付</small
-            ><strong>{{
-              selectedProject.deadline || "待确认"
-            }}</strong></GridItem
-          >
-          <GridItem
-            ><small>项目成员</small
-            ><strong>{{ selectedProject.members.length }} 人</strong></GridItem
-          >
-          <GridItem
-            ><small>当前进度</small
-            ><strong>{{ selectedProject.progress }}%</strong></GridItem
-          >
+          <GridItem>
+            <small>负责人</small>
+            <strong>{{ selectedProject.owner }}</strong>
+          </GridItem>
+          <GridItem>
+            <small>计划交付</small>
+            <strong>{{ selectedProject.deadline || "待确认" }}</strong>
+          </GridItem>
+          <GridItem>
+            <small>项目成员</small>
+            <strong>{{ selectedProject.members.length }} 人</strong>
+          </GridItem>
+          <GridItem>
+            <small>当前进度</small>
+            <strong>{{ selectedProject.progress }}%</strong>
+          </GridItem>
         </Grid>
         <div class="detail-section">
-          <Flex justify="space-between"
-            ><strong>交付进度</strong
-            ><span>{{ selectedProject.progress }}%</span></Flex
-          >
+          <Flex justify="space-between">
+            <strong>交付进度</strong>
+            <span>{{ selectedProject.progress }}%</span>
+          </Flex>
           <Progress :percent="selectedProject.progress" :show-info="false" />
         </div>
         <div class="detail-section">
           <strong>项目成员</strong>
           <div class="member-list">
             <div v-for="member in selectedProject.members" :key="member">
-              <Avatar :style="{ background: avatarColor(member) }">{{
-                member.slice(-1)
-              }}</Avatar>
-              <span>{{ member }}</span
-              ><small>{{
-                member === selectedProject.owner ? "负责人" : "项目成员"
-              }}</small>
+              <Avatar :style="{ background: avatarColor(member) }">{{ member.slice(-1) }}</Avatar>
+              <span>{{ member }}</span>
+              <small>{{ member === selectedProject.owner ? "负责人" : "项目成员" }}</small>
             </div>
           </div>
         </div>
@@ -219,27 +181,21 @@
                   : 'var(--kui-color-text-placeholder)'
               "
               :time="item.date"
-              ><strong>{{ item.title }}</strong></TimeLineItem
             >
+              <strong>{{ item.title }}</strong>
+            </TimeLineItem>
           </TimeLine>
         </div>
         <Space class="detail-actions">
-          <Button
-            v-if="selectedProject.status !== 'done'"
-            type="primary"
-            @click="advanceProject"
-            >推进进度</Button
-          >
-          <Button
-            v-if="selectedProject.status === 'paused'"
-            @click="setProjectStatus('active')"
-            >恢复项目</Button
-          >
-          <Button
-            v-else-if="selectedProject.status !== 'done'"
-            @click="setProjectStatus('paused')"
-            >暂停项目</Button
-          >
+          <Button v-if="selectedProject.status !== 'done'" type="primary" @click="advanceProject">
+            推进进度
+          </Button>
+          <Button v-if="selectedProject.status === 'paused'" @click="setProjectStatus('active')">
+            恢复项目
+          </Button>
+          <Button v-else-if="selectedProject.status !== 'done'" @click="setProjectStatus('paused')">
+            暂停项目
+          </Button>
         </Space>
       </template>
     </Drawer>
@@ -348,34 +304,34 @@ const projects = ref<ProjectItem[]>([
     color: "#f59e0b",
   },
 ]);
-const overview = computed<
-  Array<{ label: string; value: number; color: string; icon: IconType[] }>
->(() => [
-  {
-    label: "全部项目",
-    value: projects.value.length,
-    color: "#3a95ff",
-    icon: FolderKanban,
-  },
-  {
-    label: "进行中",
-    value: projects.value.filter((item) => item.status === "active").length,
-    color: "#7b61ff",
-    icon: Clock,
-  },
-  {
-    label: "已完成",
-    value: projects.value.filter((item) => item.status === "done").length,
-    color: "#22a06b",
-    icon: CircleCheck,
-  },
-  {
-    label: "已暂停",
-    value: projects.value.filter((item) => item.status === "paused").length,
-    color: "#f59e0b",
-    icon: CirclePause,
-  },
-]);
+const overview = computed<Array<{ label: string; value: number; color: string; icon: IconType[] }>>(
+  () => [
+    {
+      label: "全部项目",
+      value: projects.value.length,
+      color: "#3a95ff",
+      icon: FolderKanban,
+    },
+    {
+      label: "进行中",
+      value: projects.value.filter((item) => item.status === "active").length,
+      color: "#7b61ff",
+      icon: Clock,
+    },
+    {
+      label: "已完成",
+      value: projects.value.filter((item) => item.status === "done").length,
+      color: "#22a06b",
+      icon: CircleCheck,
+    },
+    {
+      label: "已暂停",
+      value: projects.value.filter((item) => item.status === "paused").length,
+      color: "#f59e0b",
+      icon: CirclePause,
+    },
+  ],
+);
 const statusOptions = [
   { label: "全部", value: "all" },
   ...Object.entries(statusMap).map(([value, item]) => ({
@@ -400,16 +356,11 @@ const filteredProjects = computed(() => {
   return projects.value.filter(
     (item) =>
       (status.value === "all" || item.status === status.value) &&
-      (!query ||
-        `${item.name} ${item.code} ${item.owner}`
-          .toLowerCase()
-          .includes(query)),
+      (!query || `${item.name} ${item.code} ${item.owner}`.toLowerCase().includes(query)),
   );
 });
 const avatarColor = (name: string) =>
-  ["#3a95ff", "#7b61ff", "#22a06b", "#f59e0b", "#ef6b73"][
-    name.charCodeAt(0) % 5
-  ];
+  ["#3a95ff", "#7b61ff", "#22a06b", "#f59e0b", "#ef6b73"][name.charCodeAt(0) % 5];
 const openCreate = () => {
   Object.assign(form, {
     name: "",
@@ -451,19 +402,12 @@ const setProjectStatus = (nextStatus: ProjectStatus) => {
 };
 const advanceProject = () => {
   if (!selectedProject.value) return;
-  selectedProject.value.progress = Math.min(
-    100,
-    selectedProject.value.progress + 10,
-  );
-  selectedProject.value.status =
-    selectedProject.value.progress === 100 ? "done" : "active";
-  message.success(
-    selectedProject.value.progress === 100 ? "项目已完成" : "项目进度已更新",
-  );
+  selectedProject.value.progress = Math.min(100, selectedProject.value.progress + 10);
+  selectedProject.value.status = selectedProject.value.progress === 100 ? "done" : "active";
+  message.success(selectedProject.value.progress === 100 ? "项目已完成" : "项目进度已更新");
 };
 const createProject = () => {
-  if (!form.name.trim() || !form.owner.trim())
-    return message.warning("请填写项目名称和负责人");
+  if (!form.name.trim() || !form.owner.trim()) return message.warning("请填写项目名称和负责人");
   projects.value.unshift({
     id: `${Date.now()}`,
     ...form,

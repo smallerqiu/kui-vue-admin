@@ -3,47 +3,23 @@
     <PageHeader title="订单管理" description="查询和跟踪全部交易订单。">
       <template #actions><Button :icon="Download">导出订单</Button></template>
     </PageHeader>
-    <Grid
-      :cols="{ xs: 1, sm: 2, xl: 4 }"
-      :x-gap="12"
-      :y-gap="12"
-      class="order-stats"
-    >
-      <GridItem v-for="item in stats" :key="item.title"
-        ><StatCard :title="item.title" :items="[item.data]" bordered reverse
-      /></GridItem>
+    <Grid :cols="{ xs: 1, sm: 2, xl: 4 }" :x-gap="12" :y-gap="12" class="order-stats">
+      <GridItem v-for="item in stats" :key="item.title">
+        <StatCard :title="item.title" :items="[item.data]" bordered reverse />
+      </GridItem>
     </Grid>
     <ListPanel :summary="`${filteredOrders.length} 条订单`">
       <template #filters>
-        <Input
-          v-model="keyword"
-          clearable
-          placeholder="订单号、客户或商品名称"
-          :icon="Search"
-        />
-        <Select
-          v-model="status"
-          clearable
-          placeholder="全部状态"
-          :options="statusOptions"
-        />
+        <Input v-model="keyword" clearable placeholder="订单号、客户或商品名称" :icon="Search" />
+        <Select v-model="status" clearable placeholder="全部状态" :options="statusOptions" />
         <Select
           v-model="paymentMethod"
           clearable
           placeholder="支付方式"
           :options="paymentOptions"
         />
-        <Select
-          v-model="source"
-          clearable
-          placeholder="订单来源"
-          :options="sourceOptions"
-        />
-        <DatePicker
-          v-model="dateRange"
-          mode="dateRange"
-          placeholder="下单时间"
-        />
+        <Select v-model="source" clearable placeholder="订单来源" :options="sourceOptions" />
+        <DatePicker v-model="dateRange" mode="dateRange" placeholder="下单时间" />
       </template>
       <template #actions>
         <Space>
@@ -67,14 +43,15 @@
         <template #id="{ record }">
           <div class="order-number">
             <button type="button" @click="openDetail(record)">
-              {{ record.id }}</button
-            ><small>{{ record.createdAt }}</small>
+              {{ record.id }}
+            </button>
+            <small>{{ record.createdAt }}</small>
           </div>
         </template>
         <template #buyer="{ record }">
           <div class="buyer-cell">
-            <strong>{{ record.customer }}</strong
-            ><span>{{ record.buyer }} · {{ record.phone }}</span>
+            <strong>{{ record.customer }}</strong>
+            <span>{{ record.buyer }} · {{ record.phone }}</span>
           </div>
         </template>
         <template #items="{ record }">
@@ -82,43 +59,34 @@
             <div v-for="item in record.items" :key="item.id" class="order-item">
               <Image :src="item.image" :width="48" :height="48" fit="cover" />
               <div>
-                <strong>{{ item.name }}</strong
-                ><small>{{ item.specs }} · {{ item.sku }}</small>
+                <strong>{{ item.name }}</strong>
+                <small>{{ item.specs }} · {{ item.sku }}</small>
               </div>
-              <span
-                >¥{{ item.price.toLocaleString() }} × {{ item.quantity }}</span
-              >
+              <span>¥{{ item.price.toLocaleString() }} × {{ item.quantity }}</span>
             </div>
           </div>
         </template>
-        <template #paidAmount="{ record }"
-          ><div class="amount-cell">
-            <strong>¥ {{ record.paidAmount.toLocaleString() }}</strong
-            ><small>共 {{ itemCount(record) }} 件</small>
-          </div></template
-        >
-        <template #status="{ value }"
-          ><Tag :color="statusColor(value)">{{
-            statusLabel(value)
-          }}</Tag></template
-        >
+        <template #paidAmount="{ record }">
+          <div class="amount-cell">
+            <strong>¥ {{ record.paidAmount.toLocaleString() }}</strong>
+            <small>共 {{ itemCount(record) }} 件</small>
+          </div>
+        </template>
+        <template #status="{ value }">
+          <Tag :color="statusColor(value)">{{ statusLabel(value) }}</Tag>
+        </template>
         <template #action="{ record }">
           <Space compact>
-            <Button
-              size="small"
-              theme="plain"
-              :icon="Eye"
-              @click="openDetail(record)"
-              >详情</Button
-            >
+            <Button size="small" theme="plain" :icon="Eye" @click="openDetail(record)">详情</Button>
             <Button
               v-if="record.status === 'pending'"
               size="small"
               color="red"
               theme="plain"
               @click="closePendingOrder(record)"
-              >关闭</Button
             >
+              关闭
+            </Button>
           </Space>
         </template>
       </Table>
@@ -130,13 +98,7 @@
 import { orderStatusOptions, type OrderRecord } from "@/data/orders";
 import { useOrderStore } from "@/stores/orders";
 import { Download, Eye, Search } from "kui-icons";
-import {
-  message,
-  modal,
-  PageHeader,
-  type Column,
-  type StatNumberItem,
-} from "kui-vue";
+import { message, modal, PageHeader, type Column, type StatNumberItem } from "kui-vue";
 import { storeToRefs } from "pinia";
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
@@ -176,12 +138,13 @@ const status = ref<string>();
 const paymentMethod = ref<string>();
 const source = ref<string>();
 const dateRange = ref<string[]>([]);
-const paymentOptions = [
-  ...new Set(orders.value.map((item) => item.paymentMethod)),
-].map((value) => ({ label: value, value }));
-const sourceOptions = [...new Set(orders.value.map((item) => item.source))].map(
+const paymentOptions = [...new Set(orders.value.map((item) => item.paymentMethod))].map(
   (value) => ({ label: value, value }),
 );
+const sourceOptions = [...new Set(orders.value.map((item) => item.source))].map((value) => ({
+  label: value,
+  value,
+}));
 const hiddenColumnKeys = ref<string[]>([]);
 const filteredOrders = computed(() =>
   orders.value.filter((item) => {
@@ -191,9 +154,7 @@ const filteredOrders = computed(() =>
       (!query ||
         item.id.toLowerCase().includes(query) ||
         item.customer.toLowerCase().includes(query) ||
-        item.items.some((product) =>
-          product.name.toLowerCase().includes(query),
-        )) &&
+        item.items.some((product) => product.name.toLowerCase().includes(query))) &&
       (!status.value || item.status === status.value) &&
       (!paymentMethod.value || item.paymentMethod === paymentMethod.value) &&
       (!source.value || item.source === source.value) &&

@@ -1,9 +1,4 @@
-import {
-  clearAuthSession,
-  getAuthUser,
-  getToken,
-  setAuthSession,
-} from "@/utils/auth";
+import { clearAuthSession, getAuthUser, getToken, setAuthSession } from "@/utils/auth";
 import { beforeEach, describe, expect, it } from "vitest";
 
 describe("auth session", () => {

@@ -31,13 +31,9 @@ describe("order store", () => {
   it("supports partial and complete shipments", () => {
     const store = useOrderStore();
     const order = store.getOrder("K202608230018")!;
-    expect(store.shipOrder(order.id, "顺丰速运", "SF001", { I101: 1 })).toBe(
-      true,
-    );
+    expect(store.shipOrder(order.id, "顺丰速运", "SF001", { I101: 1 })).toBe(true);
     expect(order.status).toBe("partial_shipped");
-    expect(store.shipOrder(order.id, "顺丰速运", "SF002", { I102: 2 })).toBe(
-      true,
-    );
+    expect(store.shipOrder(order.id, "顺丰速运", "SF002", { I102: 2 })).toBe(true);
     expect(order.status).toBe("shipped");
     expect(order.shipments).toHaveLength(2);
   });

@@ -4,7 +4,6 @@ import { hasPermission } from "@/routers/permissions";
 
 export const permission: Directive<HTMLElement, string | string[]> = {
   mounted(el, binding) {
-    if (!hasPermission(binding.value, getAuthUser().permissions || []))
-      el.remove();
+    if (!hasPermission(binding.value, getAuthUser().permissions || [])) el.remove();
   },
 };

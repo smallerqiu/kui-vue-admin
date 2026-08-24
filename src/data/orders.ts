@@ -117,10 +117,7 @@ export const orders: OrderRecord[] = [
     contact: "示例联系人 A",
     phone: "000 **** 0001",
     address: "浙江省杭州市演示区示例路 100 号",
-    items: [
-      item("I101", product.collaboration),
-      item("I102", product.storage, 2),
-    ],
+    items: [item("I101", product.collaboration), item("I102", product.storage, 2)],
     goodsAmount: 17598,
     freight: 0,
     discount: 798,

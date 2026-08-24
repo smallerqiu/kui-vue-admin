@@ -15,12 +15,7 @@ import { javascript } from "@codemirror/lang-javascript";
 import { json } from "@codemirror/lang-json";
 import { yaml } from "@codemirror/lang-yaml";
 import { Compartment, EditorState, type Extension } from "@codemirror/state";
-import {
-  EditorView,
-  highlightActiveLine,
-  keymap,
-  lineNumbers,
-} from "@codemirror/view";
+import { EditorView, highlightActiveLine, keymap, lineNumbers } from "@codemirror/view";
 import { solarizedDark } from "cm6-theme-solarized-dark";
 import { solarizedLight } from "cm6-theme-solarized-light";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
@@ -119,9 +114,7 @@ watch(
   () => themeStore.theme,
   () =>
     view.value?.dispatch({
-      effects: themeCompartment.reconfigure(
-        themeStore.isDark ? solarizedDark : solarizedLight,
-      ),
+      effects: themeCompartment.reconfigure(themeStore.isDark ? solarizedDark : solarizedLight),
     }),
 );
 onMounted(createView);

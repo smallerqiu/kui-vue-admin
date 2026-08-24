@@ -1,9 +1,6 @@
 import { useNotificationStore } from "@/stores/notifications";
 import { useTabViewsStore, type ViewItem } from "@/stores/tabs";
-import {
-  defaultSystemSettings,
-  useSystemSettingsStore,
-} from "@/stores/system-settings";
+import { defaultSystemSettings, useSystemSettingsStore } from "@/stores/system-settings";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it } from "vitest";
 import { nextTick } from "vue";
@@ -25,35 +22,36 @@ describe("persistent stores", () => {
     const store = useSystemSettingsStore();
     store.settings.organizationName = "KUI Test";
     store.save();
-    expect(
-      JSON.parse(localStorage.getItem("system_settings") || "{}")
-        .organizationName,
-    ).toBe("KUI Test");
-    store.reset();
-    expect(store.settings.organizationName).toBe(
-      defaultSystemSettings.organizationName,
+    expect(JSON.parse(localStorage.getItem("system_settings") || "{}").organizationName).toBe(
+      "KUI Test",
     );
+    store.reset();
+    expect(store.settings.organizationName).toBe(defaultSystemSettings.organizationName);
   });
 
   it("applies the configured primary color", async () => {
     const store = useSystemSettingsStore();
     store.settings.primaryColor = "#7b61ff";
     await nextTick();
-    expect(
-      document.documentElement.style.getPropertyValue("--kui-color-primary"),
-    ).toBe("#7b61ff");
+    expect(document.documentElement.style.getPropertyValue("--kui-color-primary")).toBe("#7b61ff");
   });
 
   it("reorders opened tabs and persists their order", () => {
     const store = useTabViewsStore();
     const createView = (key: string): ViewItem => ({
-      key, path: `/${key}`, fullPath: `/${key}`, loading: false,
-      query: {}, params: {}, meta: {},
+      key,
+      path: `/${key}`,
+      fullPath: `/${key}`,
+      loading: false,
+      query: {},
+      params: {},
+      meta: {},
     });
     store.views = [createView("a"), createView("b"), createView("c")];
     store.moveView(0, 2);
     expect(store.views.map((view) => view.key)).toEqual(["b", "c", "a"]);
-    expect(JSON.parse(localStorage.getItem("routes") || "[]").map((view: ViewItem) => view.key))
-      .toEqual(["b", "c", "a"]);
+    expect(
+      JSON.parse(localStorage.getItem("routes") || "[]").map((view: ViewItem) => view.key),
+    ).toEqual(["b", "c", "a"]);
   });
 });

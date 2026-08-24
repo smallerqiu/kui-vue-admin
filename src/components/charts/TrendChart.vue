@@ -36,9 +36,7 @@ const themeStore = useThemeStore();
 
 use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
-type ChartOption = ComposeOption<
-  LineSeriesOption | GridComponentOption | TooltipComponentOption
->;
+type ChartOption = ComposeOption<LineSeriesOption | GridComponentOption | TooltipComponentOption>;
 
 const option = computed<ChartOption>(() => {
   const dark = themeStore.theme === "dark";

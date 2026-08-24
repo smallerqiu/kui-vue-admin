@@ -4,10 +4,7 @@ export const hasRole = (required: string[] | undefined, roles: string[]) => {
   if (!required?.length) return true;
   return required.some((role) => roles.includes(role));
 };
-export const hasPermission = (
-  required: string | string[] | undefined,
-  permissions: string[],
-) => {
+export const hasPermission = (required: string | string[] | undefined, permissions: string[]) => {
   if (!required || (Array.isArray(required) && !required.length)) return true;
   if (permissions.includes("*")) return true;
   const values = Array.isArray(required) ? required : [required];
@@ -25,10 +22,7 @@ export function filterMenuByAccess(
   permissions: string[],
 ): AdminMenuItem[] {
   return menu.flatMap((item) => {
-    if (
-      !hasRole(item.meta.roles, roles) ||
-      !hasPermission(item.meta.permissions, permissions)
-    )
+    if (!hasRole(item.meta.roles, roles) || !hasPermission(item.meta.permissions, permissions))
       return [];
     const children = item.children
       ? filterMenuByAccess(item.children, roles, permissions)
@@ -44,9 +38,10 @@ export type DataScopeContext = {
 };
 
 /** Applies the signed-in user's data scope to any business record collection. */
-export function filterByDataScope<
-  T extends { ownerId?: string; departmentId?: string },
->(rows: T[], context: DataScopeContext) {
+export function filterByDataScope<T extends { ownerId?: string; departmentId?: string }>(
+  rows: T[],
+  context: DataScopeContext,
+) {
   if (context.dataScope === "all") return rows;
   if (context.dataScope === "department") {
     return rows.filter((row) => row.departmentId === context.departmentId);

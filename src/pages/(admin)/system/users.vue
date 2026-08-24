@@ -3,35 +3,15 @@
     <PageHeader title="用户管理" description="管理成员账号、角色和使用状态。">
       <template #actions>
         <Button :icon="Download">导出</Button>
-        <Button type="primary" :icon="UserPlus" @click="openCreate"
-          >新增用户</Button
-        >
+        <Button type="primary" :icon="UserPlus" @click="openCreate">新增用户</Button>
       </template>
     </PageHeader>
 
-    <ListPanel
-      :summary="`共 ${filteredUsers.length} 位用户`"
-      :selected-count="selectedKeys.length"
-    >
+    <ListPanel :summary="`共 ${filteredUsers.length} 位用户`" :selected-count="selectedKeys.length">
       <template #filters>
-        <Input
-          v-model="keyword"
-          clearable
-          placeholder="搜索姓名或邮箱"
-          :icon="Search"
-        />
-        <Select
-          v-model="status"
-          clearable
-          placeholder="全部状态"
-          :options="statusOptions"
-        />
-        <Select
-          v-model="role"
-          clearable
-          placeholder="全部角色"
-          :options="roleOptions"
-        />
+        <Input v-model="keyword" clearable placeholder="搜索姓名或邮箱" :icon="Search" />
+        <Select v-model="status" clearable placeholder="全部状态" :options="statusOptions" />
+        <Select v-model="role" clearable placeholder="全部角色" :options="roleOptions" />
       </template>
 
       <template #actions>
@@ -55,11 +35,10 @@
             type="danger"
             size="small"
             @click="disableSelected"
-            >批量停用</Button
           >
-          <Button theme="plain" size="small" @click="selectedKeys = []"
-            >取消选择</Button
-          >
+            批量停用
+          </Button>
+          <Button theme="plain" size="small" @click="selectedKeys = []">取消选择</Button>
         </Space>
       </template>
 
@@ -74,46 +53,35 @@
       >
         <template #user="{ record }">
           <Space>
-            <Avatar :size="34" :style="{ background: record.color }">{{
-              record.name.slice(0, 1)
-            }}</Avatar>
+            <Avatar :size="34" :style="{ background: record.color }">
+              {{ record.name.slice(0, 1) }}
+            </Avatar>
             <div class="user-cell">
-              <strong>{{ record.name }}</strong
-              ><span>{{ record.email }}</span>
+              <strong>{{ record.name }}</strong>
+              <span>{{ record.email }}</span>
             </div>
           </Space>
         </template>
-        <template #role="{ value }"
-          ><Tag theme="fill">{{ roleLabel(value) }}</Tag></template
-        >
+        <template #role="{ value }">
+          <Tag theme="fill">{{ roleLabel(value) }}</Tag>
+        </template>
         <template #status="{ value }">
-          <Tag :color="value === 'active' ? 'green' : 'gray'">{{
-            value === "active" ? "正常" : "已停用"
-          }}</Tag>
+          <Tag :color="value === 'active' ? 'green' : 'gray'">
+            {{ value === "active" ? "正常" : "已停用" }}
+          </Tag>
         </template>
         <template #action="{ record }">
           <Space compact>
-            <Tooltip title="查看"
-              ><Button size="small" theme="plain" :icon="Eye"
-            /></Tooltip>
-            <Tooltip title="编辑"
-              ><Button
-                size="small"
-                theme="plain"
-                :icon="Pencil"
-                @click="openEdit(record)"
-            /></Tooltip>
+            <Tooltip title="查看"><Button size="small" theme="plain" :icon="Eye" /></Tooltip>
+            <Tooltip title="编辑">
+              <Button size="small" theme="plain" :icon="Pencil" @click="openEdit(record)" />
+            </Tooltip>
           </Space>
         </template>
       </Table>
 
       <template #footer>
-        <Page
-          v-model:page="page"
-          :total="filteredUsers.length"
-          :page-size="pageSize"
-          show-total
-        />
+        <Page v-model:page="page" :total="filteredUsers.length" :page-size="pageSize" show-total />
       </template>
     </ListPanel>
 
@@ -124,18 +92,18 @@
       @ok="saveUser"
     >
       <Form :model="form" layout="vertical">
-        <FormItem label="姓名" prop="name"
-          ><Input v-model="form.name" clearable placeholder="请输入姓名"
-        /></FormItem>
-        <FormItem label="邮箱" prop="email"
-          ><Input v-model="form.email" clearable placeholder="name@company.com"
-        /></FormItem>
-        <FormItem label="角色" prop="role"
-          ><Select v-model="form.role" block :options="roleOptions"
-        /></FormItem>
-        <FormItem label="状态" prop="status"
-          ><Select v-model="form.status" block :options="statusOptions"
-        /></FormItem>
+        <FormItem label="姓名" prop="name">
+          <Input v-model="form.name" clearable placeholder="请输入姓名" />
+        </FormItem>
+        <FormItem label="邮箱" prop="email">
+          <Input v-model="form.email" clearable placeholder="name@company.com" />
+        </FormItem>
+        <FormItem label="角色" prop="role">
+          <Select v-model="form.role" block :options="roleOptions" />
+        </FormItem>
+        <FormItem label="状态" prop="status">
+          <Select v-model="form.status" block :options="statusOptions" />
+        </FormItem>
       </Form>
     </Drawer>
   </div>
@@ -294,8 +262,7 @@ const openEdit = (record: UserRow) => {
   drawerOpen.value = true;
 };
 const saveUser = () => {
-  if (!form.name.trim() || !form.email.trim())
-    return message.warning("请填写姓名和邮箱");
+  if (!form.name.trim() || !form.email.trim()) return message.warning("请填写姓名和邮箱");
   if (editingId.value) {
     const target = users.value.find((item) => item.id === editingId.value);
     if (target) Object.assign(target, form);

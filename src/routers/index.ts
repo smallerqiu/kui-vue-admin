@@ -40,8 +40,7 @@ const router = createRouter({
   },
 });
 
-export const routerInitialized = async () =>
-  createMenuItems(router.options.routes);
+export const routerInitialized = async () => createMenuItems(router.options.routes);
 
 router.beforeEach(async (to) => {
   loading.start();
@@ -57,8 +56,7 @@ router.beforeEach(async (to) => {
   if (!hasRole(to.meta.roles, getAuthUser().roles || [])) {
     return "/error/403";
   }
-  if (!hasPermission(to.meta.permissions, getAuthUser().permissions || []))
-    return "/error/403";
+  if (!hasPermission(to.meta.permissions, getAuthUser().permissions || [])) return "/error/403";
   return true;
 });
 router.afterEach((to) => {

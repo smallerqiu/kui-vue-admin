@@ -1,5 +1,13 @@
 #!/usr/bin/env node
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline/promises";
@@ -10,7 +18,9 @@ const templateRoot = resolve(packageRoot, "template");
 const args = process.argv.slice(2);
 
 if (args.includes("--help") || args.includes("-h")) {
-  console.log(`\nUsage: npm create kui-vue-pro@latest [project-name]\n\nExample:\n  npm create kui-vue-pro@latest my-app\n`);
+  console.log(
+    `\nUsage: npm create kui-vue-pro@latest [project-name]\n\nExample:\n  npm create kui-vue-pro@latest my-app\n`,
+  );
   process.exit(0);
 }
 
@@ -53,7 +63,11 @@ writeFileSync(packageFile, `${JSON.stringify(appPackage, null, 2)}\n`);
 
 const relativeTarget = targetDir === process.cwd() ? "." : target;
 const userAgent = process.env.npm_config_user_agent || "npm";
-const manager = userAgent.startsWith("pnpm") ? "pnpm" : userAgent.startsWith("yarn") ? "yarn" : "npm";
+const manager = userAgent.startsWith("pnpm")
+  ? "pnpm"
+  : userAgent.startsWith("yarn")
+    ? "yarn"
+    : "npm";
 const install = manager === "yarn" ? "yarn" : `${manager} install`;
 const dev = manager === "npm" ? "npm run dev" : `${manager} dev`;
 

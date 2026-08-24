@@ -1,58 +1,58 @@
 <template>
   <div class="customer-detail-page">
-    <PageHeader
-      :title="customer.name"
-      :description="`${customer.id} · ${customer.industry}`"
-    >
-      <template #actions
-        ><Button :icon="ArrowLeft" @click="router.back()">返回</Button
-        ><Button :icon="Phone">联系客户</Button
-        ><Button type="primary" :icon="Plus">新建商机</Button></template
-      >
+    <PageHeader :title="customer.name" :description="`${customer.id} · ${customer.industry}`">
+      <template #actions>
+        <Button :icon="ArrowLeft" @click="router.back()">返回</Button>
+        <Button :icon="Phone">联系客户</Button>
+        <Button type="primary" :icon="Plus">新建商机</Button>
+      </template>
     </PageHeader>
     <Grid :cols="{ xs: 1, lg: 12 }" :x-gap="16" :y-gap="16">
       <GridItem :span="{ xs: 1, lg: 4 }">
         <Space vertical block :size="16">
-          <Card bordered
-            ><div class="company-profile">
-              <span :style="{ background: customer.color }"
-                ><Icon :type="Building2"
-              /></span>
+          <Card bordered>
+            <div class="company-profile">
+              <span :style="{ background: customer.color }"><Icon :type="Building2" /></span>
               <h2>{{ customer.name }}</h2>
-              <Space
-                ><Tag color="purple">{{ levelLabel }}</Tag
-                ><Badge :status="statusBadge" :text="statusLabel"
-              /></Space>
+              <Space>
+                <Tag color="purple">{{ levelLabel }}</Tag>
+                <Badge :status="statusBadge" :text="statusLabel" />
+              </Space>
             </div>
             <Divider />
             <div class="company-meta">
               <p>
-                <Icon :type="ContactRound" /> {{ customer.contact }} ·
-                {{ customer.owner }}负责
+                <Icon :type="ContactRound" />
+                {{ customer.contact }} · {{ customer.owner }}负责
               </p>
-              <p><Icon :type="Phone" /> {{ customer.phone }}</p>
-              <p><Icon :type="Mail" /> {{ customer.email }}</p>
-              <p><Icon :type="MapPin" /> {{ customer.city }}</p>
-            </div></Card
-          >
-          <Card title="客户健康度" bordered
-            ><div class="health-score">
-              <strong>86</strong><span>健康</span>
+              <p>
+                <Icon :type="Phone" />
+                {{ customer.phone }}
+              </p>
+              <p>
+                <Icon :type="Mail" />
+                {{ customer.email }}
+              </p>
+              <p>
+                <Icon :type="MapPin" />
+                {{ customer.city }}
+              </p>
+            </div>
+          </Card>
+          <Card title="客户健康度" bordered>
+            <div class="health-score">
+              <strong>86</strong>
+              <span>健康</span>
             </div>
             <Progress :percent="86" :show-info="false" color="#22a06b" />
-            <p class="health-tip">近期互动活跃，订单履约情况良好。</p></Card
-          >
+            <p class="health-tip">近期互动活跃，订单履约情况良好。</p>
+          </Card>
         </Space>
       </GridItem>
       <GridItem :span="{ xs: 1, lg: 8 }">
-        <Grid
-          :cols="{ xs: 1, sm: 3 }"
-          :x-gap="12"
-          :y-gap="12"
-          class="value-grid"
-        >
-          <GridItem
-            ><StatCard
+        <Grid :cols="{ xs: 1, sm: 3 }" :x-gap="12" :y-gap="12" class="value-grid">
+          <GridItem>
+            <StatCard
               title="年度客户价值"
               :items="[
                 {
@@ -64,21 +64,24 @@
               ]"
               bordered
               reverse
-          /></GridItem>
-          <GridItem
-            ><StatCard
+            />
+          </GridItem>
+          <GridItem>
+            <StatCard
               title="累计订单"
               :items="[{ value: customer.orders, desc: '历史成交订单' }]"
               bordered
               reverse
-          /></GridItem>
-          <GridItem
-            ><StatCard
+            />
+          </GridItem>
+          <GridItem>
+            <StatCard
               title="合作时长"
               :items="[{ value: 26, suffix: '个月', desc: '自 2024 年 6 月' }]"
               bordered
               reverse
-          /></GridItem>
+            />
+          </GridItem>
         </Grid>
         <Card title="业务动态" bordered class="activity-card">
           <div class="business-events">
@@ -94,9 +97,7 @@
         </Card>
         <Card title="最近订单" bordered>
           <Table :data="recentOrders" :columns="orderColumns" row-key="id">
-            <template #amount="{ value }"
-              >¥ {{ Number(value).toLocaleString() }}</template
-            >
+            <template #amount="{ value }">¥ {{ Number(value).toLocaleString() }}</template>
             <template #status><Tag color="green">已完成</Tag></template>
           </Table>
         </Card>
@@ -106,7 +107,6 @@
 </template>
 
 <script setup lang="ts">
-import { PageHeader } from "kui-vue";
 import { customers } from "@/data/customers";
 import {
   ArrowLeft,
@@ -121,6 +121,7 @@ import {
   ShoppingCart,
 } from "kui-icons";
 import type { BadgeStatusType, Column, IconType } from "kui-vue";
+import { PageHeader } from "kui-vue";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
@@ -131,15 +132,10 @@ const customer = computed(
 );
 const levelLabel = computed(
   () =>
-    ({ strategic: "战略客户", enterprise: "企业客户", growth: "成长客户" })[
-      customer.value.level
-    ],
+    ({ strategic: "战略客户", enterprise: "企业客户", growth: "成长客户" })[customer.value.level],
 );
 const statusLabel = computed(
-  () =>
-    ({ active: "合作中", follow: "跟进中", risk: "风险关注" })[
-      customer.value.status
-    ],
+  () => ({ active: "合作中", follow: "跟进中", risk: "风险关注" })[customer.value.status],
 );
 const statusBadge = computed(
   () =>

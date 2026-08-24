@@ -1,28 +1,18 @@
 <template>
   <div class="approval-page">
-    <PageHeader
-      title="审批中心"
-      description="统一处理费用、采购、请假与合同审批。"
-    >
-      <template #actions
-        ><Button :icon="RefreshCw" @click="refresh">刷新待办</Button></template
-      >
+    <PageHeader title="审批中心" description="统一处理费用、采购、请假与合同审批。">
+      <template #actions><Button :icon="RefreshCw" @click="refresh">刷新待办</Button></template>
     </PageHeader>
 
-    <Grid
-      :cols="{ xs: 2, lg: 4 }"
-      :x-gap="12"
-      :y-gap="12"
-      class="approval-stats"
-    >
+    <Grid :cols="{ xs: 2, lg: 4 }" :x-gap="12" :y-gap="12" class="approval-stats">
       <GridItem v-for="item in stats" :key="item.label">
         <Card size="small" bordered class="approval-stat">
-          <span :style="{ color: item.color, background: `${item.color}18` }"
-            ><Icon :type="item.icon"
-          /></span>
+          <span :style="{ color: item.color, background: `${item.color}18` }">
+            <Icon :type="item.icon" />
+          </span>
           <div>
-            <strong>{{ item.value }}</strong
-            ><small>{{ item.label }}</small>
+            <strong>{{ item.value }}</strong>
+            <small>{{ item.label }}</small>
           </div>
         </Card>
       </GridItem>
@@ -33,24 +23,9 @@
       :selected-count="selectedKeys.length"
     >
       <template #filters>
-        <RadioGroup
-          v-model="status"
-          theme="card"
-          type="button"
-          :options="statusOptions"
-        />
-        <Input
-          v-model="keyword"
-          clearable
-          placeholder="搜索标题、编号或申请人"
-          :icon="Search"
-        />
-        <Select
-          v-model="type"
-          clearable
-          placeholder="全部类型"
-          :options="typeOptions"
-        />
+        <RadioGroup v-model="status" theme="card" type="button" :options="statusOptions" />
+        <Input v-model="keyword" clearable placeholder="搜索标题、编号或申请人" :icon="Search" />
+        <Select v-model="type" clearable placeholder="全部类型" :options="typeOptions" />
       </template>
       <template #actions>
         <Space>
@@ -67,16 +42,10 @@
       <template #selection="{ count }">
         <Space>
           <strong>已选择 {{ count }} 项待审批记录</strong>
-          <Button
-            type="primary"
-            size="small"
-            :icon="Check"
-            @click="approveSelected"
-            >批量通过</Button
-          >
-          <Button theme="plain" size="small" @click="selectedKeys = []"
-            >取消选择</Button
-          >
+          <Button type="primary" size="small" :icon="Check" @click="approveSelected">
+            批量通过
+          </Button>
+          <Button theme="plain" size="small" @click="selectedKeys = []">取消选择</Button>
         </Space>
       </template>
       <Table
@@ -96,40 +65,36 @@
                 color: typeInfo(record.type).color,
                 background: `${typeInfo(record.type).color}18`,
               }"
-              ><Icon :type="typeInfo(record.type).icon"
-            /></span>
+            >
+              <Icon :type="typeInfo(record.type).icon" />
+            </span>
             <div>
               <button type="button" @click="openDetail(record)">
-                {{ record.title }}</button
-              ><small>{{ record.id }}</small>
+                {{ record.title }}
+              </button>
+              <small>{{ record.id }}</small>
             </div>
           </div>
         </template>
-        <template #amount="{ value }"
-          ><strong v-if="value">¥ {{ Number(value).toLocaleString() }}</strong
-          ><span v-else>—</span></template
-        >
-        <template #status="{ value }"
-          ><Tag :color="statusInfo(value).color" theme="fill">{{
-            statusInfo(value).label
-          }}</Tag></template
-        >
+        <template #amount="{ value }">
+          <strong v-if="value">¥ {{ Number(value).toLocaleString() }}</strong>
+          <span v-else>—</span>
+        </template>
+        <template #status="{ value }">
+          <Tag :color="statusInfo(value).color" theme="fill">{{ statusInfo(value).label }}</Tag>
+        </template>
         <template #action="{ record }">
-          <Space
-            ><Button
-              size="small"
-              theme="plain"
-              :icon="Eye"
-              @click="openDetail(record)"
-              >详情</Button
-            ><Button
+          <Space>
+            <Button size="small" theme="plain" :icon="Eye" @click="openDetail(record)">详情</Button>
+            <Button
               v-if="record.status === 'pending'"
               size="small"
               type="primary"
               @click="approve(record)"
-              >同意</Button
-            ></Space
-          >
+            >
+              同意
+            </Button>
+          </Space>
         </template>
       </Table>
     </ListPanel>
@@ -147,37 +112,34 @@
               color: typeMap[selected.type].color,
               background: `${typeMap[selected.type].color}18`,
             }"
-            ><Icon :type="typeMap[selected.type].icon"
-          /></span>
+          >
+            <Icon :type="typeMap[selected.type].icon" />
+          </span>
           <div>
-            <strong>{{ selected.title }}</strong
-            ><small
-              >{{ selected.id }} · {{ typeMap[selected.type].label }}</small
-            >
+            <strong>{{ selected.title }}</strong>
+            <small>{{ selected.id }} · {{ typeMap[selected.type].label }}</small>
           </div>
-          <Tag :color="approvalStatusMap[selected.status].color" theme="fill">{{
-            approvalStatusMap[selected.status].label
-          }}</Tag>
+          <Tag :color="approvalStatusMap[selected.status].color" theme="fill">
+            {{ approvalStatusMap[selected.status].label }}
+          </Tag>
         </div>
         <Grid :cols="2" :x-gap="12" :y-gap="12" class="approval-facts">
-          <GridItem
-            ><small>申请人</small
-            ><strong>{{ selected.applicant }}</strong></GridItem
-          >
-          <GridItem
-            ><small>所属部门</small
-            ><strong>{{ selected.department }}</strong></GridItem
-          >
-          <GridItem
-            ><small>申请时间</small
-            ><strong>{{ selected.createdAt }}</strong></GridItem
-          >
-          <GridItem
-            ><small>申请金额</small
-            ><strong>{{
-              selected.amount ? `¥ ${selected.amount.toLocaleString()}` : "—"
-            }}</strong></GridItem
-          >
+          <GridItem>
+            <small>申请人</small>
+            <strong>{{ selected.applicant }}</strong>
+          </GridItem>
+          <GridItem>
+            <small>所属部门</small>
+            <strong>{{ selected.department }}</strong>
+          </GridItem>
+          <GridItem>
+            <small>申请时间</small>
+            <strong>{{ selected.createdAt }}</strong>
+          </GridItem>
+          <GridItem>
+            <small>申请金额</small>
+            <strong>{{ selected.amount ? `¥ ${selected.amount.toLocaleString()}` : "—" }}</strong>
+          </GridItem>
         </Grid>
         <section class="approval-section">
           <strong>申请说明</strong>
@@ -190,42 +152,28 @@
               v-for="node in approvalFlow"
               :key="node.name"
               :icon="
-                node.state === 'done'
-                  ? CircleCheck
-                  : node.state === 'rejected'
-                    ? CircleX
-                    : Clock
+                node.state === 'done' ? CircleCheck : node.state === 'rejected' ? CircleX : Clock
               "
               :color="flowColor(node.state)"
               :extra="node.detail"
-              ><strong>{{ node.name }}</strong></TimeLineItem
             >
+              <strong>{{ node.name }}</strong>
+            </TimeLineItem>
           </TimeLine>
         </section>
         <Space v-if="selected.status === 'pending'" class="approval-actions">
-          <Button type="primary" :icon="Check" @click="approve(selected)"
-            >同意申请</Button
-          >
-          <Button type="danger" theme="plain" :icon="X" @click="openReject"
-            >驳回</Button
-          >
+          <Button type="primary" :icon="Check" @click="approve(selected)">同意申请</Button>
+          <Button type="danger" theme="plain" :icon="X" @click="openReject">驳回</Button>
         </Space>
       </template>
     </Drawer>
 
-    <Modal
-      v-model="rejectOpen"
-      title="驳回申请"
-      :width="440"
-      @ok="rejectApproval"
-    >
-      <Form layout="vertical"
-        ><FormItem label="驳回原因"
-          ><TextArea
-            v-model="rejectReason"
-            :rows="4"
-            placeholder="请说明驳回原因" /></FormItem
-      ></Form>
+    <Modal v-model="rejectOpen" title="驳回申请" :width="440" @ok="rejectApproval">
+      <Form layout="vertical">
+        <FormItem label="驳回原因">
+          <TextArea v-model="rejectReason" :rows="4" placeholder="请说明驳回原因" />
+        </FormItem>
+      </Form>
     </Modal>
   </div>
 </template>
@@ -247,13 +195,7 @@ import {
   Wallet,
   X,
 } from "kui-icons";
-import {
-  message,
-  type Column,
-  type IconType,
-  type TableKey,
-  type TableRecord,
-} from "kui-vue";
+import { message, type Column, type IconType, type TableKey, type TableRecord } from "kui-vue";
 import { computed, ref, watch } from "vue";
 
 type ApprovalStatus = "pending" | "approved" | "rejected";
@@ -269,19 +211,13 @@ interface ApprovalItem extends TableRecord {
   status: ApprovalStatus;
   description: string;
 }
-const typeMap: Record<
-  ApprovalType,
-  { label: string; color: string; icon: IconType[] }
-> = {
+const typeMap: Record<ApprovalType, { label: string; color: string; icon: IconType[] }> = {
   expense: { label: "费用报销", color: "#3a95ff", icon: ReceiptText },
   purchase: { label: "采购申请", color: "#7b61ff", icon: Wallet },
   leave: { label: "请假申请", color: "#f59e0b", icon: Plane },
   contract: { label: "合同审批", color: "#22a06b", icon: Briefcase },
 };
-const approvalStatusMap: Record<
-  ApprovalStatus,
-  { label: string; color: string }
-> = {
+const approvalStatusMap: Record<ApprovalStatus, { label: string; color: string }> = {
   pending: { label: "待审批", color: "orange" },
   approved: { label: "已通过", color: "green" },
   rejected: { label: "已驳回", color: "red" },
@@ -378,16 +314,11 @@ const filteredApprovals = computed(() => {
     (item) =>
       (status.value === "all" || item.status === status.value) &&
       (!type.value || item.type === type.value) &&
-      (!query ||
-        `${item.title} ${item.id} ${item.applicant}`
-          .toLowerCase()
-          .includes(query)),
+      (!query || `${item.title} ${item.id} ${item.applicant}`.toLowerCase().includes(query)),
   );
 });
 const disabledApprovalKeys = computed(() =>
-  approvals.value
-    .filter((item) => item.status !== "pending")
-    .map((item) => item.id),
+  approvals.value.filter((item) => item.status !== "pending").map((item) => item.id),
 );
 watch([status, type, keyword], () => {
   selectedKeys.value = [];
@@ -443,8 +374,7 @@ const approvalFlow = computed(() => {
     },
     {
       name: "流程完成",
-      detail:
-        selected.value.status === "pending" ? "等待前序节点" : "审批流程已结束",
+      detail: selected.value.status === "pending" ? "等待前序节点" : "审批流程已结束",
       state: selected.value.status === "approved" ? "done" : "pending",
     },
   ];

@@ -5,24 +5,9 @@
     </PageHeader>
     <ListPanel :summary="`${filteredLogs.length} 条日志`">
       <template #filters>
-        <Input
-          v-model="keyword"
-          clearable
-          placeholder="搜索用户、模块或 IP"
-          :icon="Search"
-        />
-        <Select
-          v-model="level"
-          clearable
-          placeholder="全部级别"
-          :options="levelOptions"
-        />
-        <Select
-          v-model="module"
-          clearable
-          placeholder="全部模块"
-          :options="moduleOptions"
-        />
+        <Input v-model="keyword" clearable placeholder="搜索用户、模块或 IP" :icon="Search" />
+        <Select v-model="level" clearable placeholder="全部级别" :options="levelOptions" />
+        <Select v-model="module" clearable placeholder="全部模块" :options="moduleOptions" />
       </template>
       <template #actions>
         <Space>
@@ -43,43 +28,29 @@
         row-key="id"
         :scroll="{ x: 980 }"
       >
-        <template #level="{ value }"
-          ><Tag :color="levelColor(value)">{{
-            levelLabel(value)
-          }}</Tag></template
-        >
-        <template #operator="{ record }"
-          ><div class="operator">
-            <Avatar :size="28">{{ record.operator.slice(0, 1) }}</Avatar
-            ><span>{{ record.operator }}</span>
-          </div></template
-        >
-        <template #action="{ record }"
-          ><Button
-            size="small"
-            theme="plain"
-            :icon="Eye"
-            @click="showDetail(record)"
-            >详情</Button
-          ></template
-        >
+        <template #level="{ value }">
+          <Tag :color="levelColor(value)">{{ levelLabel(value) }}</Tag>
+        </template>
+        <template #operator="{ record }">
+          <div class="operator">
+            <Avatar :size="28">{{ record.operator.slice(0, 1) }}</Avatar>
+            <span>{{ record.operator }}</span>
+          </div>
+        </template>
+        <template #action="{ record }">
+          <Button size="small" theme="plain" :icon="Eye" @click="showDetail(record)">详情</Button>
+        </template>
       </Table>
     </ListPanel>
 
     <Drawer v-model="detailOpen" title="日志详情" :width="560" :footer="false">
       <Descriptions v-if="activeLog" :column="1" bordered size="small">
         <DescriptionsItem label="日志编号">{{ activeLog.id }}</DescriptionsItem>
-        <DescriptionsItem label="操作用户">{{
-          activeLog.operator
-        }}</DescriptionsItem>
+        <DescriptionsItem label="操作用户">{{ activeLog.operator }}</DescriptionsItem>
         <DescriptionsItem label="模块">{{ activeLog.module }}</DescriptionsItem>
-        <DescriptionsItem label="操作内容">{{
-          activeLog.operation
-        }}</DescriptionsItem>
+        <DescriptionsItem label="操作内容">{{ activeLog.operation }}</DescriptionsItem>
         <DescriptionsItem label="IP 地址">{{ activeLog.ip }}</DescriptionsItem>
-        <DescriptionsItem label="发生时间">{{
-          activeLog.createdAt
-        }}</DescriptionsItem>
+        <DescriptionsItem label="发生时间">{{ activeLog.createdAt }}</DescriptionsItem>
       </Descriptions>
       <h3 class="request-title">请求数据</h3>
       <JsonViewer :data="activeLog?.payload" :height="260" />
@@ -93,9 +64,7 @@ import { Download, Eye, RotateCcw, Search } from "kui-icons";
 import type { Column, TableRecord } from "kui-vue";
 import { computed, defineAsyncComponent, ref } from "vue";
 
-const JsonViewer = defineAsyncComponent(
-  () => import("@/components/JsonViewer.vue"),
-);
+const JsonViewer = defineAsyncComponent(() => import("@/components/JsonViewer.vue"));
 
 interface LogRow extends TableRecord {
   id: string;
@@ -174,9 +143,10 @@ const levelOptions = [
   { label: "警告", value: "warning" },
   { label: "异常", value: "danger" },
 ];
-const moduleOptions = [...new Set(logs.map((item) => item.module))].map(
-  (value) => ({ label: value, value }),
-);
+const moduleOptions = [...new Set(logs.map((item) => item.module))].map((value) => ({
+  label: value,
+  value,
+}));
 const keyword = ref("");
 const level = ref<string>();
 const module = ref<string>();
@@ -187,10 +157,7 @@ const filteredLogs = computed(() => {
   const query = keyword.value.trim().toLowerCase();
   return logs.filter(
     (item) =>
-      (!query ||
-        `${item.operator}${item.module}${item.ip}`
-          .toLowerCase()
-          .includes(query)) &&
+      (!query || `${item.operator}${item.module}${item.ip}`.toLowerCase().includes(query)) &&
       (!level.value || item.level === level.value) &&
       (!module.value || item.module === module.value),
   );
@@ -198,9 +165,7 @@ const filteredLogs = computed(() => {
 const levelLabel = (value: string) =>
   levelOptions.find((item) => item.value === value)?.label || value;
 const levelColor = (value: string) =>
-  ({ info: "blue", success: "green", warning: "orange", danger: "red" })[
-    value
-  ] || "gray";
+  ({ info: "blue", success: "green", warning: "orange", danger: "red" })[value] || "gray";
 const resetFilters = () => {
   keyword.value = "";
   level.value = undefined;

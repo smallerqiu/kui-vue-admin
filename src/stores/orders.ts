@@ -27,9 +27,7 @@ const readStored = <T>(key: string, fallback: T): T => {
 
 export const useOrderStore = defineStore("orders", () => {
   const orders = ref<OrderRecord[]>(readStored("pro_orders", initialOrders));
-  const afterSales = ref<AfterSaleRecord[]>(
-    readStored("pro_after_sales", initialAfterSales),
-  );
+  const afterSales = ref<AfterSaleRecord[]>(readStored("pro_after_sales", initialAfterSales));
   const pendingAfterSaleCount = computed(
     () => afterSales.value.filter((item) => item.status === "pending").length,
   );
@@ -41,10 +39,7 @@ export const useOrderStore = defineStore("orders", () => {
     order.status = "closed";
     return true;
   };
-  const updateAddress = (
-    id: string,
-    data: Pick<OrderRecord, "contact" | "phone" | "address">,
-  ) => {
+  const updateAddress = (id: string, data: Pick<OrderRecord, "contact" | "phone" | "address">) => {
     const order = getOrder(id);
     if (!order) return false;
     Object.assign(order, data);
@@ -53,10 +48,7 @@ export const useOrderStore = defineStore("orders", () => {
   const adjustPrice = (id: string, discount: number) => {
     const order = getOrder(id);
     if (!order || order.status !== "pending") return false;
-    order.discount = Math.max(
-      0,
-      Math.min(discount, order.goodsAmount + order.freight),
-    );
+    order.discount = Math.max(0, Math.min(discount, order.goodsAmount + order.freight));
     order.paidAmount = order.goodsAmount + order.freight - order.discount;
     return true;
   };
@@ -73,15 +65,11 @@ export const useOrderStore = defineStore("orders", () => {
     quantities: Record<string, number>,
   ) => {
     const order = getOrder(id);
-    if (!order || !["paid", "partial_shipped"].includes(order.status))
-      return false;
+    if (!order || !["paid", "partial_shipped"].includes(order.status)) return false;
     const shipmentItems: Array<{ itemId: string; quantity: number }> = [];
     order.items.forEach((item) => {
       const remaining = item.quantity - (item.shippedQuantity || 0);
-      const quantity = Math.max(
-        0,
-        Math.min(Number(quantities[item.id]) || 0, remaining),
-      );
+      const quantity = Math.max(0, Math.min(Number(quantities[item.id]) || 0, remaining));
       if (quantity) {
         item.shippedQuantity = (item.shippedQuantity || 0) + quantity;
         shipmentItems.push({ itemId: item.id, quantity });
@@ -98,9 +86,7 @@ export const useOrderStore = defineStore("orders", () => {
     order.shipments = [...(order.shipments || []), shipment];
     order.shippingCompany = company;
     order.trackingNo = trackingNo;
-    const finished = order.items.every(
-      (item) => (item.shippedQuantity || 0) >= item.quantity,
-    );
+    const finished = order.items.every((item) => (item.shippedQuantity || 0) >= item.quantity);
     order.status = finished ? "shipped" : "partial_shipped";
     return true;
   };
@@ -123,8 +109,7 @@ export const useOrderStore = defineStore("orders", () => {
     record.reviewer = "Administrator";
     record.reviewNote = note;
     const order = getOrder(record.orderId);
-    if (order && !approved)
-      order.status = order.shipments?.length ? "shipped" : "paid";
+    if (order && !approved) order.status = order.shipments?.length ? "shipped" : "paid";
     return true;
   };
   const completeRefund = (id: string) => {
@@ -134,16 +119,12 @@ export const useOrderStore = defineStore("orders", () => {
     return true;
   };
 
-  watch(
-    orders,
-    (value) => localStorage.setItem("pro_orders", JSON.stringify(value)),
-    { deep: true },
-  );
-  watch(
-    afterSales,
-    (value) => localStorage.setItem("pro_after_sales", JSON.stringify(value)),
-    { deep: true },
-  );
+  watch(orders, (value) => localStorage.setItem("pro_orders", JSON.stringify(value)), {
+    deep: true,
+  });
+  watch(afterSales, (value) => localStorage.setItem("pro_after_sales", JSON.stringify(value)), {
+    deep: true,
+  });
   return {
     orders,
     afterSales,

@@ -45,26 +45,16 @@
                 <span class="sys-tab-title">
                   {{ $t(`route.${view.path}`) || view.meta.title || "-" }}
                 </span>
-                <Icon
-                  :type="X"
-                  class="sys-tab-close"
-                  @click.prevent.stop="close(view)"
-                />
+                <Icon :type="X" class="sys-tab-close" @click.prevent.stop="close(view)" />
               </router-link>
             </div>
             <template #overlay>
               <Menu @select="(e: MenuSelectEvent) => handle(e, view)">
                 <MenuItem key="reload">{{ $t("menu.reload") }}</MenuItem>
                 <MenuItem key="close">{{ $t("menu.close") }}</MenuItem>
-                <MenuItem key="close-other">{{
-                  $t("menu.close_other")
-                }}</MenuItem>
-                <MenuItem key="close-left">{{
-                  $t("menu.close_left")
-                }}</MenuItem>
-                <MenuItem key="close-right">{{
-                  $t("menu.close_right")
-                }}</MenuItem>
+                <MenuItem key="close-other">{{ $t("menu.close_other") }}</MenuItem>
+                <MenuItem key="close-left">{{ $t("menu.close_left") }}</MenuItem>
+                <MenuItem key="close-right">{{ $t("menu.close_right") }}</MenuItem>
               </Menu>
             </template>
           </Dropdown>
@@ -75,11 +65,7 @@
       <Button :icon="ChevronDown" size="small" class="sys-tab-show-list-btn" />
       <template #overlay>
         <Menu @select="dropGo">
-          <MenuItem
-            :icon="icons[view.meta.icon]"
-            v-for="view in views"
-            :key="view.fullPath"
-          >
+          <MenuItem :icon="icons[view.meta.icon]" v-for="view in views" :key="view.fullPath">
             {{ $t(`route.${view.path}`) || view.meta.title }}
           </MenuItem>
         </Menu>
@@ -96,15 +82,7 @@ import id from "hash-sum";
 import * as kuiIcons from "kui-icons";
 import { ChevronDown, Loading, X } from "kui-icons";
 import type { MenuSelectEvent } from "kui-vue";
-import {
-  computed,
-  nextTick,
-  onBeforeMount,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  watch,
-} from "vue";
+import { computed, nextTick, onBeforeMount, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 const $t = useTranslate();
 const route = useRoute();
@@ -122,9 +100,7 @@ const dropSide = ref<"before" | "after">("before");
 
 const views = computed<ViewItem[]>(() => tab.views);
 const current = computed(() => route.fullPath);
-const currentIndex = computed(() =>
-  views.value.findIndex((v) => v.fullPath === current.value),
-);
+const currentIndex = computed(() => views.value.findIndex((v) => v.fullPath === current.value));
 
 watch(
   () => route.fullPath,
@@ -135,8 +111,7 @@ watch(
 );
 const updatePosition = () => {
   nextTick(() => {
-    if (rootRef.value)
-      showDrop.value = rootRef.value?.clientWidth < rootRef.value?.scrollWidth;
+    if (rootRef.value) showDrop.value = rootRef.value?.clientWidth < rootRef.value?.scrollWidth;
     nextTick(() => {
       scrollToCenter();
     });
@@ -450,8 +425,12 @@ const cls = (item: ViewItem) => {
       background: var(--kui-color-primary);
       pointer-events: none;
 
-      &.is-before { left: -5px; }
-      &.is-after { right: -5px; }
+      &.is-before {
+        left: -5px;
+      }
+      &.is-after {
+        right: -5px;
+      }
     }
 
     .sys-tab-move {

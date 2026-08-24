@@ -1,24 +1,14 @@
 <template>
   <div class="pro-list-page">
-    <PageHeader
-      title="角色权限"
-      description="配置角色的数据范围和菜单访问权限。"
-    >
-      <template #actions
-        ><Button type="primary" :icon="Plus" @click="openCreate"
-          >新增角色</Button
-        ></template
-      >
+    <PageHeader title="角色权限" description="配置角色的数据范围和菜单访问权限。">
+      <template #actions>
+        <Button type="primary" :icon="Plus" @click="openCreate">新增角色</Button>
+      </template>
     </PageHeader>
 
     <ListPanel :summary="`${filteredRoles.length} 个角色`">
       <template #filters>
-        <Input
-          v-model="keyword"
-          clearable
-          placeholder="搜索角色名称或编码"
-          :icon="Search"
-        />
+        <Input v-model="keyword" clearable placeholder="搜索角色名称或编码" :icon="Search" />
       </template>
       <template #actions>
         <Space>
@@ -41,34 +31,22 @@
       >
         <template #name="{ record }">
           <div class="role-name">
-            <span :style="{ background: record.color }"
-              ><Icon :type="ShieldCheck"
-            /></span>
+            <span :style="{ background: record.color }"><Icon :type="ShieldCheck" /></span>
             <div>
-              <strong>{{ record.name }}</strong
-              ><small>{{ record.description }}</small>
+              <strong>{{ record.name }}</strong>
+              <small>{{ record.description }}</small>
             </div>
           </div>
         </template>
-        <template #status="{ record }"
-          ><Switch v-model="record.enabled" size="small"
-        /></template>
+        <template #status="{ record }"><Switch v-model="record.enabled" size="small" /></template>
         <template #action="{ record }">
           <Space compact>
-            <Button
-              size="small"
-              theme="plain"
-              :icon="Pencil"
-              @click="openEdit(record)"
-              >编辑</Button
-            >
-            <Button
-              size="small"
-              theme="plain"
-              :icon="KeyRound"
-              @click="openPermissions(record)"
-              >权限</Button
-            >
+            <Button size="small" theme="plain" :icon="Pencil" @click="openEdit(record)">
+              编辑
+            </Button>
+            <Button size="small" theme="plain" :icon="KeyRound" @click="openPermissions(record)">
+              权限
+            </Button>
           </Space>
         </template>
       </Table>
@@ -81,34 +59,23 @@
       @ok="saveRole"
     >
       <Form :model="form" layout="vertical">
-        <FormItem label="角色名称"
-          ><Input v-model="form.name" clearable placeholder="例如：运营管理员"
-        /></FormItem>
-        <FormItem label="角色编码"
-          ><Input
-            v-model="form.code"
-            clearable
-            placeholder="例如：operator_admin"
-        /></FormItem>
-        <FormItem label="描述"
-          ><Input
-            v-model="form.description"
-            clearable
-            placeholder="简要描述角色职责"
-        /></FormItem>
+        <FormItem label="角色名称">
+          <Input v-model="form.name" clearable placeholder="例如：运营管理员" />
+        </FormItem>
+        <FormItem label="角色编码">
+          <Input v-model="form.code" clearable placeholder="例如：operator_admin" />
+        </FormItem>
+        <FormItem label="描述">
+          <Input v-model="form.description" clearable placeholder="简要描述角色职责" />
+        </FormItem>
         <FormItem label="启用状态"><Switch v-model="form.enabled" /></FormItem>
       </Form>
     </Drawer>
 
-    <Drawer
-      v-model="permissionOpen"
-      title="菜单权限"
-      :width="480"
-      @ok="savePermissions"
-    >
+    <Drawer v-model="permissionOpen" title="菜单权限" :width="480" @ok="savePermissions">
       <div class="permission-heading">
-        <strong>{{ activeRole?.name }}</strong
-        ><span>已选择 {{ checkedKeys.length }} 项权限</span>
+        <strong>{{ activeRole?.name }}</strong>
+        <span>已选择 {{ checkedKeys.length }} 项权限</span>
       </div>
       <Tree
         :data="permissionTree"
@@ -231,13 +198,10 @@ const filteredRoles = computed(() => {
   const query = keyword.value.trim().toLowerCase();
   return roles.value.filter(
     (item) =>
-      !query ||
-      item.name.toLowerCase().includes(query) ||
-      item.code.toLowerCase().includes(query),
+      !query || item.name.toLowerCase().includes(query) || item.code.toLowerCase().includes(query),
   );
 });
-const resetForm = () =>
-  Object.assign(form, { name: "", code: "", description: "", enabled: true });
+const resetForm = () => Object.assign(form, { name: "", code: "", description: "", enabled: true });
 const openCreate = () => {
   editingId.value = "";
   resetForm();
@@ -249,8 +213,7 @@ const openEdit = (role: RoleRow) => {
   editOpen.value = true;
 };
 const saveRole = () => {
-  if (!form.name.trim() || !form.code.trim())
-    return message.warning("请填写角色名称和编码");
+  if (!form.name.trim() || !form.code.trim()) return message.warning("请填写角色名称和编码");
   const target = roles.value.find((item) => item.id === editingId.value);
   if (target) Object.assign(target, form);
   else

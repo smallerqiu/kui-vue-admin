@@ -63,8 +63,7 @@ const t = (obj: any, path: string, defaultValue: any = null) => {
   return cur;
 };
 
-const $t = (key: string, defaultValue?: any) =>
-  t(messages.value, key, defaultValue);
+const $t = (key: string, defaultValue?: any) => t(messages.value, key, defaultValue);
 setTranslate($t);
 
 const changeLang = () => {

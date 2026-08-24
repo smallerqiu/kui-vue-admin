@@ -1,10 +1,6 @@
 <template>
   <Layout :class="['layout-back', `layout-${layoutMode}`]">
-    <div
-      v-if="isMobile && mobileOpen"
-      class="mobile-sider-mask"
-      @click="mobileOpen = false"
-    ></div>
+    <div v-if="isMobile && mobileOpen" class="mobile-sider-mask" @click="mobileOpen = false"></div>
     <Sider
       :class="{ 'mobile-sider': isMobile, 'mobile-sider-open': mobileOpen }"
       :routes="routes"
@@ -19,13 +15,7 @@
           <Space class="top-nav-start">
             <Button
               v-if="isMobile || layoutMode !== 'top'"
-              :icon="
-                isMobile
-                  ? MenuIcon
-                  : !collapsed
-                    ? PanelLeftClose
-                    : PanelRightClose
-              "
+              :icon="isMobile ? MenuIcon : !collapsed ? PanelLeftClose : PanelRightClose"
               @click="toggle"
               size="small"
             />
@@ -35,21 +25,15 @@
               :icon="Search"
               @click="commandMenuRef?.open()"
             >
-              <span>搜索</span><kbd>⌘ K</kbd>
+              <span>搜索</span>
+              <kbd>⌘ K</kbd>
             </Button>
             <ButtonGroup class="history-actions">
               <Button size="small" :icon="ChevronLeft" @click="router.back" />
-              <Button
-                size="small"
-                :icon="ChevronRight"
-                @click="router.forward"
-              />
+              <Button size="small" :icon="ChevronRight" @click="router.forward" />
             </ButtonGroup>
             <Breadcrumb class="header-breadcrumb">
-              <BreadcrumbItem
-                v-for="item in Breadcrumbs"
-                :icon="icons[item?.meta?.icon]"
-              >
+              <BreadcrumbItem v-for="item in Breadcrumbs" :icon="icons[item?.meta?.icon]">
                 {{ $t(`route.${item.path}`) || item?.meta?.title }}
               </BreadcrumbItem>
             </Breadcrumb>
@@ -64,29 +48,17 @@
             <Tooltip :title="`${$t('menu.langTip')}`" placement="bottom">
               <Button size="small" :icon="Languages" @click="changeLang" />
             </Tooltip>
-            <Button
-              :icon="localTheme == 'dark' ? Sun : Moon"
-              size="small"
-              @click="switchMode"
-            />
+            <Button :icon="localTheme == 'dark' ? Sun : Moon" size="small" @click="switchMode" />
             <Dropdown placement="bottom-right" arrow>
               <Button size="small">
-                <Avatar
-                  style="background: #3a95ff"
-                  :size="14"
-                  :src="user.avatar"
-                ></Avatar>
+                <Avatar style="background: #3a95ff" :size="14" :src="user.avatar"></Avatar>
                 <span>{{ user.fullName || "Guest" }}</span>
               </Button>
               <template #overlay>
                 <Menu>
-                  <MenuItem key="profile" @click="router.push('/profile')"
-                    >个人中心</MenuItem
-                  >
+                  <MenuItem key="profile" @click="router.push('/profile')">个人中心</MenuItem>
                   <MenuItem key="logout">
-                    <a href="javascript:;" @click="logout">{{
-                      $t("menu.log_out")
-                    }}</a>
+                    <a href="javascript:;" @click="logout">{{ $t("menu.log_out") }}</a>
                   </MenuItem>
                 </Menu>
               </template>
@@ -151,17 +123,11 @@ const isMobile = ref(false);
 const mobileOpen = ref(false);
 const commandMenuRef = ref<InstanceType<typeof CommandMenu>>();
 const routes = computed(() =>
-  filterMenuByAccess(
-    tabViewsStore.routes,
-    authStore.roles,
-    authStore.permissions,
-  ),
+  filterMenuByAccess(tabViewsStore.routes, authStore.roles, authStore.permissions),
 );
 const user = computed(() => authStore.user);
 
-const localCollapsed = computed(
-  () => localStorage.getItem("collapsed") === "1",
-);
+const localCollapsed = computed(() => localStorage.getItem("collapsed") === "1");
 const Breadcrumbs = ref<any[]>([]);
 onMounted(() => {
   collapsed.value = localCollapsed.value;
@@ -200,10 +166,7 @@ const getPath = (tree: any, targetKey: string) => {
 };
 
 const resolveNavigation = () => {
-  const target =
-    typeof route.meta.activeMenu === "string"
-      ? route.meta.activeMenu
-      : route.path;
+  const target = typeof route.meta.activeMenu === "string" ? route.meta.activeMenu : route.path;
   const keys = getPath(routes.value, target);
   if (target !== route.path && route.meta.title) {
     Breadcrumbs.value.push({ path: route.path, meta: route.meta });

@@ -27,19 +27,26 @@
         @click="go(item.path)"
       >
         <span class="result-icon"><Icon :type="item.icon || File" /></span>
-        <span
-          ><strong>{{ item.title }}</strong
-          ><small>{{ item.parents.join(" / ") || "首页" }}</small></span
-        >
+        <span>
+          <strong>{{ item.title }}</strong>
+          <small>{{ item.parents.join(" / ") || "首页" }}</small>
+        </span>
         <Icon :type="CornerDownLeft" />
       </button>
       <Empty v-if="!results.length" description="没有找到匹配页面" />
     </div>
     <Flex class="command-help" justify="space-between">
-      <Space
-        ><span><kbd>↑</kbd><kbd>↓</kbd> 选择</span
-        ><span><kbd>↵</kbd> 打开</span></Space
-      >
+      <Space>
+        <span>
+          <kbd>↑</kbd>
+          <kbd>↓</kbd>
+          选择
+        </span>
+        <span>
+          <kbd>↵</kbd>
+          打开
+        </span>
+      </Space>
       <span>仅展示当前角色可访问页面</span>
     </Flex>
   </Modal>
@@ -49,14 +56,7 @@
 import type { AdminMenuItem } from "@/components/system/useMenu";
 import { CornerDownLeft, File, Search } from "kui-icons";
 import type { IconType } from "kui-vue";
-import {
-  computed,
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  watch,
-} from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 
 interface SearchItem {
@@ -74,10 +74,7 @@ const visible = ref(false);
 const keyword = ref("");
 const activeIndex = ref(0);
 const inputRef = ref<HTMLInputElement>();
-const flatten = (
-  items: AdminMenuItem[],
-  parents: string[] = [],
-): SearchItem[] =>
+const flatten = (items: AdminMenuItem[], parents: string[] = []): SearchItem[] =>
   items.flatMap((item) => {
     const current = {
       title: item.meta.title,
@@ -97,9 +94,7 @@ const results = computed(() => {
   return (
     query
       ? allItems.value.filter((item) =>
-          `${item.title} ${item.parents.join(" ")} ${item.path}`
-            .toLowerCase()
-            .includes(query),
+          `${item.title} ${item.parents.join(" ")} ${item.path}`.toLowerCase().includes(query),
         )
       : allItems.value
   ).slice(0, 10);
@@ -121,10 +116,7 @@ const go = (path: string) => {
 const handleKeydown = (event: KeyboardEvent) => {
   if (event.key === "ArrowDown") {
     event.preventDefault();
-    activeIndex.value = Math.min(
-      activeIndex.value + 1,
-      results.value.length - 1,
-    );
+    activeIndex.value = Math.min(activeIndex.value + 1, results.value.length - 1);
   }
   if (event.key === "ArrowUp") {
     event.preventDefault();

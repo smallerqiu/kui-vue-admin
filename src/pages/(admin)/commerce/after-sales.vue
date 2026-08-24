@@ -1,135 +1,89 @@
 <template>
   <div class="pro-list-page">
     <PageHeader title="售后管理" description="处理退款、退货退款与售后审核。" />
-    <Grid
-      :cols="{ xs: 2, lg: 4 }"
-      :x-gap="12"
-      :y-gap="12"
-      class="after-sale-stats"
-    >
-      <GridItem v-for="item in stats" :key="item.title"
-        ><StatCard
+    <Grid :cols="{ xs: 2, lg: 4 }" :x-gap="12" :y-gap="12" class="after-sale-stats">
+      <GridItem v-for="item in stats" :key="item.title">
+        <StatCard
           :title="item.title"
           :items="[{ value: item.value, desc: item.desc }]"
           bordered
           reverse
-      /></GridItem>
+        />
+      </GridItem>
     </Grid>
     <ListPanel :summary="`${filteredRecords.length} 条售后记录`">
       <template #filters>
-        <Input
-          v-model="keyword"
-          clearable
-          placeholder="售后单号、订单号或客户"
-          :icon="Search"
-        />
-        <Select
-          v-model="status"
-          clearable
-          placeholder="全部状态"
-          :options="statusOptions"
-        />
-        <Select
-          v-model="type"
-          clearable
-          placeholder="售后类型"
-          :options="typeOptions"
-        />
+        <Input v-model="keyword" clearable placeholder="售后单号、订单号或客户" :icon="Search" />
+        <Select v-model="status" clearable placeholder="全部状态" :options="statusOptions" />
+        <Select v-model="type" clearable placeholder="售后类型" :options="typeOptions" />
       </template>
-      <template #actions
-        ><Button theme="plain" @click="resetFilters">重置</Button></template
-      >
-      <Table
-        :data="filteredRecords"
-        :columns="columns"
-        row-key="id"
-        :scroll="{ x: 980 }"
-      >
-        <template #id="{ record }"
-          ><div class="sale-number">
-            <strong>{{ record.id }}</strong
-            ><button
-              type="button"
-              @click="router.push(`/order/${record.orderId}`)"
-            >
+      <template #actions><Button theme="plain" @click="resetFilters">重置</Button></template>
+      <Table :data="filteredRecords" :columns="columns" row-key="id" :scroll="{ x: 980 }">
+        <template #id="{ record }">
+          <div class="sale-number">
+            <strong>{{ record.id }}</strong>
+            <button type="button" @click="router.push(`/order/${record.orderId}`)">
               {{ record.orderId }}
             </button>
-          </div></template
-        >
-        <template #type="{ value }"
-          ><Tag theme="fill">{{ typeLabel(value) }}</Tag></template
-        >
-        <template #amount="{ value }"
-          ><strong>¥ {{ Number(value).toLocaleString() }}</strong></template
-        >
-        <template #status="{ value }"
-          ><Tag :color="statusInfo(value).color">{{
-            statusInfo(value).label
-          }}</Tag></template
-        >
+          </div>
+        </template>
+        <template #type="{ value }">
+          <Tag theme="fill">{{ typeLabel(value) }}</Tag>
+        </template>
+        <template #amount="{ value }">
+          <strong>¥ {{ Number(value).toLocaleString() }}</strong>
+        </template>
+        <template #status="{ value }">
+          <Tag :color="statusInfo(value).color">{{ statusInfo(value).label }}</Tag>
+        </template>
         <template #action="{ record }">
-          <Space compact
-            ><Button
-              size="small"
-              theme="plain"
-              :icon="Eye"
-              @click="openDetail(record)"
-              >详情</Button
-            ><Button
+          <Space compact>
+            <Button size="small" theme="plain" :icon="Eye" @click="openDetail(record)">详情</Button>
+            <Button
               v-if="record.status === 'pending'"
               size="small"
               type="primary"
               @click="openReview(record, true)"
-              >同意</Button
-            ><Button
+            >
+              同意
+            </Button>
+            <Button
               v-if="record.status === 'approved'"
               size="small"
               type="primary"
               @click="refund(record)"
-              >确认退款</Button
-            ></Space
-          >
+            >
+              确认退款
+            </Button>
+          </Space>
         </template>
       </Table>
     </ListPanel>
 
     <Drawer v-model="detailOpen" title="售后详情" :width="560" :footer="false">
       <template v-if="activeRecord">
-        <Descriptions :column="1" bordered size="small"
-          ><DescriptionsItem label="售后单号">{{
-            activeRecord.id
-          }}</DescriptionsItem
-          ><DescriptionsItem label="关联订单">{{
-            activeRecord.orderId
-          }}</DescriptionsItem
-          ><DescriptionsItem label="客户">{{
-            activeRecord.customer
-          }}</DescriptionsItem
-          ><DescriptionsItem label="售后类型">{{
-            typeLabel(activeRecord.type)
-          }}</DescriptionsItem
-          ><DescriptionsItem label="申请金额"
-            >¥ {{ activeRecord.amount.toLocaleString() }}</DescriptionsItem
-          ><DescriptionsItem label="申请原因">{{
-            activeRecord.reason
-          }}</DescriptionsItem
-          ><DescriptionsItem label="审核结果">{{
-            statusInfo(activeRecord.status).label
-          }}</DescriptionsItem
-          ><DescriptionsItem v-if="activeRecord.reviewNote" label="审核备注">{{
-            activeRecord.reviewNote
-          }}</DescriptionsItem></Descriptions
-        >
-        <Space v-if="activeRecord.status === 'pending'" class="detail-actions"
-          ><Button type="primary" @click="openReview(activeRecord, true)"
-            >同意售后</Button
-          ><Button
-            type="danger"
-            theme="plain"
-            @click="openReview(activeRecord, false)"
-            >驳回申请</Button
-          ></Space
-        >
+        <Descriptions :column="1" bordered size="small">
+          <DescriptionsItem label="售后单号">{{ activeRecord.id }}</DescriptionsItem>
+          <DescriptionsItem label="关联订单">{{ activeRecord.orderId }}</DescriptionsItem>
+          <DescriptionsItem label="客户">{{ activeRecord.customer }}</DescriptionsItem>
+          <DescriptionsItem label="售后类型">{{ typeLabel(activeRecord.type) }}</DescriptionsItem>
+          <DescriptionsItem label="申请金额">
+            ¥ {{ activeRecord.amount.toLocaleString() }}
+          </DescriptionsItem>
+          <DescriptionsItem label="申请原因">{{ activeRecord.reason }}</DescriptionsItem>
+          <DescriptionsItem label="审核结果">
+            {{ statusInfo(activeRecord.status).label }}
+          </DescriptionsItem>
+          <DescriptionsItem v-if="activeRecord.reviewNote" label="审核备注">
+            {{ activeRecord.reviewNote }}
+          </DescriptionsItem>
+        </Descriptions>
+        <Space v-if="activeRecord.status === 'pending'" class="detail-actions">
+          <Button type="primary" @click="openReview(activeRecord, true)">同意售后</Button>
+          <Button type="danger" theme="plain" @click="openReview(activeRecord, false)">
+            驳回申请
+          </Button>
+        </Space>
       </template>
     </Drawer>
     <Modal
@@ -137,15 +91,17 @@
       :title="reviewApproved ? '同意售后' : '驳回售后'"
       :width="440"
       @ok="submitReview"
-      ><Form layout="vertical"
-        ><FormItem label="审核备注"
-          ><TextArea
+    >
+      <Form layout="vertical">
+        <FormItem label="审核备注">
+          <TextArea
             v-model="reviewNote"
             :rows="4"
-            :placeholder="
-              reviewApproved ? '填写退款或退货说明' : '请填写驳回原因'
-            " /></FormItem></Form
-    ></Modal>
+            :placeholder="reviewApproved ? '填写退款或退货说明' : '请填写驳回原因'"
+          />
+        </FormItem>
+      </Form>
+    </Modal>
   </div>
 </template>
 
@@ -192,10 +148,7 @@ const filteredRecords = computed(() => {
   const query = keyword.value.trim().toLowerCase();
   return afterSales.value.filter(
     (item) =>
-      (!query ||
-        `${item.id}${item.orderId}${item.customer}`
-          .toLowerCase()
-          .includes(query)) &&
+      (!query || `${item.id}${item.orderId}${item.customer}`.toLowerCase().includes(query)) &&
       (!status.value || item.status === status.value) &&
       (!type.value || item.type === type.value),
   );
@@ -224,8 +177,7 @@ const stats = computed(() => [
 ]);
 const typeLabel = (value: string) =>
   typeOptions.find((item) => item.value === value)?.label || value;
-const statusInfo = (value: string) =>
-  statusMap[value] || { label: value, color: "gray" };
+const statusInfo = (value: string) => statusMap[value] || { label: value, color: "gray" };
 const resetFilters = () => {
   keyword.value = "";
   status.value = undefined;
@@ -247,15 +199,10 @@ const openReview = (record: AfterSaleRecord, approved: boolean) => {
   reviewOpen.value = true;
 };
 const submitReview = () => {
-  if (!reviewApproved.value && !reviewNote.value.trim())
-    return message.warning("请填写驳回原因");
+  if (!reviewApproved.value && !reviewNote.value.trim()) return message.warning("请填写驳回原因");
   if (
     activeRecord.value &&
-    orderStore.reviewAfterSale(
-      activeRecord.value.id,
-      reviewApproved.value,
-      reviewNote.value,
-    )
+    orderStore.reviewAfterSale(activeRecord.value.id, reviewApproved.value, reviewNote.value)
   ) {
     reviewOpen.value = false;
     message.success(reviewApproved.value ? "售后申请已通过" : "售后申请已驳回");
@@ -266,8 +213,7 @@ const refund = (record: AfterSaleRecord) =>
     title: "确认退款",
     content: `确认已向客户退款 ¥${record.amount.toLocaleString()} 吗？`,
     onOk: () => {
-      if (orderStore.completeRefund(record.id))
-        message.success("退款状态已更新");
+      if (orderStore.completeRefund(record.id)) message.success("退款状态已更新");
     },
   });
 </script>
