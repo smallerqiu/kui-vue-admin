@@ -42,7 +42,7 @@ const appPackage = {
   type: sourcePackage.type,
   packageManager: sourcePackage.packageManager,
   scripts: sourcePackage.scripts,
-  dependencies: { ...sourcePackage.dependencies, "kui-vue": "^5.7.0" },
+  dependencies: { ...sourcePackage.dependencies, "kui-vue": "^5.8.0" },
   devDependencies: sourcePackage.devDependencies,
 };
 writeFileSync(resolve(templateRoot, "package.json"), `${JSON.stringify(appPackage, null, 2)}\n`);
