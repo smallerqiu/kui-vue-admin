@@ -10,7 +10,13 @@
     </Grid>
     <ListPanel :summary="`${filteredOrders.length} 条订单`">
       <template #filters>
-        <Input v-model="keyword" clearable placeholder="订单号、客户或商品名称" :icon="Search" />
+        <Input
+          v-model="keyword"
+          clearable
+          placeholder="订单号、客户或商品名称"
+          :icon="Search"
+          style="width: 200px"
+        />
         <Select v-model="status" clearable placeholder="全部状态" :options="statusOptions" />
         <Select
           v-model="paymentMethod"

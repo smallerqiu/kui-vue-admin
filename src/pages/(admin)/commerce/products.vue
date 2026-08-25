@@ -7,7 +7,13 @@
     </PageHeader>
     <ListPanel :summary="`${filteredProducts.length} 件商品`" :selected-count="selectedKeys.length">
       <template #filters>
-        <Input v-model="keyword" clearable placeholder="搜索商品名称或 SKU" :icon="Search" />
+        <Input
+          v-model="keyword"
+          clearable
+          placeholder="搜索商品名称或 SKU"
+          :icon="Search"
+          style="width: 200px"
+        />
         <Select v-model="category" clearable placeholder="全部分类" :options="categoryOptions" />
         <Select v-model="status" clearable placeholder="全部状态" :options="statusOptions" />
       </template>
@@ -100,9 +106,8 @@
 </template>
 
 <script setup lang="ts">
-import { PageHeader } from "kui-vue";
 import { Package, Pencil, Plus, Search } from "kui-icons";
-import { message, type Column, type TableKey, type TableRecord } from "kui-vue";
+import { message, PageHeader, type Column, type TableKey, type TableRecord } from "kui-vue";
 import { computed, reactive, ref } from "vue";
 
 interface ProductRow extends TableRecord {

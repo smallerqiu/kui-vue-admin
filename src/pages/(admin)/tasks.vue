@@ -23,7 +23,13 @@
       :summary="`拖动卡片可更新状态 · ${filteredTasks.length} 项任务`"
     >
       <template #filters>
-        <Input v-model="keyword" clearable placeholder="搜索任务、项目或负责人" :icon="Search" />
+        <Input
+          v-model="keyword"
+          clearable
+          placeholder="搜索任务、项目或负责人"
+          :icon="Search"
+          style="width: 200px"
+        />
         <Select v-model="priority" clearable placeholder="全部优先级" :options="priorityOptions" />
         <Select v-model="project" clearable placeholder="全部项目" :options="projectOptions" />
       </template>
@@ -113,9 +119,8 @@
 </template>
 
 <script setup lang="ts">
-import { PageHeader } from "kui-vue";
 import { Calendar, Plus, Search } from "kui-icons";
-import { Kanban, message, type KanbanMoveEvent } from "kui-vue";
+import { Kanban, message, PageHeader, type KanbanMoveEvent } from "kui-vue";
 import { computed, reactive, ref } from "vue";
 
 type TaskStatus = "todo" | "doing" | "review" | "done";

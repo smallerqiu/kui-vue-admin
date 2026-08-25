@@ -12,7 +12,13 @@
     </Grid>
     <ListPanel :summary="`${filteredCustomers.length} 家客户`">
       <template #filters>
-        <Input v-model="keyword" clearable placeholder="搜索客户、联系人或城市" :icon="Search" />
+        <Input
+          v-model="keyword"
+          clearable
+          placeholder="搜索客户、联系人或城市"
+          :icon="Search"
+          style="width: 200px"
+        />
         <Select v-model="level" clearable placeholder="全部等级" :options="levelOptions" />
         <Select v-model="status" clearable placeholder="全部状态" :options="statusOptions" />
       </template>

@@ -13,7 +13,13 @@
     </Grid>
     <ListPanel :summary="`${filteredRecords.length} 条售后记录`">
       <template #filters>
-        <Input v-model="keyword" clearable placeholder="售后单号、订单号或客户" :icon="Search" />
+        <Input
+          v-model="keyword"
+          clearable
+          placeholder="售后单号、订单号或客户"
+          :icon="Search"
+          style="width: 200px"
+        />
         <Select v-model="status" clearable placeholder="全部状态" :options="statusOptions" />
         <Select v-model="type" clearable placeholder="售后类型" :options="typeOptions" />
       </template>
@@ -106,8 +112,8 @@
 </template>
 
 <script setup lang="ts">
-import { useOrderStore } from "@/stores/orders";
 import type { AfterSaleRecord } from "@/data/orders";
+import { useOrderStore } from "@/stores/orders";
 import { Eye, Search } from "kui-icons";
 import { message, modal, type Column } from "kui-vue";
 import { storeToRefs } from "pinia";

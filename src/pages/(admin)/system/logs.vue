@@ -5,7 +5,13 @@
     </PageHeader>
     <ListPanel :summary="`${filteredLogs.length} 条日志`">
       <template #filters>
-        <Input v-model="keyword" clearable placeholder="搜索用户、模块或 IP" :icon="Search" />
+        <Input
+          v-model="keyword"
+          clearable
+          placeholder="搜索用户、模块或 IP"
+          :icon="Search"
+          style="width: 200px"
+        />
         <Select v-model="level" clearable placeholder="全部级别" :options="levelOptions" />
         <Select v-model="module" clearable placeholder="全部模块" :options="moduleOptions" />
       </template>
@@ -59,9 +65,9 @@
 </template>
 
 <script setup lang="ts">
-import { PageHeader } from "kui-vue";
 import { Download, Eye, RotateCcw, Search } from "kui-icons";
 import type { Column, TableRecord } from "kui-vue";
+import { PageHeader } from "kui-vue";
 import { computed, defineAsyncComponent, ref } from "vue";
 
 const JsonViewer = defineAsyncComponent(() => import("@/components/JsonViewer.vue"));

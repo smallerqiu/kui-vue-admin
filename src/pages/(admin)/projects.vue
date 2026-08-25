@@ -22,7 +22,13 @@
 
     <ListPanel class="project-list-card" :summary="`共 ${filteredProjects.length} 个项目`">
       <template #filters>
-        <Input v-model="keyword" clearable placeholder="搜索项目名称或负责人" :icon="Search" />
+        <Input
+          v-model="keyword"
+          clearable
+          placeholder="搜索项目名称或负责人"
+          :icon="Search"
+          style="width: 200px"
+        />
         <RadioGroup v-model="status" theme="card" type="button" :options="statusOptions" />
       </template>
 
@@ -203,7 +209,6 @@
 </template>
 
 <script setup lang="ts">
-import { PageHeader } from "kui-vue";
 import {
   ArrowRight,
   Calendar,
@@ -215,7 +220,7 @@ import {
   Search,
   User,
 } from "kui-icons";
-import { message, type IconType } from "kui-vue";
+import { message, PageHeader, type IconType } from "kui-vue";
 import { computed, reactive, ref } from "vue";
 
 type ProjectStatus = "active" | "planning" | "paused" | "done";

@@ -8,7 +8,13 @@
 
     <ListPanel :summary="`${filteredRoles.length} 个角色`">
       <template #filters>
-        <Input v-model="keyword" clearable placeholder="搜索角色名称或编码" :icon="Search" />
+        <Input
+          v-model="keyword"
+          clearable
+          placeholder="搜索角色名称或编码"
+          :icon="Search"
+          style="width: 200px"
+        />
       </template>
       <template #actions>
         <Space>
@@ -90,9 +96,8 @@
 </template>
 
 <script setup lang="ts">
-import { PageHeader } from "kui-vue";
 import { KeyRound, Pencil, Plus, Search, ShieldCheck } from "kui-icons";
-import { message, type Column, type TableRecord, type TreeNode } from "kui-vue";
+import { message, PageHeader, type Column, type TableRecord, type TreeNode } from "kui-vue";
 import { computed, reactive, ref } from "vue";
 
 interface RoleRow extends TableRecord {

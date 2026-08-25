@@ -9,7 +9,13 @@
 
     <ListPanel :summary="`共 ${filteredUsers.length} 位用户`" :selected-count="selectedKeys.length">
       <template #filters>
-        <Input v-model="keyword" clearable placeholder="搜索姓名或邮箱" :icon="Search" />
+        <Input
+          v-model="keyword"
+          clearable
+          placeholder="搜索姓名或邮箱"
+          :icon="Search"
+          style="width: 200px"
+        />
         <Select v-model="status" clearable placeholder="全部状态" :options="statusOptions" />
         <Select v-model="role" clearable placeholder="全部角色" :options="roleOptions" />
       </template>
@@ -110,9 +116,8 @@
 </template>
 
 <script setup lang="ts">
-import { PageHeader } from "kui-vue";
 import { Download, Eye, Pencil, Search, UserPlus } from "kui-icons";
-import { message, type Column, type TableKey, type TableRecord } from "kui-vue";
+import { message, PageHeader, type Column, type TableKey, type TableRecord } from "kui-vue";
 import { computed, reactive, ref, watch } from "vue";
 
 interface UserRow extends TableRecord {

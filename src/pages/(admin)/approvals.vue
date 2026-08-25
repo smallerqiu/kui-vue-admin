@@ -24,7 +24,13 @@
     >
       <template #filters>
         <RadioGroup v-model="status" theme="card" type="button" :options="statusOptions" />
-        <Input v-model="keyword" clearable placeholder="搜索标题、编号或申请人" :icon="Search" />
+        <Input
+          v-model="keyword"
+          clearable
+          placeholder="搜索标题、编号或申请人"
+          :icon="Search"
+          style="width: 200px"
+        />
         <Select v-model="type" clearable placeholder="全部类型" :options="typeOptions" />
       </template>
       <template #actions>
@@ -179,7 +185,6 @@
 </template>
 
 <script setup lang="ts">
-import { PageHeader } from "kui-vue";
 import {
   Briefcase,
   Check,
@@ -195,7 +200,14 @@ import {
   Wallet,
   X,
 } from "kui-icons";
-import { message, type Column, type IconType, type TableKey, type TableRecord } from "kui-vue";
+import {
+  message,
+  PageHeader,
+  type Column,
+  type IconType,
+  type TableKey,
+  type TableRecord,
+} from "kui-vue";
 import { computed, ref, watch } from "vue";
 
 type ApprovalStatus = "pending" | "approved" | "rejected";
