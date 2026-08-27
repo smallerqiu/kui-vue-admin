@@ -49,8 +49,8 @@ src/pages/
 │ ├── index.vue <--- /users (列表页)
 │ ├── [id].vue <--- /users/:id (父页面组件，内含 <router-view />)
 │ └── [id]/ <--- 与 [id].vue 对应的文件夹
-│ ├── index.vue <--- /users/:id (默认详情)
-│ └── posts.vue <--- /users/:id/posts (用户文章列表)
+│       ├── index.vue <--- /users/:id (默认详情)
+│       └── posts.vue <--- /users/:id/posts (用户文章列表)
 
 > 补充技巧：不影响 URL 路径的布局组 (Route Groups)
 
