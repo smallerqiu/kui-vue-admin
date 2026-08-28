@@ -4,6 +4,7 @@
     :collapsible="!top"
     :collapsed="top ? false : collapsed"
     :width="200"
+    :isMobile="isMobile"
     :collapsed-width="60"
   >
     <div class="logo-box">
@@ -22,7 +23,7 @@
       :inlineCollapsed="top ? false : collapsed"
       style="border: none"
       @select="go"
-      :mode="top ? 'horizontal' : 'inline'"
+      :mode="top && !isMobile ? 'horizontal' : 'inline'"
     >
       <RecursiveMenu v-for="item in routes" :item="item" :key="item.key" />
       <!-- <MenuItem v-for="route in routes" :route="route" :key="route.key" /> -->
@@ -33,13 +34,13 @@
   </Sider>
 </template>
 <script setup lang="ts">
+import { appConfig } from "@/config/app";
+import { useSystemSettingsStore } from "@/stores/system-settings";
 import type { MenuSelectEvent } from "kui-vue";
 import { computed, ref, type PropType } from "vue";
 import { useRouter } from "vue-router";
 import RecursiveMenu from "./recursive-menu.vue";
 import type { AdminMenuItem } from "./useMenu";
-import { useSystemSettingsStore } from "@/stores/system-settings";
-import { appConfig } from "@/config/app";
 
 const router = useRouter();
 const systemSettings = useSystemSettingsStore();
@@ -55,6 +56,7 @@ const props = defineProps({
     type: Array as PropType<AdminMenuItem[]>,
     default: () => [],
   },
+  isMobile: Boolean,
 });
 const routes = computed(() => props.routes);
 

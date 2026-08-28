@@ -7,6 +7,7 @@
       :collapsed="isMobile ? false : collapsed"
       :activeMenu="activeMenu"
       :top="layoutMode === 'top'"
+      :isMobile="isMobile"
       @select="mobileOpen = false"
     />
     <Content class="k-sys-main">
@@ -76,30 +77,30 @@
   <CommandMenu ref="commandMenuRef" :routes="routes" :icons="icons" />
 </template>
 <script setup lang="ts">
+import CommandMenu from "@/components/system/command-menu.vue";
+import NotificationPanel from "@/components/system/notification-panel.vue";
 import Sider from "@/components/system/sider.vue";
 import Main from "@/components/system/sys-main.vue";
 import Tab from "@/components/system/tab.vue";
 import Theme from "@/components/system/theme.vue";
-import NotificationPanel from "@/components/system/notification-panel.vue";
-import CommandMenu from "@/components/system/command-menu.vue";
 import { useTranslate } from "@/lang/useTranslate.ts";
-import { useTabViewsStore } from "@/stores/tabs.ts";
+import { filterMenuByAccess } from "@/routers/permissions";
 import { useAuthStore } from "@/stores/auth";
-import { useThemeStore } from "@/stores/theme.ts";
 import { useNotificationStore } from "@/stores/notifications";
 import { useSystemSettingsStore } from "@/stores/system-settings";
-import { filterMenuByAccess } from "@/routers/permissions";
+import { useTabViewsStore } from "@/stores/tabs.ts";
+import { useThemeStore } from "@/stores/theme.ts";
 import * as kuiIcons from "kui-icons";
 import {
+  Bell,
   ChevronLeft,
   ChevronRight,
-  Bell,
   Languages,
   Menu as MenuIcon,
-  Search,
   Moon,
   PanelLeftClose,
   PanelRightClose,
+  Search,
   Sun,
 } from "kui-icons";
 import { theme, type IconType } from "kui-vue";
