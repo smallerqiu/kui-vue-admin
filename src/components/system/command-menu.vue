@@ -4,7 +4,7 @@
     :footer="false"
     :show-close="false"
     :width="600"
-    centered
+    :centered="!isMobile"
     class="command-modal"
   >
     <div class="command-search">
@@ -16,7 +16,6 @@
         aria-controls="command-results"
         :aria-activedescendant="results[activeIndex] ? `command-result-${activeIndex}` : undefined"
         placeholder="搜索菜单或页面…"
-        @keydown="handleKeydown"
       />
       <kbd>ESC</kbd>
     </div>
@@ -30,8 +29,7 @@
         role="option"
         :aria-selected="index === activeIndex"
         :class="{ active: index === activeIndex }"
-        @mouseenter="activeIndex = index"
-        @click="go(item.path)"
+        @click="go(item.path, index)"
       >
         <span class="result-icon"><Icon :type="item.icon || File" /></span>
         <span>
@@ -75,6 +73,7 @@ interface SearchItem {
 const props = defineProps<{
   routes: AdminMenuItem[];
   icons: Record<string, IconType[]>;
+  isMobile: Boolean;
 }>();
 const router = useRouter();
 const visible = ref(false);
@@ -121,8 +120,9 @@ watch(visible, (opened) => {
 const open = () => {
   visible.value = true;
 };
-const go = (path: string) => {
+const go = (path: string, index: number) => {
   visible.value = false;
+  activeIndex.value = index;
   router.push(path);
 };
 const handleKeydown = (event: KeyboardEvent) => {
@@ -140,7 +140,7 @@ const handleKeydown = (event: KeyboardEvent) => {
   if (event.key === "Enter" && results.value[activeIndex.value]) {
     event.preventDefault();
     event.stopPropagation();
-    go(results.value[activeIndex.value].path);
+    go(results.value[activeIndex.value].path, activeIndex.value);
   }
   if (event.key === "Escape") visible.value = false;
 };
@@ -149,6 +149,7 @@ const handleShortcut = (event: KeyboardEvent) => {
     event.preventDefault();
     open();
   }
+  handleKeydown(event);
 };
 onMounted(() => window.addEventListener("keydown", handleShortcut));
 onBeforeUnmount(() => window.removeEventListener("keydown", handleShortcut));

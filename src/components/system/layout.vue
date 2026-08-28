@@ -74,7 +74,7 @@
     </Content>
   </Layout>
   <Theme />
-  <CommandMenu ref="commandMenuRef" :routes="routes" :icons="icons" />
+  <CommandMenu ref="commandMenuRef" :isMobile="isMobile" :routes="routes" :icons="icons" />
 </template>
 <script setup lang="ts">
 import CommandMenu from "@/components/system/command-menu.vue";
