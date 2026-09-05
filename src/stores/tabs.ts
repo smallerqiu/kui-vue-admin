@@ -4,6 +4,7 @@ import type { AdminMenuItem } from "@/components/system/useMenu";
 
 export interface ViewItem {
   key: string;
+  cacheKeys: string[];
   loading: boolean;
   path: string;
   fullPath: string;
@@ -14,10 +15,25 @@ export interface ViewItem {
   icon?: string;
 }
 
+export const getRouteCacheName = (key: string | number) =>
+  `RouteCache_${String(key).replace(/[^a-zA-Z0-9_]/g, "_")}`;
+
+export const getRouteRecordCacheKey = (route: { name?: unknown; path?: string }) =>
+  id(`route:${String(route.name || route.path || "unknown")}`);
+
 const readStoredViews = (): ViewItem[] => {
   try {
     const value = JSON.parse(localStorage.getItem("routes") || "[]");
-    return Array.isArray(value) ? value : [];
+    if (!Array.isArray(value)) return [];
+    return value.map((view) => {
+      const key = view.key || id(view.fullPath);
+      return {
+        ...view,
+        key,
+        cacheKeys: Array.isArray(view.cacheKeys) ? view.cacheKeys : [key],
+        meta: { ...view.meta, keepAlive: true },
+      };
+    });
   } catch {
     localStorage.removeItem("routes");
     return [];
@@ -25,19 +41,28 @@ const readStoredViews = (): ViewItem[] => {
 };
 
 export const useTabViewsStore = defineStore("tabViews", {
-  state: () => ({
-    routes: [] as AdminMenuItem[],
-    views: readStoredViews(),
-    keepViews: [] as string[],
-    keepKey: "" as string | number,
-  }),
+  state: () => {
+    const views = readStoredViews();
+    return {
+      routes: [] as AdminMenuItem[],
+      views,
+      keepViews: [
+        ...new Set(
+          views
+            .filter((view) => view.meta.keepAlive)
+            .flatMap((view) => view.cacheKeys.map(getRouteCacheName)),
+        ),
+      ],
+      keepKey: "" as string | number,
+    };
+  },
   actions: {
     setRoutes(routes: AdminMenuItem[]) {
       this.routes = routes;
     },
     addView(route: any) {
       this.keepKey = id(route.fullPath);
-      const { view, index, keepViewKey } = this.getView(route);
+      const { view, index } = this.getView(route);
 
       if (index < 0) {
         this.views.push(view);
@@ -45,9 +70,7 @@ export const useTabViewsStore = defineStore("tabViews", {
         this.views.splice(index, 1, view);
       }
 
-      if (keepViewKey && !this.keepViews.includes(keepViewKey)) {
-        this.keepViews.push(keepViewKey);
-      }
+      this.syncKeepViews();
       this.updateLocalRoutes();
     },
     reloadSelectView(route: any) {
@@ -69,16 +92,14 @@ export const useTabViewsStore = defineStore("tabViews", {
       const { index } = this.getView(route);
       if (index !== -1) {
         this.views.splice(index, 1);
-        if (route.name) {
-          this.keepViews = this.keepViews.filter((name) => name !== route.name);
-        }
+        this.syncKeepViews();
         this.updateLocalRoutes();
       }
     },
     closeOtherView(route: any) {
-      const { view, keepViewKey } = this.getView(route);
+      const { view } = this.getView(route);
       this.views = [view];
-      this.keepViews = keepViewKey ? [keepViewKey] : [];
+      this.syncKeepViews();
       this.updateLocalRoutes();
     },
     closeRightView(route: any) {
@@ -128,12 +149,14 @@ export const useTabViewsStore = defineStore("tabViews", {
     },
     syncKeepViews() {
       this.keepViews = this.views
-        .filter((view) => view.meta.keepAlive && view.name)
-        .map((view) => view.name as string);
+        .filter((view) => view.meta.keepAlive)
+        .flatMap((view) => view.cacheKeys.map(getRouteCacheName))
+        .filter((name, index, names) => names.indexOf(name) === index);
     },
     updateLocalRoutes() {
       const routes = this.views.map((v) => ({
         key: v.key || id(v.fullPath),
+        cacheKeys: v.cacheKeys,
         loading: v.loading,
         icon: v.icon,
         fullPath: v.fullPath,
@@ -150,6 +173,7 @@ export const useTabViewsStore = defineStore("tabViews", {
       const { path, fullPath, query, params, meta, name, icon, loading } = route;
       const view: ViewItem = {
         key: id(fullPath),
+        cacheKeys: [],
         loading: loading === true ? true : false,
         path,
         fullPath,
@@ -159,6 +183,14 @@ export const useTabViewsStore = defineStore("tabViews", {
         name,
         icon,
       };
+
+      const matched = Array.isArray(route.matched)
+        ? route.matched.filter((record: any) => record.components?.default)
+        : [];
+      view.cacheKeys = matched.slice(1).map((record: any, index: number, records: any[]) =>
+        index === records.length - 1 ? view.key : getRouteRecordCacheKey(record),
+      );
+      if (!view.cacheKeys.length) view.cacheKeys = [view.key];
 
       const server = view.query.server || "";
       let index = -1;
@@ -171,7 +203,7 @@ export const useTabViewsStore = defineStore("tabViews", {
         index = this.views.findIndex((x) => x.path === view.path);
       }
 
-      return { view, index, keepViewKey: view.name };
+      return { view, index, keepViewKey: getRouteCacheName(view.key) };
     },
   },
 });

@@ -1,5 +1,10 @@
 import { useNotificationStore } from "@/stores/notifications";
-import { useTabViewsStore, type ViewItem } from "@/stores/tabs";
+import {
+  getRouteCacheName,
+  getRouteRecordCacheKey,
+  useTabViewsStore,
+  type ViewItem,
+} from "@/stores/tabs";
 import { defaultSystemSettings, useSystemSettingsStore } from "@/stores/system-settings";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -40,6 +45,7 @@ describe("persistent stores", () => {
     const store = useTabViewsStore();
     const createView = (key: string): ViewItem => ({
       key,
+      cacheKeys: [key],
       path: `/${key}`,
       fullPath: `/${key}`,
       loading: false,
@@ -53,5 +59,30 @@ describe("persistent stores", () => {
     expect(
       JSON.parse(localStorage.getItem("routes") || "[]").map((view: ViewItem) => view.key),
     ).toEqual(["b", "c", "a"]);
+  });
+
+  it("builds and restores cache names for nested tab routes", () => {
+    const store = useTabViewsStore();
+    const route = {
+      path: "/system/settings",
+      fullPath: "/system/settings",
+      query: {},
+      params: {},
+      meta: { title: "Settings" },
+      name: "/(admin)/system/settings",
+      matched: [
+        { name: "/(admin)", components: { default: {} } },
+        { name: "/(admin)/system", components: { default: {} } },
+        { name: "/(admin)/system/settings", components: { default: {} } },
+      ],
+    };
+
+    store.addView(route);
+    const parentName = getRouteCacheName(getRouteRecordCacheKey(route.matched[1]));
+    const leafName = getRouteCacheName(store.views[0].key);
+    expect(store.keepViews).toEqual([parentName, leafName]);
+
+    setActivePinia(createPinia());
+    expect(useTabViewsStore().keepViews).toEqual([parentName, leafName]);
   });
 });

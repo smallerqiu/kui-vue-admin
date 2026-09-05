@@ -1,21 +1,10 @@
 <template>
   <section class="sys-main">
-    <router-view v-slot="{ Component }">
-      <transition name="route-fade" mode="out-in">
-        <keep-alive :include="keepViews" :max="100">
-          <component :is="Component" :key="key" />
-        </keep-alive>
-      </transition>
-    </router-view>
+    <RouteCacheView />
   </section>
 </template>
 <script setup lang="ts">
-import { useTabViewsStore } from "@/stores/tabs.ts";
-import { computed } from "vue";
-const tab = useTabViewsStore();
-
-const keepViews = computed(() => tab.keepViews);
-const key = computed(() => tab.keepKey);
+import RouteCacheView from "./route-cache-view.vue";
 </script>
 <style lang="less">
 @keyframes route-fade {
