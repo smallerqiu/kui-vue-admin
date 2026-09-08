@@ -128,13 +128,16 @@ import { message, type FormContext, type FormRule } from "kui-vue";
 import { computed, onBeforeUnmount, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "../../stores/auth";
+import { useTabViewsStore } from "../../stores/tabs";
 import Theme from "../../components/system/theme.vue";
 import { appConfig } from "../../config/app";
 import { loginApi } from "@/api/auth";
+import { canAccessRoute } from "@/routers";
 // import { request } from "@/utils/request";
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const tabViewsStore = useTabViewsStore();
 const refForm = ref<FormContext>();
 const current = ref("account");
 const handleForgotPassword = () => {
@@ -197,8 +200,13 @@ const postLogin = () => {
     .then((result) => {
       localStorage.setItem("remember_login", remember.value ? "1" : "0");
       authStore.login(result.token, result.user, remember.value, result.refreshToken);
+      tabViewsStore.retainAuthorizedViews((view) =>
+        canAccessRoute(router.resolve(view.fullPath || view.path)),
+      );
       message.success("登录成功");
-      router.replace(getSafeRedirect()).finally(() => {
+      const redirect = getSafeRedirect();
+      const target = canAccessRoute(router.resolve(redirect)) ? redirect : "/";
+      router.replace(target).finally(() => {
         loading.value = false;
       });
     })

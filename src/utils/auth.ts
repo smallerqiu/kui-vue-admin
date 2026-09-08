@@ -54,5 +54,4 @@ export const clearAuthSession = () => {
   sessionStorage.removeItem(USER_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   sessionStorage.removeItem(REFRESH_TOKEN_KEY);
-  localStorage.removeItem("routes");
 };

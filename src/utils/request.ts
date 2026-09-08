@@ -14,22 +14,35 @@ export interface ApiResponse<T = any> {
 }
 
 // 扩展 Fetch 配置
-interface RequestOptions extends RequestInit {
+export interface RequestOptions extends RequestInit {
+  basePath?: string;
   timeout?: number;
   _retry?: boolean;
 }
 
 export class ApiError extends Error {
   status: number;
+  httpStatus: number;
   data?: unknown;
+  [key: string]: any;
 
-  constructor(message: string, status: number, data?: unknown) {
-    super(message);
+  constructor(messageText: string, status: number, data?: Record<string, any>) {
+    super(messageText);
+    if (data) Object.assign(this, data);
     this.name = "ApiError";
-    this.status = status;
+    this.status = Number(data?.status ?? status);
+    this.httpStatus = status;
     this.data = data;
   }
 }
+
+const resolveRequestUrl = (url: string, basePath: string) => {
+  if (/^(?:https?:)?\/\//i.test(url)) return url;
+  const path = url.startsWith("/") ? url : `/${url}`;
+  const base = basePath.replace(/\/+$/, "");
+  if (!base) return path;
+  return path === base || path.startsWith(`${base}/`) ? path : `${base}${path}`;
+};
 
 const request = {
   _maps: new Map<string, AbortController>(),
@@ -45,20 +58,18 @@ const request = {
     data: any = {},
     customOptions: RequestOptions = {},
   ): Promise<T> {
-    const { timeout = 30000, headers: customHeaders, _retry, ...requestOptions } = customOptions;
+    const {
+      basePath = appConfig.apiBaseUrl,
+      timeout = 30000,
+      headers: customHeaders,
+      _retry,
+      ...requestOptions
+    } = customOptions;
     const controller = new AbortController();
     const requestId = nanoid();
     this._maps.set(requestId, controller);
 
-    let finalUrl = url;
-    if (!url.startsWith("http")) {
-      const path = url.startsWith("/") ? url : `/${url}`;
-      finalUrl =
-        appConfig.apiBaseUrl.startsWith("/") &&
-        (path === appConfig.apiBaseUrl || path.startsWith(`${appConfig.apiBaseUrl}/`))
-          ? path
-          : `${appConfig.apiBaseUrl}${path}`;
-    }
+    let finalUrl = resolveRequestUrl(url, basePath);
 
     const token = getToken();
     const headers = new Headers(customHeaders);
@@ -182,7 +193,10 @@ const request = {
       }, 1000);
     }
 
-    const errorData = await response.json().catch(() => ({}));
+    const contentType = response.headers.get("content-type") || "";
+    const errorData = contentType.includes("application/json")
+      ? await response.json().catch(() => ({}))
+      : { message: await response.text().catch(() => "") };
     const messageText =
       errorData.message || errorData.msg || response.statusText || "Request failed";
     throw new ApiError(messageText, status, errorData);
@@ -197,8 +211,14 @@ const request = {
 
     if (disposition.includes("attachment")) {
       const blob = await response.blob();
-      const match = disposition.match(/filename="?([^"]+)"?/);
-      const fileName = match ? decodeURIComponent(match[1]) : "download";
+      const encodedName = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+      const fallbackName = disposition.match(/filename="?([^";]+)"?/i)?.[1];
+      let fileName = encodedName || fallbackName || "download";
+      try {
+        fileName = decodeURIComponent(fileName);
+      } catch {
+        // Keep the server-provided filename when it is not URI encoded.
+      }
 
       const downloadUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -211,6 +231,7 @@ const request = {
       return undefined as any;
     }
 
+    if (response.status === 204) return undefined as T;
     if (contentType.includes("application/json")) {
       return await response.json();
     }
@@ -230,5 +251,23 @@ const request = {
     return this._base<T>("delete", url, data, options);
   },
 };
+
+export const createRequestClient = (basePath: string) => ({
+  destroy() {
+    request.destroy();
+  },
+  get<T = any>(url: string, data?: any, options?: RequestOptions) {
+    return request.get<T>(url, data, { ...options, basePath });
+  },
+  post<T = any>(url: string, data?: any, options?: RequestOptions) {
+    return request.post<T>(url, data, { ...options, basePath });
+  },
+  put<T = any>(url: string, data?: any, options?: RequestOptions) {
+    return request.put<T>(url, data, { ...options, basePath });
+  },
+  delete<T = any>(url: string, data?: any, options?: RequestOptions) {
+    return request.delete<T>(url, data, { ...options, basePath });
+  },
+});
 
 export default request;

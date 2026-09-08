@@ -60,6 +60,11 @@ export const useTabViewsStore = defineStore("tabViews", {
     setRoutes(routes: AdminMenuItem[]) {
       this.routes = routes;
     },
+    retainAuthorizedViews(isAuthorized: (view: ViewItem) => boolean) {
+      this.views = this.views.filter(isAuthorized);
+      this.syncKeepViews();
+      this.updateLocalRoutes();
+    },
     addView(route: any) {
       this.keepKey = id(route.fullPath);
       const { view, index } = this.getView(route);
@@ -187,9 +192,11 @@ export const useTabViewsStore = defineStore("tabViews", {
       const matched = Array.isArray(route.matched)
         ? route.matched.filter((record: any) => record.components?.default)
         : [];
-      view.cacheKeys = matched.slice(1).map((record: any, index: number, records: any[]) =>
-        index === records.length - 1 ? view.key : getRouteRecordCacheKey(record),
-      );
+      view.cacheKeys = matched
+        .slice(1)
+        .map((record: any, index: number, records: any[]) =>
+          index === records.length - 1 ? view.key : getRouteRecordCacheKey(record),
+        );
       if (!view.cacheKeys.length) view.cacheKeys = [view.key];
 
       const server = view.query.server || "";

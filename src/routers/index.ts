@@ -42,6 +42,14 @@ const router = createRouter({
 
 export const routerInitialized = async () => createMenuItems(router.options.routes);
 
+export const canAccessRoute = (route: { meta: Record<string, any> }) => {
+  const user = getAuthUser();
+  return (
+    hasRole(route.meta.roles, user.roles || []) &&
+    hasPermission(route.meta.permissions, user.permissions || [])
+  );
+};
+
 router.beforeEach(async (to) => {
   loading.start();
   const whiteList = ["/account/login", "/account/logout", "/system/error"];
@@ -53,10 +61,7 @@ router.beforeEach(async (to) => {
       : true;
   }
   if (to.path === "/account/login") return "/";
-  if (!hasRole(to.meta.roles, getAuthUser().roles || [])) {
-    return "/error/403";
-  }
-  if (!hasPermission(to.meta.permissions, getAuthUser().permissions || [])) return "/error/403";
+  if (!canAccessRoute(to)) return "/error/403";
   return true;
 });
 router.afterEach((to) => {
