@@ -29,7 +29,7 @@
           :icon="Search"
           style="width: 200px"
         />
-        <RadioGroup v-model="status" theme="card" type="button" :options="statusOptions" />
+        <Segmented v-model="status" :options="statusOptions" />
       </template>
 
       <Grid :cols="{ xs: 1, md: 2, xl: 3 }" :x-gap="16" :y-gap="16">

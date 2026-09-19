@@ -2,7 +2,7 @@
   <div class="pro-list-page">
     <PageHeader title="经营分析" description="追踪收入、转化和渠道表现。">
       <template #actions>
-        <RadioGroup v-model="period" theme="card" type="button" :options="periodOptions" />
+        <Segmented v-model="period" :options="periodOptions" />
         <Button :icon="Download">导出报告</Button>
       </template>
     </PageHeader>
@@ -67,9 +67,9 @@
 <script setup lang="ts">
 import DonutChart from "@/components/charts/DonutChart.vue";
 import TrendChart from "@/components/charts/TrendChart.vue";
-import { PageHeader } from "kui-vue";
 import { Download, Monitor, Smartphone, Tablet } from "kui-icons";
 import type { IconType, StatNumberItem } from "kui-vue";
+import { PageHeader } from "kui-vue";
 import { computed, ref } from "vue";
 
 const period = ref("month");

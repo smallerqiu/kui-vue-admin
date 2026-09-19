@@ -23,7 +23,7 @@
       :selected-count="selectedKeys.length"
     >
       <template #filters>
-        <RadioGroup v-model="status" theme="card" type="button" :options="statusOptions" />
+        <Segmented v-model="status" :options="statusOptions" />
         <Input
           v-model="keyword"
           clearable

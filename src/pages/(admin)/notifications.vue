@@ -7,7 +7,7 @@
       </template>
     </PageHeader>
     <Card bordered>
-      <RadioGroup v-model="filter" theme="card" type="button" :options="filters" />
+      <Segmented v-model="filter" :options="filters" />
       <div class="full-notification-list">
         <article
           v-for="item in filteredItems"
@@ -35,7 +35,6 @@
 </template>
 
 <script setup lang="ts">
-import { PageHeader } from "kui-vue";
 import {
   useNotificationStore,
   type NotificationItem,
@@ -43,6 +42,7 @@ import {
 } from "@/stores/notifications";
 import { Bell, CheckCheck, PackageCheck, ShieldAlert, Trash2, X } from "kui-icons";
 import type { IconType } from "kui-vue";
+import { PageHeader } from "kui-vue";
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 
