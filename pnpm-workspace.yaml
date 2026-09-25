@@ -2,4 +2,5 @@ packages:
   - packages/*
 
 minimumReleaseAgeExclude:
-  - kui-vue@5.7.0 || 5.8.0 || 6.1.0
+  - kui-vue@5.7.0 || 5.8.0 || 6.1.0 || 6.2.1
+  - vite@8.3.1
