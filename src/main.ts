@@ -1,11 +1,13 @@
 import kui from "kui-vue";
+import "kui-vue/style/base.css";
+import "kui-vue/style/components.css";
 import "kui-vue/style/index.css";
 import { createPinia } from "pinia";
 import { createApp } from "vue";
 import App from "./App.vue";
 import "./assets/css/index.less";
-import router, { canAccessRoute, routerInitialized } from "./routers/index.ts";
 import { permission } from "./directives/permission";
+import router, { canAccessRoute, routerInitialized } from "./routers/index.ts";
 import { useTabViewsStore } from "./stores/tabs.ts";
 import { getToken } from "./utils/auth";
 const app = createApp(App);
