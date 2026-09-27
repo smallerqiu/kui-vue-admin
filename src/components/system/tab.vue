@@ -364,7 +364,7 @@ const cls = (item: ViewItem) => {
           position: absolute;
           width: 2px;
           height: 14px;
-          background: var(--kui-color-item-selected);
+          background: var(--kui-color-item-selected, color-mix(in srgb, var(--kui-color-primary) 20%, transparent));
           top: 6px;
         }
         &::before {
@@ -375,7 +375,7 @@ const cls = (item: ViewItem) => {
         }
 
         &:hover {
-          background: var(--kui-color-item-selected);
+          background: var(--kui-color-item-selected, color-mix(in srgb, var(--kui-color-primary) 20%, transparent));
         }
         a {
           padding: 0 8px;
@@ -406,7 +406,7 @@ const cls = (item: ViewItem) => {
         z-index: 10;
 
         &:hover {
-          background-color: var(--kui-color-item-selected);
+          background-color: var(--kui-color-item-selected, color-mix(in srgb, var(--kui-color-primary) 20%, transparent));
         }
       }
     }

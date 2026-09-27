@@ -212,8 +212,8 @@ const devices: Array<{ name: string; percent: number; icon: IconType[] }> = [
   height: 38px;
   place-items: center;
   color: var(--kui-color-primary);
-  border-radius: var(--kui-control-radius);
-  background: var(--kui-theme-fill-bg);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
+  background: var(--kui-theme-fill-bg, var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay)));
   font-size: 18px;
 }
 .device-list strong {

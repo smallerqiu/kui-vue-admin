@@ -348,9 +348,9 @@ const moveTask = ({ item, to }: KanbanMoveEvent) => {
 .task-card {
   padding: 13px;
   border: 1px solid var(--kui-color-border);
-  border-radius: var(--kui-card-radius);
+  border-radius: var(--kui-card-radius, var(--kui-border-radius-card));
   background: var(--kui-color-bg-container);
-  box-shadow: var(--kui-shadow-sm);
+  box-shadow: 0 1px 3px var(--kui-color-shadow);
   cursor: grab;
   transition:
     transform var(--kui-motion-duration-fast),

@@ -545,8 +545,8 @@ const submitAfterSale = () => {
   height: 46px;
   place-items: center;
   color: var(--kui-color-primary);
-  border-radius: var(--kui-control-radius);
-  background: var(--kui-theme-fill-bg);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
+  background: var(--kui-theme-fill-bg, var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay)));
   font-size: 22px;
 }
 .order-total {
@@ -581,7 +581,7 @@ const submitAfterSale = () => {
   border-bottom: 0;
 }
 .product-row :deep(.k-image) {
-  border-radius: var(--kui-control-radius);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
 }
 .product-row p {
   margin: 5px 0;
@@ -672,7 +672,7 @@ const submitAfterSale = () => {
 }
 .order-timeline .active i {
   background: var(--kui-color-primary);
-  box-shadow: 0 0 0 4px var(--kui-color-primary-8);
+  box-shadow: 0 0 0 4px var(--kui-color-primary-8, color-mix(in srgb, var(--kui-color-primary) 20%, transparent));
 }
 .order-timeline p {
   margin: 4px 0;
@@ -711,8 +711,8 @@ const submitAfterSale = () => {
   gap: 10px;
   align-items: center;
   padding: 10px;
-  border-radius: var(--kui-control-radius);
-  background: var(--kui-theme-fill-bg);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
+  background: var(--kui-theme-fill-bg, var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay)));
 }
 .shipping-products > div > div {
   display: flex;
@@ -726,8 +726,8 @@ const submitAfterSale = () => {
 .price-preview {
   padding: 12px;
   color: var(--kui-color-text-description);
-  border-radius: var(--kui-control-radius);
-  background: var(--kui-theme-fill-bg);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
+  background: var(--kui-theme-fill-bg, var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay)));
 }
 .price-preview strong {
   color: var(--kui-color-primary);

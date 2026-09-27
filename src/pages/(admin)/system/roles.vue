@@ -261,7 +261,7 @@ const savePermissions = () => {
   flex: none;
   place-items: center;
   color: #fff;
-  border-radius: var(--kui-control-radius);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
 }
 .role-name > div {
   display: flex;
@@ -280,8 +280,8 @@ const savePermissions = () => {
   justify-content: space-between;
   margin-bottom: 16px;
   padding: 12px;
-  border-radius: var(--kui-control-radius);
-  background: var(--kui-theme-fill-bg);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
+  background: var(--kui-theme-fill-bg, var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay)));
 }
 .permission-heading span {
   color: var(--kui-color-text-description);

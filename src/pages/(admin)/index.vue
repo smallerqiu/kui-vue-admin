@@ -393,8 +393,8 @@ const refreshData = () => message.success("数据已更新");
   margin-top: 18px;
   padding: 14px;
   color: var(--kui-color-primary);
-  border-radius: var(--kui-card-radius);
-  background: var(--kui-theme-fill-bg);
+  border-radius: var(--kui-card-radius, var(--kui-border-radius-card));
+  background: var(--kui-theme-fill-bg, var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay)));
   strong {
     color: var(--kui-color-text-title);
   }

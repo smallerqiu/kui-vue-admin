@@ -203,13 +203,13 @@ defineExpose({ open });
   color: var(--kui-color-text);
   text-align: left;
   border: 0;
-  border-radius: var(--kui-control-radius);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
   background: transparent;
   cursor: pointer;
 }
 .command-results > button.active {
   color: var(--kui-color-primary);
-  background: var(--kui-color-item-selected);
+  background: var(--kui-color-item-selected, color-mix(in srgb, var(--kui-color-primary) 20%, transparent));
   box-shadow: inset 3px 0 var(--kui-color-primary);
 }
 .command-results > button > span:nth-child(2) {
@@ -230,8 +230,8 @@ defineExpose({ open });
   height: 34px;
   place-items: center;
   color: var(--kui-color-primary);
-  border-radius: var(--kui-control-radius);
-  background: var(--kui-theme-fill-bg);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
+  background: var(--kui-theme-fill-bg, var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay)));
 }
 .command-help {
   padding: 10px 16px;

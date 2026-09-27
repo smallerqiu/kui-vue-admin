@@ -242,7 +242,7 @@ const closePendingOrder = (record: OrderRecord) =>
   align-items: center;
 }
 .order-item :deep(.k-image) {
-  border-radius: var(--kui-control-radius);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
 }
 .order-item > div {
   display: flex;

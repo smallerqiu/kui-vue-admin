@@ -65,10 +65,10 @@ const openItem = (item: NotificationItem) => {
 .notification-panel {
   width: min(390px, calc(100vw - 24px));
   overflow: hidden;
-  border: 1px solid var(--kui-popup-border);
-  border-radius: var(--kui-card-radius);
-  background: var(--kui-popup-bg);
-  box-shadow: var(--kui-popup-shadow);
+  border: 1px solid var(--kui-popup-border, var(--kui-color-pop-border));
+  border-radius: var(--kui-card-radius, var(--kui-border-radius-card));
+  background: var(--kui-popup-bg, var(--kui-color-bg-pop));
+  box-shadow: var(--kui-popup-shadow, var(--kui-pop-shadow));
 }
 .notification-head {
   padding: 13px 15px;
@@ -124,8 +124,8 @@ const openItem = (item: NotificationItem) => {
   width: 34px;
   height: 34px;
   place-items: center;
-  border-radius: var(--kui-control-radius);
-  background: var(--kui-theme-fill-bg);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
+  background: var(--kui-theme-fill-bg, var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay)));
 }
 .notification-order {
   color: var(--kui-color-primary);

@@ -402,8 +402,8 @@ const removeSelected = () => {
 .event-detail-list {
   padding: 14px;
   margin: 18px 0;
-  border-radius: var(--kui-control-radius);
-  background: var(--kui-theme-fill-bg);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
+  background: var(--kui-theme-fill-bg, var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay)));
 }
 .event-detail-list p {
   display: flex;

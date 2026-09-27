@@ -227,7 +227,7 @@ const createCustomer = () => {
   flex: none;
   place-items: center;
   color: #fff;
-  border-radius: var(--kui-control-radius);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
 }
 .customer-cell > div {
   display: flex;

@@ -452,7 +452,7 @@ const refresh = () => message.success("待办数据已刷新");
   height: 40px;
   flex: none;
   place-items: center;
-  border-radius: var(--kui-control-radius);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
   font-size: 18px;
 }
 .approval-stat div {
@@ -477,7 +477,7 @@ const refresh = () => message.success("待办数据已刷新");
   height: 36px;
   flex: none;
   place-items: center;
-  border-radius: var(--kui-control-radius);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
 }
 .subject-cell > div {
   display: flex;
@@ -526,8 +526,8 @@ const refresh = () => message.success("待办数据已刷新");
 }
 .approval-facts > div {
   padding: 12px;
-  border-radius: var(--kui-control-radius);
-  background: var(--kui-theme-fill-bg);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
+  background: var(--kui-theme-fill-bg, var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay)));
 }
 .approval-facts small,
 .approval-facts strong {

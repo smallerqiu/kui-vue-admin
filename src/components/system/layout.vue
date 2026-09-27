@@ -266,7 +266,7 @@ const switchMode = (event: MouseEvent) => {
   }
 }
 .layout-mix .sys-sider {
-  box-shadow: var(--kui-shadow-card);
+  box-shadow: 0 4px 16px var(--kui-color-shadow);
 }
 
 .mobile-sider-mask {
@@ -295,7 +295,7 @@ const switchMode = (event: MouseEvent) => {
       height: 100vh;
       margin: 0;
       border-width: 0 1px 0 0;
-      border-radius: 0 var(--kui-card-radius) var(--kui-card-radius) 0;
+      border-radius: 0 var(--kui-card-radius, var(--kui-border-radius-card)) var(--kui-card-radius, var(--kui-border-radius-card)) 0;
       transform: translateX(-105%);
       transition: transform var(--kui-motion-duration) var(--kui-motion-easing);
       box-shadow: var(--kui-pop-shadow);

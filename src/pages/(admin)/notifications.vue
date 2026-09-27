@@ -116,8 +116,8 @@ const openItem = (item: NotificationItem) => {
   width: 40px;
   height: 40px;
   place-items: center;
-  border-radius: var(--kui-control-radius);
-  background: var(--kui-theme-fill-bg);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
+  background: var(--kui-theme-fill-bg, var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay)));
   font-size: 18px;
 }
 .item-order {

@@ -224,7 +224,7 @@ const recentOrders = [
   height: 68px;
   place-items: center;
   color: #fff;
-  border-radius: var(--kui-card-radius);
+  border-radius: var(--kui-card-radius, var(--kui-border-radius-card));
   font-size: 28px;
 }
 .company-profile h2 {
@@ -284,8 +284,8 @@ const recentOrders = [
   height: 34px;
   place-items: center;
   color: var(--kui-color-primary);
-  border-radius: var(--kui-control-radius);
-  background: var(--kui-theme-fill-bg);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
+  background: var(--kui-theme-fill-bg, var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay)));
 }
 .business-events p {
   margin: 4px 0;

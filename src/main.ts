@@ -1,6 +1,4 @@
 import kui from "kui-vue";
-import "kui-vue/style/base.css";
-import "kui-vue/style/components.css";
 import "kui-vue/style/index.css";
 import { createPinia } from "pinia";
 import { createApp } from "vue";

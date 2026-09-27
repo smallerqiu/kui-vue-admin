@@ -438,7 +438,7 @@ const createProject = () => {
   width: 42px;
   height: 42px;
   place-items: center;
-  border-radius: var(--kui-control-radius);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
   font-size: 20px;
 }
 .overview-card div {
@@ -469,7 +469,7 @@ const createProject = () => {
   height: 40px;
   flex: none;
   place-items: center;
-  border-radius: var(--kui-control-radius);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
   font-size: 19px;
 }
 .project-title {
@@ -544,8 +544,8 @@ const createProject = () => {
 }
 .detail-facts > div {
   padding: 12px;
-  border-radius: var(--kui-control-radius);
-  background: var(--kui-theme-fill-bg);
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
+  background: var(--kui-theme-fill-bg, var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay)));
 }
 .detail-facts small,
 .detail-facts strong {
