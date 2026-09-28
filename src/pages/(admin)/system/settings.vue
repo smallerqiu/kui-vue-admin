@@ -1,12 +1,36 @@
 <template>
   <div class="settings-page">
-    <PageHeader title="系统设置" description="配置组织信息、安全策略和系统通知。">
+    <PageHeader
+      title="系统设置"
+      description="配置组织资料与登录安全策略。语言、时区作为组织配置保存。"
+    >
       <template #actions>
-        <Button :icon="RotateCcw" @click="resetSettings">恢复默认</Button>
-        <Button type="primary" :icon="Save" @click="save">保存设置</Button>
+        <Button
+          v-if="canWrite"
+          :disabled="saving || loading || !data"
+          :icon="RotateCcw"
+          @click="resetSettings"
+        >
+          填入默认值
+        </Button>
+        <Button
+          v-if="canWrite"
+          type="primary"
+          :icon="Save"
+          :loading="saving"
+          :disabled="loading || !data"
+          @click="save"
+        >
+          保存设置
+        </Button>
       </template>
     </PageHeader>
-    <Card bordered>
+    <p v-if="error" role="alert">
+      {{ error }}
+      <Button @click="reload">重试</Button>
+    </p>
+    <p v-if="loading">正在加载…</p>
+    <Card v-if="data" bordered>
       <Tabs v-model="activeTab">
         <TabPanel key="basic" title="基础设置">
           <section class="setting-section">
@@ -18,32 +42,47 @@
               <Grid :cols="{ xs: 1, sm: 2 }" :x-gap="16">
                 <GridItem>
                   <FormItem label="组织名称">
-                    <Input v-model="settings.organizationName" clearable />
+                    <Input
+                      :disabled="saving || !canWrite"
+                      v-model="settings.organizationName"
+                      clearable
+                    />
                   </FormItem>
                 </GridItem>
                 <GridItem>
                   <FormItem label="系统简称">
-                    <Input v-model="settings.shortName" clearable />
+                    <Input :disabled="saving || !canWrite" v-model="settings.shortName" clearable />
                   </FormItem>
                 </GridItem>
                 <GridItem>
                   <FormItem label="访问域名">
-                    <Input v-model="settings.domain" clearable />
+                    <Input :disabled="saving || !canWrite" v-model="settings.domain" clearable />
                   </FormItem>
                 </GridItem>
                 <GridItem>
                   <FormItem label="默认时区">
-                    <Select v-model="settings.timezone" block :options="timezoneOptions" />
+                    <Select
+                      :disabled="saving || !canWrite"
+                      v-model="settings.timezone"
+                      block
+                      :options="timezoneOptions"
+                    />
                   </FormItem>
                 </GridItem>
                 <GridItem>
                   <FormItem label="默认语言">
-                    <Select v-model="settings.locale" block :options="localeOptions" />
+                    <Select
+                      :disabled="saving || !canWrite"
+                      v-model="settings.locale"
+                      block
+                      :options="localeOptions"
+                    />
                   </FormItem>
                 </GridItem>
                 <GridItem>
                   <FormItem label="品牌主色">
                     <ColorPicker
+                      :disabled="saving || !canWrite"
                       v-model="settings.primaryColor"
                       show-text
                       :presets="colorPresets"
@@ -52,7 +91,12 @@
                 </GridItem>
                 <GridItem>
                   <FormItem label="导航布局">
-                    <Select v-model="settings.layoutMode" block :options="layoutOptions" />
+                    <Select
+                      :disabled="saving || !canWrite"
+                      v-model="settings.layoutMode"
+                      block
+                      :options="layoutOptions"
+                    />
                   </FormItem>
                 </GridItem>
               </Grid>
@@ -72,9 +116,10 @@
                   <p>无操作超过该时间后需要重新登录。</p>
                 </div>
                 <InputNumber
+                  :disabled="saving || !canWrite"
                   v-model="settings.sessionTimeout"
-                  :min="15"
-                  :max="1440"
+                  :min="5"
+                  :max="10080"
                   suffix="分钟"
                 />
               </div>
@@ -83,45 +128,20 @@
                   <strong>允许多设备登录</strong>
                   <p>关闭后，新设备登录会使旧会话失效。</p>
                 </div>
-                <Switch v-model="settings.allowMultiLogin" />
+                <Switch :disabled="saving || !canWrite" v-model="settings.allowMultiLogin" />
               </div>
               <div>
                 <div>
                   <strong>密码有效期</strong>
                   <p>到期后要求成员修改登录密码。</p>
                 </div>
-                <InputNumber v-model="settings.passwordExpiry" :min="0" :max="365" suffix="天" />
-              </div>
-            </div>
-          </section>
-        </TabPanel>
-        <TabPanel key="notification" title="通知策略">
-          <section class="setting-section">
-            <div class="section-heading">
-              <h2>系统通知</h2>
-              <p>设置默认向管理员发送的通知类型。</p>
-            </div>
-            <div class="setting-list">
-              <div>
-                <div>
-                  <strong>订单异常通知</strong>
-                  <p>退款、支付失败和订单超时提醒。</p>
-                </div>
-                <Switch v-model="settings.orderNotification" />
-              </div>
-              <div>
-                <div>
-                  <strong>账号安全通知</strong>
-                  <p>异常登录和权限变更提醒。</p>
-                </div>
-                <Switch v-model="settings.securityNotification" />
-              </div>
-              <div>
-                <div>
-                  <strong>每周经营报告</strong>
-                  <p>每周一发送上周经营数据摘要。</p>
-                </div>
-                <Switch v-model="settings.weeklyReport" />
+                <InputNumber
+                  :disabled="saving || !canWrite"
+                  v-model="settings.passwordExpiry"
+                  :min="0"
+                  :max="3650"
+                  suffix="天"
+                />
               </div>
             </div>
           </section>
@@ -132,19 +152,30 @@
 </template>
 
 <script setup lang="ts">
-import { PageHeader } from "kui-vue";
-import { useSystemSettingsStore } from "@/stores/system-settings";
+import { computed, reactive, ref, watch } from "vue";
+import { message } from "kui-vue";
 import { RotateCcw, Save } from "kui-icons";
-import { message, modal } from "kui-vue";
-import { ref } from "vue";
-
-const store = useSystemSettingsStore();
-const settings = store.settings;
-const activeTab = ref("basic");
+import { systemApi } from "@/api/system";
+import { useRemoteData } from "@/composables/use-remote-data";
+import { defaultSystemSettings, useSystemSettingsStore } from "@/stores/system-settings";
+import { useAuthStore } from "@/stores/auth";
+import { hasPermission } from "@/routers/permissions";
+const store = useSystemSettingsStore(),
+  auth = useAuthStore();
+const canWrite = computed(() => hasPermission("system:settings:write", auth.permissions));
+const settings = reactive({ ...defaultSystemSettings });
+const { data, loading, error, reload } = useRemoteData(systemApi.settings);
+watch(data, (value) => {
+  if (value) {
+    Object.assign(settings, value);
+    store.apply(value);
+  }
+});
+const activeTab = ref("basic"),
+  saving = ref(false);
 const timezoneOptions = [
   { label: "中国标准时间 (UTC+8)", value: "Asia/Shanghai" },
   { label: "协调世界时 (UTC)", value: "UTC" },
-  { label: "东京 (UTC+9)", value: "Asia/Tokyo" },
 ];
 const localeOptions = [
   { label: "简体中文", value: "zh-CN" },
@@ -156,20 +187,18 @@ const layoutOptions = [
   { label: "混合导航", value: "mix" },
 ];
 const colorPresets = ["#54a9ff", "#7b61ff", "#00a870", "#f59e0b", "#ef6c77", "#0ea5e9"];
-const save = () => {
-  store.save();
-  message.success("系统设置已保存");
-};
-const resetSettings = () =>
-  modal.confirm({
-    title: "恢复默认设置",
-    content: "确定恢复全部系统默认配置吗？",
-    onOk: () => {
-      store.reset();
-      store.save();
-      message.success("已恢复默认设置");
-    },
-  });
+const resetSettings = () => Object.assign(settings, defaultSystemSettings);
+async function save() {
+  if (saving.value || !canWrite.value || !data.value) return;
+  saving.value = true;
+  try {
+    await store.save({ ...settings });
+    message.success("系统设置已保存");
+  } catch {
+  } finally {
+    saving.value = false;
+  }
+}
 </script>
 
 <style scoped lang="less">

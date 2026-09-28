@@ -42,9 +42,11 @@ export const setAuthSession = (
   const staleStorage = persistent ? sessionStorage : localStorage;
   staleStorage.removeItem(TOKEN_KEY);
   staleStorage.removeItem(USER_KEY);
+  staleStorage.removeItem(REFRESH_TOKEN_KEY);
   storage.setItem(TOKEN_KEY, token);
   storage.setItem(USER_KEY, JSON.stringify(user));
   if (refreshToken) storage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  else storage.removeItem(REFRESH_TOKEN_KEY);
 };
 
 export const clearAuthSession = () => {

@@ -31,6 +31,37 @@ export function filterMenuByAccess(
   });
 }
 
+export interface ServerMenu {
+  path: string;
+  permissionCode?: string | null;
+  sortOrder: number;
+}
+
+/** Only intersect with compiled local routes; remote component paths are never executed. */
+export function applyServerMenu(local: AdminMenuItem[], records: ServerMenu[]): AdminMenuItem[] {
+  const allowed = new Map(records.map((record) => [record.path, record]));
+  const visit = (items: AdminMenuItem[]): AdminMenuItem[] => items.flatMap((item) => {
+    const children = item.children ? visit(item.children) : [];
+    const record = allowed.get(item.path);
+    if (!record && !children.length) return [];
+    return [{ ...item, meta: { ...item.meta, roles: undefined,
+      permissions: record?.permissionCode ? [record.permissionCode] : undefined,
+      order: record?.sortOrder ?? item.meta.order },
+      children: children.length ? children : undefined }];
+  }).sort((a, b) => (a.meta.order ?? 99) - (b.meta.order ?? 99));
+  return visit(local);
+}
+
+export const routePermissions: Record<string, string> = {
+  "/": "dashboard:read", "/commerce/orders": "order:read", "/order/": "order:read",
+  "/commerce/products": "product:read", "/commerce/after-sales": "after-sale:read",
+  "/crm/customers": "customer:read", "/customer/": "customer:read",
+  "/projects": "project:read", "/tasks": "task:read", "/calendar": "calendar:read",
+  "/approvals": "approval:read", "/system/users": "system:user:read",
+  "/system/roles": "system:role:read", "/system/menus": "system:menu:read",
+  "/system/logs": "system:log:read", "/system/settings": "system:settings:read",
+};
+
 export type DataScopeContext = {
   userId?: string;
   departmentId?: string;
@@ -44,7 +75,8 @@ export function filterByDataScope<T extends { ownerId?: string; departmentId?: s
 ) {
   if (context.dataScope === "all") return rows;
   if (context.dataScope === "department") {
+    if (!context.departmentId) return [];
     return rows.filter((row) => row.departmentId === context.departmentId);
   }
-  return rows.filter((row) => row.ownerId === context.userId);
+  return context.userId ? rows.filter((row) => row.ownerId === context.userId) : [];
 }

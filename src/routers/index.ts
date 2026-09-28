@@ -2,9 +2,12 @@ import { loading } from "kui-vue";
 import { createRouter, createWebHistory } from "vue-router";
 import { routes } from "vue-router/auto-routes";
 import { createMenuItems } from "../components/system/useMenu";
-import { getRuntimeAppName } from "../config/app";
+import { appConfig, getRuntimeAppName } from "../config/app";
 import { getAuthUser, getToken } from "../utils/auth";
-import { hasPermission, hasRole } from "./permissions";
+import { applyServerMenu, hasPermission, hasRole, routePermissions, type ServerMenu } from "./permissions";
+import request from "@/utils/request";
+import { useAuthStore } from "@/stores/auth";
+import { useTabViewsStore } from "@/stores/tabs";
 //import { buildRoute } from "./utils.ts";
 
 const router = createRouter({
@@ -40,10 +43,22 @@ const router = createRouter({
   },
 });
 
-export const routerInitialized = async () => createMenuItems(router.options.routes);
+export const routerInitialized = async () => {
+  const local = createMenuItems(router.options.routes);
+  if (appConfig.useMock) return local;
+  if (!getToken()) return [];
+  return applyServerMenu(local, await request.get<ServerMenu[]>("/navigation"));
+};
 
-export const canAccessRoute = (route: { meta: Record<string, any> }) => {
+export const canAccessRoute = (route: { meta: Record<string, any>; path?: string }) => {
   const user = getAuthUser();
+  if (!appConfig.useMock) {
+    const path = route.path || "";
+    const code = routePermissions[path] || Object.entries(routePermissions).find(
+      ([prefix]) => prefix !== "/" && prefix.endsWith("/") && path.startsWith(prefix),
+    )?.[1];
+    return hasPermission(code, user.permissions || []);
+  }
   return (
     hasRole(route.meta.roles, user.roles || []) &&
     hasPermission(route.meta.permissions, user.permissions || [])
@@ -52,7 +67,7 @@ export const canAccessRoute = (route: { meta: Record<string, any> }) => {
 
 router.beforeEach(async (to) => {
   loading.start();
-  const whiteList = ["/account/login", "/account/logout", "/system/error"];
+  const whiteList = ["/account/login", "/account/logout", "/system/error", "/error/403", "/error/404", "/error/500"];
   const token = getToken();
 
   if (!token) {
@@ -61,6 +76,16 @@ router.beforeEach(async (to) => {
       : true;
   }
   if (to.path === "/account/login") return "/";
+  if (!appConfig.useMock && !whiteList.includes(to.path)) {
+    try {
+      await useAuthStore().loadUser();
+      const tabs = useTabViewsStore();
+      tabs.setRoutes(await routerInitialized());
+      tabs.retainAuthorizedViews((view) => canAccessRoute(router.resolve(view.fullPath || view.path)));
+    } catch {
+      return getToken() ? "/error/500" : { path: "/account/login", query: { redirect: to.fullPath } };
+    }
+  }
   if (!canAccessRoute(to)) return "/error/403";
   return true;
 });
@@ -85,4 +110,5 @@ router.afterEach((to) => {
     });
   }
 });
+router.onError(() => loading.finish());
 export default router;

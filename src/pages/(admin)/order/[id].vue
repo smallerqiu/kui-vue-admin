@@ -1,14 +1,34 @@
 <template>
-  <div class="order-detail-page">
+  <div v-if="order" class="order-detail-page">
     <PageHeader :title="`订单 ${order.id}`" description="查看订单状态、客户信息和操作记录。">
       <template #actions>
+        <Button
+          v-if="order.status === 'pending' && allowed('order:payment')"
+          :disabled="saving"
+          @click="paymentOpen = true"
+        >
+          登记收款
+        </Button>
         <Button :icon="ArrowLeft" @click="router.back()">返回</Button>
-        <Button v-if="order.status === 'pending'" @click="openPrice">调整价格</Button>
-        <Button v-if="order.status === 'pending'" color="red" theme="outline" @click="closeOrder">
+        <Button
+          v-if="order.status === 'pending' && allowed('order:adjust')"
+          :disabled="saving"
+          @click="openPrice"
+        >
+          调整价格
+        </Button>
+        <Button
+          v-if="order.status === 'pending' && allowed('order:close')"
+          :disabled="saving"
+          color="red"
+          theme="outline"
+          @click="closeOrder"
+        >
           关闭订单
         </Button>
         <Button
-          v-if="['paid', 'partial_shipped'].includes(order.status)"
+          v-if="['paid', 'partial_shipped'].includes(order.status) && allowed('order:ship')"
+          :disabled="saving"
           type="primary"
           :icon="Truck"
           @click="openShipping"
@@ -16,7 +36,11 @@
           订单发货
         </Button>
         <Button
-          v-if="!['pending', 'closed', 'refund'].includes(order.status)"
+          v-if="
+            ['paid', 'partial_shipped', 'shipped', 'completed'].includes(order.status) &&
+            allowed('after-sale:write')
+          "
+          :disabled="saving"
           color="red"
           theme="outline"
           @click="openAfterSale"
@@ -39,13 +63,13 @@
           </div>
         </div>
         <div class="order-total">
-          <span>实付金额</span>
+          <span>订单金额</span>
           <strong>¥ {{ order.paidAmount.toLocaleString() }}</strong>
         </div>
       </Flex>
       <Steps
         :current="stepCurrent"
-        :status="order.status === 'refund' ? 'error' : 'process'"
+        :status="['refunded', 'closed'].includes(order.status) ? 'error' : 'process'"
         :items="stepItems"
       />
     </Card>
@@ -56,7 +80,12 @@
           <Card title="商品信息" bordered>
             <div class="product-list">
               <div v-for="item in order.items" :key="item.id" class="product-row">
-                <Image :src="item.image" :width="64" :height="64" fit="cover" />
+                <Image
+                  :src="item.image"
+                  :width="64"
+                  :height="64"
+                  :img-style="{ objectFit: 'cover' }"
+                />
                 <div>
                   <strong>{{ item.name }}</strong>
                   <p>{{ item.specs }}</p>
@@ -82,30 +111,50 @@
                 <strong class="discount">- ¥ {{ order.discount.toLocaleString() }}</strong>
               </span>
               <span class="paid">
-                实付款
+                订单应付
                 <strong>¥ {{ order.paidAmount.toLocaleString() }}</strong>
+              </span>
+              <span>
+                已登记退款
+                <strong>¥ {{ order.refundedAmount }}</strong>
               </span>
             </div>
           </Card>
           <Card title="收货与配送" bordered>
             <template #extra>
-              <Button size="small" theme="plain" @click="openAddress">修改地址</Button>
+              <Button
+                v-if="['pending', 'paid'].includes(order.status) && allowed('order:address')"
+                :disabled="saving"
+                size="small"
+                theme="plain"
+                @click="openAddress"
+              >
+                修改地址
+              </Button>
             </template>
             <Descriptions :column="2" bordered size="small">
               <DescriptionsItem label="收货人">{{ order.contact }}</DescriptionsItem>
               <DescriptionsItem label="联系电话">{{ order.phone }}</DescriptionsItem>
               <DescriptionsItem label="收货地址" :span="2">{{ order.address }}</DescriptionsItem>
               <DescriptionsItem label="配送方式">
-                {{ order.shippingCompany || "待选择" }}
+                {{ order.shipments.at(-1)?.company || "待选择" }}
               </DescriptionsItem>
               <DescriptionsItem label="物流单号">
-                {{ order.trackingNo || "尚未发货" }}
+                {{ order.shipments.at(-1)?.trackingNo || "尚未发货" }}
               </DescriptionsItem>
             </Descriptions>
           </Card>
           <Card title="订单信息" bordered>
             <template #extra>
-              <Button size="small" theme="plain" @click="openRemark">商家备注</Button>
+              <Button
+                v-if="allowed('order:remark')"
+                :disabled="saving"
+                size="small"
+                theme="plain"
+                @click="openRemark"
+              >
+                商家备注
+              </Button>
             </template>
             <Descriptions :column="2" bordered size="small">
               <DescriptionsItem label="订单编号">{{ order.id }}</DescriptionsItem>
@@ -146,15 +195,10 @@
               </Avatar>
               <div>
                 <strong>{{ order.customer }}</strong>
-                <p>企业认证客户</p>
               </div>
             </div>
             <Divider />
             <div class="customer-meta">
-              <span>
-                下单人
-                <strong>{{ order.buyer }}</strong>
-              </span>
               <span>
                 联系人
                 <strong>{{ order.contact }}</strong>
@@ -183,7 +227,34 @@
       </GridItem>
     </Grid>
 
-    <Drawer v-model="shippingOpen" title="订单发货" :width="500" @ok="submitShipping">
+    <Modal
+      v-model="paymentOpen"
+      title="登记外部收款结果"
+      :show-close="!saving"
+      :mask-closable="!saving"
+      :esc-key="!saving"
+    >
+      <p>请先确认已在线下或支付平台收款。本操作只更新订单状态，不会发起扣款。</p>
+      <FormItem label="收款方式">
+        <Input v-model="paymentMethod" placeholder="例如：银行转账" />
+      </FormItem>
+      <template #footer>
+        <Button :disabled="saving" @click="paymentOpen = false">取消</Button>
+        <Button type="primary" :loading="saving" @click="savePayment">确认已收款并登记</Button>
+      </template>
+    </Modal>
+    <Drawer
+      v-model="shippingOpen"
+      title="订单发货"
+      :width="500"
+      :closable="!saving"
+      :mask-closable="!saving"
+      :esc-key="!saving"
+    >
+      <template #footer>
+        <Button :disabled="saving" @click="shippingOpen = false">取消</Button>
+        <Button type="primary" :loading="saving" @click="submitShipping">确认提交</Button>
+      </template>
       <Form layout="vertical">
         <Grid :cols="2" :x-gap="12">
           <GridItem>
@@ -200,7 +271,12 @@
         <FormItem label="本次发货商品">
           <div class="shipping-products">
             <div v-for="item in shippableItems" :key="item.id">
-              <Image :src="item.image" :width="44" :height="44" fit="cover" />
+              <Image
+                :src="item.image"
+                :width="44"
+                :height="44"
+                :img-style="{ objectFit: 'cover' }"
+              />
               <div>
                 <strong>{{ item.name }}</strong>
                 <small>待发 {{ item.quantity - (item.shippedQuantity || 0) }} 件</small>
@@ -216,7 +292,18 @@
       </Form>
     </Drawer>
 
-    <Modal v-model="addressOpen" title="修改收货信息" :width="500" @ok="saveAddress">
+    <Modal
+      v-model="addressOpen"
+      title="修改收货信息"
+      :width="500"
+      :show-close="!saving"
+      :mask-closable="!saving"
+      :esc-key="!saving"
+    >
+      <template #footer>
+        <Button :disabled="saving" @click="addressOpen = false">取消</Button>
+        <Button type="primary" :loading="saving" @click="saveAddress">确认提交</Button>
+      </template>
       <Form layout="vertical">
         <Grid :cols="2" :x-gap="12">
           <GridItem>
@@ -229,28 +316,54 @@
         <FormItem label="详细地址"><TextArea v-model="addressForm.address" :rows="3" /></FormItem>
       </Form>
     </Modal>
-    <Modal v-model="priceOpen" title="调整订单价格" :width="420" @ok="savePrice">
+    <Modal
+      v-model="priceOpen"
+      title="调整订单价格"
+      :width="420"
+      :show-close="!saving"
+      :mask-closable="!saving"
+      :esc-key="!saving"
+    >
+      <template #footer>
+        <Button :disabled="saving" @click="priceOpen = false">取消</Button>
+        <Button type="primary" :loading="saving" @click="savePrice">确认提交</Button>
+      </template>
       <Form layout="vertical">
         <FormItem label="优惠金额">
-          <InputNumber
-            v-model="priceDiscount"
-            :min="0"
-            :max="order.goodsAmount + order.freight"
-            prefix="¥"
-          />
+          <Input v-model="priceDiscount" placeholder="0.00" />
         </FormItem>
         <p class="price-preview">
           调整后应付：
-          <strong>
-            ¥ {{ (order.goodsAmount + order.freight - priceDiscount).toLocaleString() }}
-          </strong>
+          <strong>¥ {{ pricePreview }}</strong>
         </p>
       </Form>
     </Modal>
-    <Modal v-model="remarkOpen" title="商家备注" :width="440" @ok="saveRemark">
+    <Modal
+      v-model="remarkOpen"
+      title="商家备注"
+      :width="440"
+      :show-close="!saving"
+      :mask-closable="!saving"
+      :esc-key="!saving"
+    >
+      <template #footer>
+        <Button :disabled="saving" @click="remarkOpen = false">取消</Button>
+        <Button type="primary" :loading="saving" @click="saveRemark">确认提交</Button>
+      </template>
       <TextArea v-model="merchantRemark" :rows="4" placeholder="仅后台人员可见" />
     </Modal>
-    <Modal v-model="afterSaleOpen" title="发起售后" :width="500" @ok="submitAfterSale">
+    <Modal
+      v-model="afterSaleOpen"
+      title="发起售后"
+      :width="500"
+      :show-close="!saving"
+      :mask-closable="!saving"
+      :esc-key="!saving"
+    >
+      <template #footer>
+        <Button :disabled="saving" @click="afterSaleOpen = false">取消</Button>
+        <Button type="primary" :loading="saving" @click="submitAfterSale">确认提交</Button>
+      </template>
       <Form layout="vertical">
         <FormItem label="售后类型">
           <RadioGroup v-model="afterSaleForm.type" :options="afterSaleTypes" />
@@ -263,28 +376,66 @@
           />
         </FormItem>
         <FormItem label="退款金额">
-          <InputNumber v-model="afterSaleForm.amount" :min="0" :max="order.paidAmount" prefix="¥" />
+          <Input v-model="afterSaleForm.amount" placeholder="0.00" />
         </FormItem>
         <FormItem label="售后原因"><TextArea v-model="afterSaleForm.reason" :rows="3" /></FormItem>
       </Form>
     </Modal>
   </div>
+  <div v-else class="order-detail-page">
+    <p role="status">{{ loading ? "正在加载订单…" : error }}</p>
+    <Button @click="load">重试</Button>
+    <Button @click="router.back()">返回</Button>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { PageHeader } from "kui-vue";
-import type { OrderRecord } from "@/data/orders";
-import { useOrderStore } from "@/stores/orders";
+import { PageHeader, message, modal, type IconType } from "kui-vue";
+import { commerceApi, type OrderRecord, type OrderActions } from "@/api/commerce";
+import { useAuthStore } from "@/stores/auth";
+import { hasPermission } from "@/routers/permissions";
 import { ArrowLeft, CircleCheck, Clock, RotateCcw, Truck } from "kui-icons";
-import { message, modal, type IconType } from "kui-vue";
-import { computed, reactive, ref } from "vue";
+import {
+  computed,
+  onActivated,
+  onDeactivated,
+  onScopeDispose,
+  reactive,
+  ref,
+  watch,
+  type Ref,
+} from "vue";
 import { useRoute, useRouter } from "vue-router";
+import Big from "big.js";
 
 const route = useRoute();
 const router = useRouter();
-const orderStore = useOrderStore();
-const requestedId = String(route.params.id);
-const order = computed<OrderRecord>(() => orderStore.getOrder(requestedId) || orderStore.orders[0]);
+const auth = useAuthStore();
+const allowed = (permission: string) => hasPermission(permission, auth.user?.permissions || []);
+const order = ref<OrderRecord>();
+const loading = ref(false);
+const error = ref("");
+const saving = ref(false);
+let generation = 0;
+let active = true;
+async function load() {
+  const id = String(route.params.id || "");
+  if (!id || !route.path.startsWith("/order/")) return;
+  const current = ++generation;
+  order.value = undefined;
+  error.value = "";
+  loading.value = true;
+  for (const open of dialogs) open.value = false;
+  try {
+    const result = await commerceApi.detail(id);
+    if (current === generation) order.value = result;
+  } catch (reason) {
+    if (current === generation)
+      error.value = reason instanceof Error ? reason.message : "订单加载失败";
+  } finally {
+    if (current === generation) loading.value = false;
+  }
+}
 const statusMap: Record<
   string,
   {
@@ -330,9 +481,9 @@ const statusMap: Record<
     icon: CircleCheck,
     step: 3,
   },
-  refund: {
-    label: "退款中",
-    description: "退款申请正在处理中。",
+  refunded: {
+    label: "已全额退款",
+    description: "外部退款结果已登记。",
     color: "red",
     icon: RotateCcw,
     step: 1,
@@ -345,38 +496,46 @@ const statusMap: Record<
     step: 0,
   },
 };
-const currentStatus = computed(() => statusMap[order.value.status]);
+
+const currentStatus = computed(() => statusMap[order.value?.status || "pending"]);
 const statusLabel = computed(() => currentStatus.value.label);
 const statusDescription = computed(() => currentStatus.value.description);
 const statusColor = computed(() => currentStatus.value.color);
 const statusIcon = computed(() => currentStatus.value.icon);
 const stepCurrent = computed(() => currentStatus.value.step);
-const stepItems = [
-  { title: "提交订单", description: "08-23 10:26" },
-  { title: "完成支付", description: "08-23 10:28" },
+const stepItems = computed(() => [
+  { title: "提交订单", description: order.value?.createdAt },
+  { title: "登记收款", description: order.value?.paymentAt || undefined },
   { title: "商品出库" },
   { title: "确认收货" },
-];
-const itemCount = computed(() =>
-  order.value.items.reduce((total, item) => total + item.quantity, 0),
-);
-const events = reactive([
-  {
-    title: "订单支付成功",
-    description: `${order.value.paymentMethod}支付 ¥${order.value.paidAmount.toLocaleString()}`,
-    time: order.value.paymentAt || "-",
-  },
-  {
-    title: "订单已创建",
-    description: "客户通过官方网站提交订单",
-    time: "今天 10:26",
-  },
 ]);
-const shippingOpen = ref(false);
-const addressOpen = ref(false);
-const priceOpen = ref(false);
-const remarkOpen = ref(false);
-const afterSaleOpen = ref(false);
+const itemCount = computed(
+  () => order.value?.items.reduce((total, item) => total + item.quantity, 0) || 0,
+);
+const events = computed(() =>
+  order.value
+    ? [
+        ...(order.value.paymentAt
+          ? [
+              {
+                title: "收款结果已登记",
+                description: order.value.paymentMethod,
+                time: order.value.paymentAt,
+              },
+            ]
+          : []),
+        { title: "订单已创建", description: order.value.source, time: order.value.createdAt },
+      ]
+    : [],
+);
+const shippingOpen = ref(false),
+  addressOpen = ref(false),
+  priceOpen = ref(false),
+  remarkOpen = ref(false),
+  afterSaleOpen = ref(false),
+  paymentOpen = ref(false);
+const dialogs = [shippingOpen, addressOpen, priceOpen, remarkOpen, afterSaleOpen, paymentOpen];
+const paymentMethod = ref("");
 const shippingCompanies = ["顺丰速运", "京东物流", "中通快递", "圆通速递"].map((value) => ({
   label: value,
   value,
@@ -386,128 +545,173 @@ const shippingForm = reactive({
   trackingNo: "",
   quantities: {} as Record<string, number>,
 });
-const shippableItems = computed(() =>
-  order.value.items.filter((item) => (item.shippedQuantity || 0) < item.quantity),
+const shippableItems = computed(
+  () => order.value?.items.filter((item) => item.shippedQuantity < item.quantity) || [],
 );
 const openShipping = () => {
   shippingForm.trackingNo = "";
-  shippingForm.quantities = {};
-  shippableItems.value.forEach((item) => {
-    shippingForm.quantities[item.id] = item.quantity - (item.shippedQuantity || 0);
-  });
+  shippingForm.quantities = Object.fromEntries(
+    shippableItems.value.map((item) => [item.id, item.quantity - item.shippedQuantity]),
+  );
   shippingOpen.value = true;
 };
+async function action<K extends keyof OrderActions>(
+  name: K,
+  payload: OrderActions[K],
+  dialog?: Ref<boolean>,
+) {
+  if (saving.value || !order.value) return;
+  const id = order.value.id,
+    current = generation;
+  saving.value = true;
+  try {
+    const result = await commerceApi.action(id, name, payload);
+    if (current !== generation) return;
+    order.value = result;
+    if (dialog) dialog.value = false;
+    message.success("操作已保存");
+  } catch {
+    /* Preserve the form. The API owns state transitions. */
+  } finally {
+    saving.value = false;
+  }
+}
 const submitShipping = () => {
   if (!shippingForm.company || !shippingForm.trackingNo.trim())
     return message.warning("请填写物流公司和物流单号");
-  if (
-    !orderStore.shipOrder(
-      order.value.id,
-      shippingForm.company,
-      shippingForm.trackingNo,
-      shippingForm.quantities,
-    )
-  )
-    return message.warning("请至少选择一件待发商品");
-  const count = Object.values(shippingForm.quantities).reduce(
-    (total, value) => total + Number(value || 0),
-    0,
+  const entries = Object.entries(shippingForm.quantities);
+  if (entries.some(([, quantity]) => !Number.isInteger(quantity) || quantity < 0))
+    return message.warning("发货数量须为非负整数");
+  const quantities = Object.fromEntries(entries.filter(([, quantity]) => quantity > 0));
+  if (!Object.keys(quantities).length) return message.warning("请至少选择一件待发商品");
+  return action(
+    "ship",
+    { company: shippingForm.company, trackingNo: shippingForm.trackingNo.trim(), quantities },
+    shippingOpen,
   );
-  events.unshift({
-    title: "订单已发货",
-    description: `${shippingForm.company} · ${shippingForm.trackingNo} · ${count} 件`,
-    time: "刚刚",
-  });
-  shippingOpen.value = false;
-  message.success("发货信息已保存");
 };
 const addressForm = reactive({ contact: "", phone: "", address: "" });
 const openAddress = () => {
-  Object.assign(addressForm, {
-    contact: order.value.contact,
-    phone: order.value.phone,
-    address: order.value.address,
-  });
+  if (!order.value) return;
+  const { contact, phone, address } = order.value;
+  Object.assign(addressForm, { contact, phone, address });
   addressOpen.value = true;
 };
 const saveAddress = () => {
   if (!addressForm.contact.trim() || !addressForm.phone.trim() || !addressForm.address.trim())
     return message.warning("请填写完整收货信息");
-  orderStore.updateAddress(order.value.id, addressForm);
-  addressOpen.value = false;
-  message.success("收货信息已更新");
+  return action("address", { ...addressForm }, addressOpen);
 };
-const priceDiscount = ref(0);
-const merchantRemark = ref("");
+const validMoney = (value: string) => /^\d{1,12}(\.\d{1,2})?$/.test(value);
+const priceDiscount = ref("0.00");
+const pricePreview = computed(() => {
+  if (!order.value || !validMoney(priceDiscount.value)) return "—";
+  return new Big(order.value.goodsAmount)
+    .plus(order.value.freight)
+    .minus(priceDiscount.value)
+    .toFixed(2);
+});
 const openPrice = () => {
-  priceDiscount.value = order.value.discount;
+  priceDiscount.value = order.value!.discount;
   priceOpen.value = true;
 };
 const savePrice = () => {
-  orderStore.adjustPrice(order.value.id, priceDiscount.value);
-  priceOpen.value = false;
-  message.success("订单价格已调整");
+  if (!validMoney(priceDiscount.value) || new Big(pricePreview.value).lt(0))
+    return message.warning("优惠金额格式不正确或超出订单金额");
+  return action("adjust", { discount: priceDiscount.value }, priceOpen);
 };
+const merchantRemark = ref("");
 const openRemark = () => {
-  merchantRemark.value = order.value.merchantRemark || "";
+  merchantRemark.value = order.value!.merchantRemark;
   remarkOpen.value = true;
 };
-const saveRemark = () => {
-  orderStore.setMerchantRemark(order.value.id, merchantRemark.value);
-  remarkOpen.value = false;
-  message.success("商家备注已保存");
+const saveRemark = () => action("remark", { merchantRemark: merchantRemark.value }, remarkOpen);
+const savePayment = () => {
+  if (!paymentMethod.value.trim()) return message.warning("请填写实际收款方式");
+  return action("payment", { method: paymentMethod.value.trim() }, paymentOpen);
 };
-const closeOrder = () =>
+const closeOrder = () => {
+  const id = order.value?.id;
   modal.confirm({
     title: "关闭订单",
     content: "关闭后客户将无法继续支付，确定继续吗？",
     onOk: () => {
-      if (orderStore.closeOrder(order.value.id)) message.success("订单已关闭");
+      if (order.value?.id === id) return action("close", undefined);
     },
   });
+};
 const afterSaleTypes = [
   { label: "仅退款", value: "refund" },
   { label: "退货退款", value: "return_refund" },
 ];
-const afterSaleForm = reactive<{
-  type: "refund" | "return_refund";
-  itemIds: string[];
-  amount: number;
-  reason: string;
-}>({ type: "refund", itemIds: [], amount: 0, reason: "" });
-const afterSaleItemOptions = computed(() =>
-  order.value.items.map((item) => ({
-    label: `${item.name}（${item.sku}）`,
-    value: item.id,
-  })),
+const afterSaleForm = reactive({
+  type: "refund" as "refund" | "return_refund",
+  itemIds: [] as string[],
+  amount: "0.00",
+  reason: "",
+});
+const afterSaleItemOptions = computed(
+  () =>
+    order.value?.items.map((item) => ({ label: `${item.name}（${item.sku}）`, value: item.id })) ||
+    [],
 );
 const openAfterSale = () => {
+  if (!order.value) return;
   Object.assign(afterSaleForm, {
     type: "refund",
     itemIds: order.value.items.map((item) => item.id),
-    amount: order.value.paidAmount,
+    amount: new Big(order.value.paidAmount).minus(order.value.refundedAmount).toFixed(2),
     reason: "",
   });
   afterSaleOpen.value = true;
 };
-const submitAfterSale = () => {
-  if (!afterSaleForm.itemIds.length || !afterSaleForm.reason.trim())
-    return message.warning("请选择商品并填写售后原因");
-  orderStore.createAfterSale({
-    orderId: order.value.id,
-    type: afterSaleForm.type,
-    itemIds: [...afterSaleForm.itemIds],
-    amount: afterSaleForm.amount,
-    reason: afterSaleForm.reason,
-  });
-  afterSaleOpen.value = false;
-  events.unshift({
-    title: "提交售后申请",
-    description: `退款金额 ¥${afterSaleForm.amount.toLocaleString()}`,
-    time: "刚刚",
-  });
-  message.success("售后申请已创建");
+const submitAfterSale = async () => {
+  if (saving.value || !order.value) return;
+  if (
+    !afterSaleForm.itemIds.length ||
+    !afterSaleForm.reason.trim() ||
+    !validMoney(afterSaleForm.amount) ||
+    new Big(afterSaleForm.amount).lte(0)
+  )
+    return message.warning("请选择商品，填写有效退款金额和售后原因");
+  const id = order.value.id,
+    current = generation;
+  saving.value = true;
+  try {
+    await commerceApi.afterSale({
+      orderId: id,
+      ...afterSaleForm,
+      itemIds: [...afterSaleForm.itemIds],
+    });
+    if (current !== generation) return;
+    afterSaleOpen.value = false;
+    message.success("售后申请已创建，等待审核");
+  } catch {
+    /* Never overwrite the order's fulfillment state. */
+  } finally {
+    saving.value = false;
+  }
 };
+watch(
+  () => route.params.id,
+  () => {
+    if (active) void load();
+  },
+  { immediate: true },
+);
+onActivated(() => {
+  if (!active) {
+    active = true;
+    void load();
+  }
+});
+onDeactivated(() => {
+  active = false;
+  generation++;
+});
+onScopeDispose(() => {
+  generation++;
+});
 </script>
 
 <style scoped lang="less">
@@ -546,7 +750,10 @@ const submitAfterSale = () => {
   place-items: center;
   color: var(--kui-color-primary);
   border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
-  background: var(--kui-theme-fill-bg, var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay)));
+  background: var(
+    --kui-theme-fill-bg,
+    var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay))
+  );
   font-size: 22px;
 }
 .order-total {
@@ -672,7 +879,8 @@ const submitAfterSale = () => {
 }
 .order-timeline .active i {
   background: var(--kui-color-primary);
-  box-shadow: 0 0 0 4px var(--kui-color-primary-8, color-mix(in srgb, var(--kui-color-primary) 20%, transparent));
+  box-shadow: 0 0 0 4px
+    var(--kui-color-primary-8, color-mix(in srgb, var(--kui-color-primary) 20%, transparent));
 }
 .order-timeline p {
   margin: 4px 0;
@@ -712,7 +920,10 @@ const submitAfterSale = () => {
   align-items: center;
   padding: 10px;
   border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
-  background: var(--kui-theme-fill-bg, var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay)));
+  background: var(
+    --kui-theme-fill-bg,
+    var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay))
+  );
 }
 .shipping-products > div > div {
   display: flex;
@@ -727,7 +938,10 @@ const submitAfterSale = () => {
   padding: 12px;
   color: var(--kui-color-text-description);
   border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
-  background: var(--kui-theme-fill-bg, var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay)));
+  background: var(
+    --kui-theme-fill-bg,
+    var(--kui-control-bg-fill, var(--kui-color-bg-component-overlay))
+  );
 }
 .price-preview strong {
   color: var(--kui-color-primary);

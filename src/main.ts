@@ -8,10 +8,12 @@ import { permission } from "./directives/permission";
 import router, { canAccessRoute, routerInitialized } from "./routers/index.ts";
 import { useTabViewsStore } from "./stores/tabs.ts";
 import { getToken } from "./utils/auth";
+import { useAuthStore } from "./stores/auth";
 const app = createApp(App);
 const pinia = createPinia();
 const tabs = useTabViewsStore(pinia);
 app.use(pinia).use(kui);
+window.addEventListener("auth:session-updated", () => useAuthStore(pinia).syncSession());
 app.directive("permission", permission);
 
 const bootstrap = async () => {

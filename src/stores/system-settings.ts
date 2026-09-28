@@ -1,27 +1,12 @@
 import { defineStore } from "pinia";
 import { reactive, watch } from "vue";
-import { appConfig } from "@/config/app";
-
-export interface SystemSettings {
-  organizationName: string;
-  shortName: string;
-  domain: string;
-  timezone: string;
-  locale: string;
-  primaryColor: string;
-  layoutMode: "side" | "top" | "mix";
-  sessionTimeout: number;
-  allowMultiLogin: boolean;
-  passwordExpiry: number;
-  orderNotification: boolean;
-  securityNotification: boolean;
-  weeklyReport: boolean;
-}
-
+import { systemApi, type SystemSettings } from "@/api/system";
+import { useAuthStore } from "./auth";
+export type { SystemSettings } from "@/api/system";
 export const defaultSystemSettings: SystemSettings = {
-  organizationName: "KUI Technology Co., Ltd.",
-  shortName: appConfig.shortName,
-  domain: appConfig.siteUrl.replace(/^https?:\/\//, ""),
+  organizationName: "KUI Admin",
+  shortName: "KUI Admin",
+  domain: "",
   timezone: "Asia/Shanghai",
   locale: "zh-CN",
   primaryColor: "#54a9ff",
@@ -29,28 +14,41 @@ export const defaultSystemSettings: SystemSettings = {
   sessionTimeout: 120,
   allowMultiLogin: true,
   passwordExpiry: 90,
-  orderNotification: true,
-  securityNotification: true,
-  weeklyReport: true,
 };
-
-const readSettings = (): SystemSettings => {
-  try {
-    return {
-      ...defaultSystemSettings,
-      ...JSON.parse(localStorage.getItem("system_settings") || "{}"),
-    };
-  } catch {
-    return { ...defaultSystemSettings };
-  }
-};
-
 export const useSystemSettingsStore = defineStore("system-settings", () => {
-  const settings = reactive<SystemSettings>(readSettings());
-  const applyTheme = () =>
-    document.documentElement.style.setProperty("--kui-color-primary", settings.primaryColor);
-  const reset = () => Object.assign(settings, defaultSystemSettings);
-  const save = () => localStorage.setItem("system_settings", JSON.stringify(settings));
-  watch(() => settings.primaryColor, applyTheme, { immediate: true });
-  return { settings, reset, save };
+  const settings = reactive<SystemSettings>({ ...defaultSystemSettings });
+  const auth = useAuthStore();
+  let generation = 0;
+  const reset = () => {
+    generation++;
+    Object.assign(settings, defaultSystemSettings);
+  };
+  watch(() => auth.user.id, reset);
+  async function save(value: SystemSettings) {
+    const current = ++generation,
+      user = auth.user.id;
+    const saved = await systemApi.saveSettings(value);
+    if (current === generation && user === auth.user.id) Object.assign(settings, saved);
+    return saved;
+  }
+  function apply(value: SystemSettings) {
+    generation++;
+    Object.assign(settings, value);
+  }
+  async function load() {
+    const current = generation,
+      user = auth.user.id;
+    try {
+      const value = await systemApi.settings();
+      if (current === generation && user === auth.user.id) apply(value);
+    } catch {
+      /* Keep deployment defaults; the settings page exposes retry. */
+    }
+  }
+  watch(
+    () => settings.primaryColor,
+    (value) => document.documentElement.style.setProperty("--kui-color-primary", value),
+    { immediate: true },
+  );
+  return { settings, reset, save, apply, load };
 });

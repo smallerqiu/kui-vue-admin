@@ -41,6 +41,8 @@
 
 ## 快速创建
 
+CLI 从 Git 仓库拉取项目，不再内置独立模板；需要安装 Git，并能访问 GitHub。默认使用仓库默认分支，依赖版本和锁文件跟随仓库。
+
 ```bash
 npm create kui-vue-pro@latest my-app
 cd my-app
@@ -54,6 +56,14 @@ pnpm dev
 pnpm create kui-vue-pro my-app
 yarn create kui-vue-pro my-app
 ```
+
+需要固定版本时，通过 `--ref` 指定已存在的分支或 tag：
+
+```bash
+npm create kui-vue-pro@latest my-app -- --ref main
+```
+
+目标目录必须为空。生成项目不保留原仓库的 Git 历史、发布工作流和 CLI 包目录；后端配置见[接入说明](./docs/backend-integration.md)。
 
 ## 仓库开发
 
@@ -93,11 +103,11 @@ pnpm dev
 
 所有请求通过 `src/utils/request.ts` 发起。遇到 401 时会使用 refresh token 刷新会话，并自动重放一次原请求；并发 401 只会触发一次刷新。
 
-开发和在线演示默认启用本地 Mock。接入后端时设置：
+默认使用真实认证 API。开发代理指向本机 `http://127.0.0.1:9001`，对应后端项目为 `../kui-admin-api`。当前完成认证、导航和个人资料接入，**业务页面仍有演示数据**，完整范围见 [后端接入状态](docs/backend-integration.md)。仅显式配置 `VITE_USE_MOCK=true` 时使用演示登录。
 
 ```env
 VITE_USE_MOCK=false
-VITE_API_BASE_URL=https://api.example.com
+VITE_API_BASE_URL=/api
 ```
 
 ## 布局与国际化

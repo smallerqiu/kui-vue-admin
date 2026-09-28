@@ -43,14 +43,14 @@
               <FormItem prop="email">
                 <Input
                   v-model="form.email"
-                  placeholder="邮箱：admin@k-ui.cn"
+                  placeholder="请输入账号"
                   :icon="User"
                   clearable
                 />
               </FormItem>
               <FormItem prop="password">
                 <Input
-                  placeholder="Password: 123456"
+                  placeholder="请输入密码"
                   :icon="Lock"
                   type="password"
                   v-model="form.password"
@@ -59,7 +59,7 @@
                 />
               </FormItem>
             </TabPanel>
-            <TabPanel key="phone" title="手机号登录">
+            <TabPanel v-if="appConfig.useMock" key="phone" title="手机号登录">
               <FormItem prop="phone">
                 <Input
                   v-model="form.phone"
@@ -101,8 +101,8 @@
             <Button block type="primary" htmlType="submit" :loading="loading">登录</Button>
           </FormItem>
         </Form>
-        <Divider>其他登录方式</Divider>
-        <Flex align="center" justify="center">
+        <Divider v-if="appConfig.useMock">其他登录方式</Divider>
+        <Flex v-if="appConfig.useMock" align="center" justify="center">
           <Space>
             <div id="wechat-login-button">
               <Button :icon="LogoWechat" @click="message.info('微信登录待接入 OAuth 服务')" />
@@ -113,7 +113,8 @@
           </Space>
         </Flex>
       </div>
-      <p class="demo-tip">演示账号：admin@k-ui.cn / 123456</p>
+      <p v-if="appConfig.useMock" class="demo-tip">演示账号：admin@k-ui.cn / 123456</p>
+      <p v-else class="demo-tip">请使用后端管理员命令创建的账号登录。</p>
     </main>
     <Theme />
   </div>
@@ -145,8 +146,8 @@ const handleForgotPassword = () => {
 };
 
 const form = reactive({
-  email: "admin@k-ui.cn",
-  password: "123456",
+  email: appConfig.useMock ? "admin@k-ui.cn" : "",
+  password: appConfig.useMock ? "123456" : "",
   phone: "",
   code: "",
 });
@@ -157,17 +158,13 @@ let countdownTimer: ReturnType<typeof setInterval> | undefined;
 const accountRules: Record<string, FormRule[]> = {
   email: [
     { required: true, message: "Please enter the email" },
-    {
-      type: "mail",
-      message: "Please enter the correct email address",
-    },
   ],
   password: [
     { required: true, message: "Please enter the password" },
     {
-      min: 6,
-      max: 20,
-      message: "The password must be between 6 and 20 characters long.",
+      min: 1,
+      max: 128,
+      message: "密码长度不能超过 128 个字符。",
     },
   ],
 };

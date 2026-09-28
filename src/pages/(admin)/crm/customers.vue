@@ -2,15 +2,11 @@
   <div class="pro-list-page">
     <PageHeader title="客户管理" description="统一管理企业客户、跟进状态和客户价值。">
       <template #actions>
-        <Button type="primary" :icon="UserRoundPlus" @click="drawerOpen = true">新增客户</Button>
+        <Button v-if="canEdit" type="primary" :icon="UserRoundPlus" @click="drawerOpen = true">新增客户</Button>
       </template>
     </PageHeader>
-    <Grid :cols="{ xs: 1, sm: 2, xl: 4 }" :x-gap="12" :y-gap="12" class="customer-stats">
-      <GridItem v-for="item in stats" :key="item.title">
-        <StatCard :title="item.title" :items="[item.data]" bordered reverse />
-      </GridItem>
-    </Grid>
-    <ListPanel :summary="`${filteredCustomers.length} 家客户`">
+    <p v-if="error" role="alert">{{ error }} <Button @click="reload">重试</Button></p>
+    <ListPanel :summary="`${total} 家客户`">
       <template #filters>
         <Input
           v-model="keyword"
@@ -35,7 +31,8 @@
         </Space>
       </template>
       <Table
-        :data="filteredCustomers"
+        :data="customerData"
+        :loading="loading"
         :columns="columns"
         :hidden-column-keys="hiddenColumnKeys"
         row-key="id"
@@ -43,7 +40,7 @@
       >
         <template #customer="{ record }">
           <button class="customer-cell" type="button" @click="openDetail(record)">
-            <span :style="{ background: record.color }"><Icon :type="Building2" /></span>
+            <span style="background: var(--kui-color-primary)"><Icon :type="Building2" /></span>
             <div>
               <strong>{{ record.name }}</strong>
               <small>{{ record.id }} · {{ record.industry }}</small>
@@ -56,16 +53,18 @@
         <template #status="{ value }">
           <Badge :status="statusBadge(value)" :text="statusLabel(value)" />
         </template>
-        <template #annualValue="{ value }">
-          <strong>¥ {{ Number(value).toLocaleString() }}</strong>
-        </template>
         <template #action="{ record }">
           <Button size="small" theme="plain" :icon="Eye" @click="openDetail(record)">详情</Button>
         </template>
       </Table>
+      <Page v-model:page="page" :page-size="pageSize" :total="total" :disabled="loading" />
     </ListPanel>
 
-    <Drawer v-model="drawerOpen" title="新增客户" :width="480" @ok="createCustomer">
+    <Drawer v-model="drawerOpen" title="新增客户" :width="480" :closable="!saving" :mask-closable="!saving" :esc-key="!saving">
+      <template #footer>
+        <Button :disabled="saving" @click="drawerOpen = false">取消</Button>
+        <Button type="primary" :loading="saving" @click="createCustomer">保存</Button>
+      </template>
       <Form :model="form" layout="vertical">
         <FormItem label="企业名称"><Input v-model="form.name" clearable /></FormItem>
         <Grid :cols="2" :x-gap="12">
@@ -91,52 +90,30 @@
 </template>
 
 <script setup lang="ts">
-import {
-  customers,
-  type CustomerLevel,
-  type CustomerRecord,
-  type CustomerStatus,
-} from "@/data/customers";
+import { catalogApi, type Customer } from "@/api/catalog";
+import { useResourcePage } from "@/composables/use-resource-page";
 import { Building2, Eye, Search, UserRoundPlus } from "kui-icons";
 import {
   message,
   PageHeader,
   type BadgeStatusType,
   type Column,
-  type StatNumberItem,
 } from "kui-vue";
 import { computed, reactive, ref } from "vue";
+import { useAuthStore } from "@/stores/auth";
+import { hasPermission } from "@/routers/permissions";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
-const customerData = ref([...customers]);
-const stats: Array<{ title: string; data: StatNumberItem }> = [
-  {
-    title: "客户总数",
-    data: {
-      value: 1286,
-      separator: ",",
-      desc: "较上月",
-      trend: "+8.6%",
-      trendStatus: "success",
-    },
-  },
-  { title: "战略客户", data: { value: 86, desc: "贡献 42% 收入" } },
-  { title: "本月新增", data: { value: 38, desc: "目标完成率 76%" } },
-  {
-    title: "客户年价值",
-    data: { value: 714, prefix: "¥", suffix: "万", desc: "预测年度收入" },
-  },
-];
+const auth = useAuthStore();
+const canEdit = computed(() => hasPermission("customer:write", auth.user?.permissions || []));
 const columns: Column[] = [
   { title: "客户", key: "customer", width: 290 },
   { title: "等级", key: "level", width: 110 },
   { title: "状态", key: "status", width: 110 },
-  { title: "负责人", key: "owner", width: 100 },
   { title: "联系人", key: "contact", width: 100 },
-  { title: "订单数", key: "orders", width: 90 },
-  { title: "年价值", key: "annualValue", width: 130 },
-  { title: "最近联系", key: "lastContact", width: 130 },
+  { title: "电话", key: "phone", width: 140 },
+  { title: "城市", key: "city", width: 110 },
   { title: "操作", key: "action", width: 90, fixed: "right" },
 ];
 const levelOptions = [
@@ -150,26 +127,23 @@ const statusOptions = [
   { label: "风险关注", value: "risk" },
 ];
 const keyword = ref("");
-const level = ref<CustomerLevel>();
-const status = ref<CustomerStatus>();
+const level = ref<Customer["level"]>();
+const status = ref<Customer["status"]>();
+const { items: customerData, total, page, pageSize, loading, error, reload } = useResourcePage<Customer>(
+  "/customers", () => ({ keyword: keyword.value.trim(), level: level.value, status: status.value }),
+);
+const saving = ref(false);
 const drawerOpen = ref(false);
 const hiddenColumnKeys = ref<string[]>([]);
 const form = reactive({
   name: "",
   industry: "",
-  level: "growth" as CustomerLevel,
+  level: "growth" as Customer["level"],
+  status: "follow" as Customer["status"],
+  city: "",
   contact: "",
   phone: "",
   email: "",
-});
-const filteredCustomers = computed(() => {
-  const query = keyword.value.trim().toLowerCase();
-  return customerData.value.filter(
-    (item) =>
-      (!query || `${item.name}${item.contact}${item.city}`.toLowerCase().includes(query)) &&
-      (!level.value || item.level === level.value) &&
-      (!status.value || item.status === status.value),
-  );
 });
 const levelLabel = (value: string) =>
   levelOptions.find((item) => item.value === value)?.label || value;
@@ -185,22 +159,19 @@ const resetFilters = () => {
   level.value = undefined;
   status.value = undefined;
 };
-const openDetail = (record: CustomerRecord) => router.push(`/customer/${record.id}`);
-const createCustomer = () => {
+const openDetail = (record: Customer) => router.push(`/customer/${record.id}`);
+const createCustomer = async () => {
+  if (saving.value) return;
   if (!form.name.trim() || !form.contact.trim()) return message.warning("请填写企业名称和联系人");
-  customerData.value.unshift({
-    id: `C${Date.now()}`,
-    ...form,
-    status: "follow",
-    owner: "待分配",
-    city: "-",
-    annualValue: 0,
-    orders: 0,
-    lastContact: "刚刚",
-    color: "#3a95ff",
-  });
-  drawerOpen.value = false;
-  message.success("客户已创建");
+  saving.value = true;
+  try {
+    await catalogApi.saveCustomer(form);
+    drawerOpen.value = false;
+    Object.assign(form, { name: "", industry: "", level: "growth", contact: "", phone: "", email: "", city: "", status: "follow" });
+    message.success("客户已创建");
+    await reload();
+  } catch { /* Request layer reports the error; keep the form for retry. */ }
+  finally { saving.value = false; }
 };
 </script>
 

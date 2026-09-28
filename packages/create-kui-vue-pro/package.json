@@ -7,11 +7,10 @@
     "create-kui-vue-pro": "./bin/create-kui-vue-pro.mjs"
   },
   "files": [
-    "bin",
-    "template"
+    "bin"
   ],
   "scripts": {
-    "prepack": "node ./scripts/prepare-template.mjs"
+    "test": "node --test tests/*.test.mjs"
   },
   "engines": {
     "node": ">=20.19.0"

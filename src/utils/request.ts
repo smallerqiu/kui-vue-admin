@@ -1,6 +1,6 @@
 import { message } from "kui-vue";
 import { customAlphabet } from "nanoid";
-import { clearAuthSession, getRefreshToken, getToken, updateAccessToken } from "./auth";
+import { clearAuthSession, getRefreshToken, getToken, setAuthSession, updateAccessToken } from "./auth";
 import { appConfig } from "@/config/app";
 
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789";
@@ -18,6 +18,7 @@ export interface RequestOptions extends RequestInit {
   basePath?: string;
   timeout?: number;
   _retry?: boolean;
+  skipRefresh?: boolean;
 }
 
 export class ApiError extends Error {
@@ -63,6 +64,7 @@ const request = {
       timeout = 30000,
       headers: customHeaders,
       _retry,
+      skipRefresh,
       ...requestOptions
     } = customOptions;
     const controller = new AbortController();
@@ -86,9 +88,8 @@ const request = {
         options.body = data;
         // 注意：发送 FormData 时不要手动设置 Content-Type
       } else {
-        const body = this.filterNull(data);
         headers.set("Content-Type", "application/json");
-        options.body = JSON.stringify(body);
+        options.body = JSON.stringify(data);
       }
     } else {
       const params = this.filterNull(data);
@@ -102,7 +103,10 @@ const request = {
 
     try {
       const response = await fetch(finalUrl, options);
-      if (response.status === 401 && !_retry && getRefreshToken()) {
+      if (response.status === 401 && !skipRefresh && !_retry && token && getToken() && token !== getToken()) {
+        return this._base<T>(method, url, data, { ...customOptions, _retry: true });
+      }
+      if (response.status === 401 && !skipRefresh && !_retry && getRefreshToken()) {
         const refreshed = await this.refreshSession();
         if (refreshed)
           return this._base<T>(method, url, data, {
@@ -158,14 +162,22 @@ const request = {
           updateAccessToken(`demo-${Date.now()}`);
           return true;
         }
+        const originalRefresh = getRefreshToken();
+        const persistent = Boolean(localStorage.getItem("token"));
         const response = await fetch(`${appConfig.apiBaseUrl}/auth/refresh`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refreshToken: getRefreshToken() }),
+          body: JSON.stringify({ refreshToken: originalRefresh }),
+          signal: AbortSignal.timeout(15000),
         });
         if (!response.ok) return false;
         const result = await response.json();
-        updateAccessToken(result.data?.token || result.token);
+        const session = result.data || result;
+        if (getRefreshToken() !== originalRefresh) return false;
+        if (typeof session.token !== "string" || typeof session.refreshToken !== "string" || !session.user)
+          return false;
+        setAuthSession(session.token, session.user, persistent, session.refreshToken);
+        window.dispatchEvent(new Event("auth:session-updated"));
         return true;
       } catch {
         return false;
@@ -198,7 +210,7 @@ const request = {
       ? await response.json().catch(() => ({}))
       : { message: await response.text().catch(() => "") };
     const messageText =
-      errorData.message || errorData.msg || response.statusText || "Request failed";
+      errorData.message || errorData.msg || errorData.error?.message || response.statusText || "Request failed";
     throw new ApiError(messageText, status, errorData);
   },
 

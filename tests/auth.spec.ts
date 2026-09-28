@@ -1,4 +1,4 @@
-import { clearAuthSession, getAuthUser, getToken, setAuthSession } from "@/utils/auth";
+import { clearAuthSession, getAuthUser, getToken, getRefreshToken, setAuthSession } from "@/utils/auth";
 import { beforeEach, describe, expect, it } from "vitest";
 
 describe("auth session", () => {
@@ -27,5 +27,14 @@ describe("auth session", () => {
     clearAuthSession();
     expect(getToken()).toBe("");
     expect(getAuthUser()).toEqual({});
+  });
+
+  it("never carries a refresh token between accounts or storage scopes", () => {
+    setAuthSession("a", { name: "a" }, true, "refresh-a");
+    setAuthSession("b", { name: "b" }, false, "refresh-b");
+    expect(localStorage.getItem("refresh_token")).toBeNull();
+    expect(getRefreshToken()).toBe("refresh-b");
+    setAuthSession("c", { name: "c" }, false);
+    expect(getRefreshToken()).toBe("");
   });
 });

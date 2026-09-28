@@ -7,7 +7,7 @@
           <div class="profile-summary">
             <Avatar :size="76" style="background: #3a95ff">{{ displayName.slice(0, 1) }}</Avatar>
             <h2>{{ displayName }}</h2>
-            <p>{{ authStore.user.email || "admin@k-ui.cn" }}</p>
+            <p>{{ authStore.user.email || "—" }}</p>
             <Space wrap>
               <Tag v-for="role in authStore.roles" :key="role" theme="fill">{{ role }}</Tag>
             </Space>
@@ -16,7 +16,7 @@
           <div class="profile-meta">
             <div>
               <span>所属部门</span>
-              <strong>平台研发中心</strong>
+              <strong>{{ authStore.user.departmentId || "未设置" }}</strong>
             </div>
             <div>
               <span>账号状态</span>
@@ -24,11 +24,11 @@
             </div>
             <div>
               <span>上次登录</span>
-              <strong>今天 09:42</strong>
+              <strong>暂未提供</strong>
             </div>
             <div>
               <span>登录地点</span>
-              <strong>中国 · 武汉</strong>
+              <strong>暂未提供</strong>
             </div>
           </div>
         </Card>
@@ -58,8 +58,7 @@
                     </FormItem>
                   </GridItem>
                 </Grid>
-                <FormItem label="个人简介"><Input v-model="basicForm.bio" clearable /></FormItem>
-                <Button type="primary" @click="saveBasic">保存修改</Button>
+                <Button type="primary" :loading="saving" @click="saveBasic">保存修改</Button>
               </Form>
             </TabPanel>
             <TabPanel key="security" title="账号安全">
@@ -121,6 +120,8 @@ import { usePreferenceStore } from "@/stores/preferences";
 import { KeyRound, MailCheck, ShieldCheck, Smartphone } from "kui-icons";
 import { message, type IconType } from "kui-vue";
 import { computed, reactive, ref } from "vue";
+import { updateProfileApi } from "@/api/auth";
+import { appConfig } from "@/config/app";
 
 const authStore = useAuthStore();
 const themeStore = useThemeStore();
@@ -130,9 +131,8 @@ const displayName = computed(() => authStore.user.fullName || authStore.user.nam
 const basicForm = reactive({
   fullName: String(authStore.user.fullName || "Administrator"),
   name: String(authStore.user.name || "admin"),
-  email: String(authStore.user.email || "admin@k-ui.cn"),
-  phone: "000 **** 0000",
-  bio: "负责 KUI Pro 平台建设与业务管理。",
+  email: String(authStore.user.email || ""),
+  phone: String(authStore.user.phone || ""),
 });
 const securityItems: Array<{
   title: string;
@@ -148,13 +148,13 @@ const securityItems: Array<{
   },
   {
     title: "安全邮箱",
-    description: "admin@k-ui.cn",
+    description: String(authStore.user.email || "未设置"),
     action: "更换",
     icon: MailCheck,
   },
   {
     title: "绑定手机",
-    description: "已绑定 000 **** 0000",
+    description: String(authStore.user.phone || "未设置"),
     action: "更换",
     icon: Smartphone,
   },
@@ -165,12 +165,17 @@ const securityItems: Array<{
     icon: ShieldCheck,
   },
 ];
-const saveBasic = () => {
-  authStore.updateUser({
-    fullName: basicForm.fullName,
-    email: basicForm.email,
-  });
-  message.success("个人信息已保存");
+const saving = ref(false);
+const saveBasic = async () => {
+  if (saving.value) return;
+  saving.value = true;
+  try {
+    const payload = { fullName: basicForm.fullName, email: basicForm.email, phone: basicForm.phone };
+    authStore.updateUser(appConfig.useMock ? payload : await updateProfileApi(payload));
+    message.success("个人信息已保存");
+  } catch {
+    // The request layer reports errors; keep the form for correction/retry.
+  } finally { saving.value = false; }
 };
 const toggleTheme = (dark: boolean) => themeStore.setTheme(dark ? "dark" : "light");
 </script>

@@ -1,14 +1,11 @@
 <template>
   <div class="pro-list-page">
-    <PageHeader title="订单管理" description="查询和跟踪全部交易订单。">
-      <template #actions><Button :icon="Download">导出订单</Button></template>
-    </PageHeader>
-    <Grid :cols="{ xs: 1, sm: 2, xl: 4 }" :x-gap="12" :y-gap="12" class="order-stats">
-      <GridItem v-for="item in stats" :key="item.title">
-        <StatCard :title="item.title" :items="[item.data]" bordered reverse />
-      </GridItem>
-    </Grid>
-    <ListPanel :summary="`${filteredOrders.length} 条订单`">
+    <PageHeader title="订单管理" description="查询和跟踪全部交易订单。"></PageHeader>
+    <p v-if="error" role="alert">
+      {{ error }}
+      <Button @click="reload">重试</Button>
+    </p>
+    <ListPanel :summary="`${total} 条订单`">
       <template #filters>
         <Input
           v-model="keyword"
@@ -18,14 +15,9 @@
           style="width: 200px"
         />
         <Select v-model="status" clearable placeholder="全部状态" :options="statusOptions" />
-        <Select
-          v-model="paymentMethod"
-          clearable
-          placeholder="支付方式"
-          :options="paymentOptions"
-        />
-        <Select v-model="source" clearable placeholder="订单来源" :options="sourceOptions" />
-        <DatePicker v-model="dateRange" mode="dateRange" placeholder="下单时间" />
+        <Input v-model="paymentMethod" clearable placeholder="支付方式（精确匹配）" />
+        <Input v-model="source" clearable placeholder="订单来源（精确匹配）" />
+        <DatePicker v-model="dateRange" mode="dateRange" placeholder="下单日期（UTC）" />
       </template>
       <template #actions>
         <Space>
@@ -40,7 +32,8 @@
         </Space>
       </template>
       <Table
-        :data="filteredOrders"
+        :data="orders"
+        :loading="loading"
         :columns="columns"
         :hidden-column-keys="hiddenColumnKeys"
         row-key="id"
@@ -57,13 +50,18 @@
         <template #buyer="{ record }">
           <div class="buyer-cell">
             <strong>{{ record.customer }}</strong>
-            <span>{{ record.buyer }} · {{ record.phone }}</span>
+            <span>{{ record.contact }} · {{ record.phone }}</span>
           </div>
         </template>
         <template #items="{ record }">
           <div class="order-items">
             <div v-for="item in record.items" :key="item.id" class="order-item">
-              <Image :src="item.image" :width="48" :height="48" fit="cover" />
+              <Image
+                :src="item.image"
+                :width="48"
+                :height="48"
+                :img-style="{ objectFit: 'cover' }"
+              />
               <div>
                 <strong>{{ item.name }}</strong>
                 <small>{{ item.specs }} · {{ item.sku }}</small>
@@ -85,7 +83,8 @@
           <Space compact>
             <Button size="small" theme="plain" :icon="Eye" @click="openDetail(record)">详情</Button>
             <Button
-              v-if="record.status === 'pending'"
+              v-if="record.status === 'pending' && canClose"
+              :disabled="busy"
               size="small"
               color="red"
               theme="plain"
@@ -96,95 +95,69 @@
           </Space>
         </template>
       </Table>
+      <Page v-model:page="page" :page-size="pageSize" :total="total" :disabled="loading" />
     </ListPanel>
   </div>
 </template>
 
 <script setup lang="ts">
-import { orderStatusOptions, type OrderRecord } from "@/data/orders";
-import { useOrderStore } from "@/stores/orders";
-import { Download, Eye, Search } from "kui-icons";
-import { message, modal, PageHeader, type Column, type StatNumberItem } from "kui-vue";
-import { storeToRefs } from "pinia";
+import { commerceApi, orderStatusOptions, type OrderRecord } from "@/api/commerce";
+import { useResourcePage } from "@/composables/use-resource-page";
+import { useAuthStore } from "@/stores/auth";
+import { hasPermission } from "@/routers/permissions";
+import { Eye, Search } from "kui-icons";
+import { message, modal, PageHeader, type Column } from "kui-vue";
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
+import dayjs from "dayjs";
 
 const router = useRouter();
-const orderStore = useOrderStore();
-const { orders } = storeToRefs(orderStore);
-
-const stats: Array<{ title: string; data: StatNumberItem }> = [
-  {
-    title: "今日订单",
-    data: { value: 1286, separator: ",", desc: "全部渠道" },
-  },
-  { title: "待付款", data: { value: 38, desc: "等待客户支付" } },
-  { title: "待发货", data: { value: 126, desc: "需要仓库处理" } },
-  {
-    title: "退款申请",
-    data: {
-      value: 8,
-      desc: "需要售后处理",
-      trend: "2 项即将超时",
-      trendStatus: "warning",
-    },
-  },
-];
+const auth = useAuthStore();
+const canClose = computed(() => hasPermission("order:close", auth.user?.permissions || []));
+const keyword = ref("");
+const status = ref<string>();
+const paymentMethod = ref("");
+const source = ref("");
+const dateRange = ref<[number, number]>();
+const busy = ref(false);
+const {
+  items: orders,
+  total,
+  page,
+  pageSize,
+  loading,
+  error,
+  reload,
+} = useResourcePage<OrderRecord>("/orders", () => ({
+  keyword: keyword.value.trim(),
+  status: status.value,
+  paymentMethod: paymentMethod.value.trim(),
+  source: source.value.trim(),
+  startDate: dateRange.value?.[0] ? dayjs(dateRange.value[0]).format("YYYY-MM-DD") : undefined,
+  endDate: dateRange.value?.[1] ? dayjs(dateRange.value[1]).format("YYYY-MM-DD") : undefined,
+}));
 const columns: Column[] = [
-  { title: "订单号", key: "id", width: 185 },
-  { title: "买家", key: "buyer", width: 180 },
+  { title: "订单号", key: "id", width: 210 },
+  { title: "客户", key: "buyer", width: 180 },
   { title: "商品明细", key: "items", width: 450 },
-  { title: "实付金额", key: "paidAmount", width: 130 },
+  { title: "订单金额", key: "paidAmount", width: 130 },
   { title: "状态", key: "status", width: 100 },
   { title: "操作", key: "action", width: 170, fixed: "right" },
 ];
 const statusOptions = orderStatusOptions;
-const keyword = ref("");
-const status = ref<string>();
-const paymentMethod = ref<string>();
-const source = ref<string>();
-const dateRange = ref<string[]>([]);
-const paymentOptions = [...new Set(orders.value.map((item) => item.paymentMethod))].map(
-  (value) => ({ label: value, value }),
-);
-const sourceOptions = [...new Set(orders.value.map((item) => item.source))].map((value) => ({
-  label: value,
-  value,
-}));
 const hiddenColumnKeys = ref<string[]>([]);
-const filteredOrders = computed(() =>
-  orders.value.filter((item) => {
-    const query = keyword.value.trim().toLowerCase();
-    const orderDate = item.createdAt.slice(0, 10);
-    return (
-      (!query ||
-        item.id.toLowerCase().includes(query) ||
-        item.customer.toLowerCase().includes(query) ||
-        item.items.some((product) => product.name.toLowerCase().includes(query))) &&
-      (!status.value || item.status === status.value) &&
-      (!paymentMethod.value || item.paymentMethod === paymentMethod.value) &&
-      (!source.value || item.source === source.value) &&
-      (!dateRange.value[0] || orderDate >= dateRange.value[0]) &&
-      (!dateRange.value[1] || orderDate <= dateRange.value[1])
-    );
-  }),
-);
 const statusLabel = (value: string) =>
   statusOptions.find((item) => item.value === value)?.label || value;
 const statusColor = (value: string) =>
-  ({
-    pending: "orange",
-    paid: "blue",
-    shipped: "cyan",
-    completed: "green",
-    refund: "red",
-  })[value] || "gray";
+  ({ pending: "orange", paid: "blue", shipped: "cyan", completed: "green", refunded: "red" })[
+    value
+  ] || "gray";
 const resetFilters = () => {
   keyword.value = "";
   status.value = undefined;
-  paymentMethod.value = undefined;
-  source.value = undefined;
-  dateRange.value = [];
+  paymentMethod.value = "";
+  source.value = "";
+  dateRange.value = undefined;
 };
 const itemCount = (record: OrderRecord) =>
   record.items.reduce((total, item) => total + item.quantity, 0);
@@ -193,8 +166,18 @@ const closePendingOrder = (record: OrderRecord) =>
   modal.confirm({
     title: "关闭订单",
     content: `确定关闭订单 ${record.id} 吗？关闭后客户将无法继续支付。`,
-    onOk: () => {
-      if (orderStore.closeOrder(record.id)) message.success("订单已关闭");
+    onOk: async () => {
+      if (busy.value) return;
+      busy.value = true;
+      try {
+        await commerceApi.action(record.id, "close", undefined);
+        message.success("订单已关闭");
+        await reload();
+      } catch {
+        /* The request layer reports the failure. */
+      } finally {
+        busy.value = false;
+      }
     },
   });
 </script>

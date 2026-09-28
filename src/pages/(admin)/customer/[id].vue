@@ -1,105 +1,45 @@
 <template>
   <div class="customer-detail-page">
-    <PageHeader :title="customer.name" :description="`${customer.id} · ${customer.industry}`">
-      <template #actions>
-        <Button :icon="ArrowLeft" @click="router.back()">返回</Button>
-        <Button :icon="Phone">联系客户</Button>
-        <Button type="primary" :icon="Plus">新建商机</Button>
-      </template>
+    <PageHeader :title="customer?.name || '客户详情'" :description="customer?.industry">
+      <template #actions><Button :icon="ArrowLeft" @click="router.back()">返回</Button></template>
     </PageHeader>
-    <Grid :cols="{ xs: 1, lg: 12 }" :x-gap="16" :y-gap="16">
+    <p v-if="loading" role="status">正在加载客户资料…</p>
+    <p v-else-if="error" role="alert">{{ error }} <Button @click="load">重试</Button></p>
+    <Grid v-else-if="customer" :cols="{ xs: 1, lg: 12 }" :x-gap="16" :y-gap="16">
       <GridItem :span="{ xs: 1, lg: 4 }">
-        <Space vertical block :size="16">
-          <Card bordered>
-            <div class="company-profile">
-              <span :style="{ background: customer.color }"><Icon :type="Building2" /></span>
-              <h2>{{ customer.name }}</h2>
-              <Space>
-                <Tag color="purple">{{ levelLabel }}</Tag>
-                <Badge :status="statusBadge" :text="statusLabel" />
-              </Space>
-            </div>
-            <Divider />
-            <div class="company-meta">
-              <p>
-                <Icon :type="ContactRound" />
-                {{ customer.contact }} · {{ customer.owner }}负责
-              </p>
-              <p>
-                <Icon :type="Phone" />
-                {{ customer.phone }}
-              </p>
-              <p>
-                <Icon :type="Mail" />
-                {{ customer.email }}
-              </p>
-              <p>
-                <Icon :type="MapPin" />
-                {{ customer.city }}
-              </p>
-            </div>
-          </Card>
-          <Card title="客户健康度" bordered>
-            <div class="health-score">
-              <strong>86</strong>
-              <span>健康</span>
-            </div>
-            <Progress :percent="86" :show-info="false" color="#22a06b" />
-            <p class="health-tip">近期互动活跃，订单履约情况良好。</p>
-          </Card>
-        </Space>
-      </GridItem>
-      <GridItem :span="{ xs: 1, lg: 8 }">
-        <Grid :cols="{ xs: 1, sm: 3 }" :x-gap="12" :y-gap="12" class="value-grid">
-          <GridItem>
-            <StatCard
-              title="年度客户价值"
-              :items="[
-                {
-                  value: customer.annualValue,
-                  prefix: '¥',
-                  separator: ',',
-                  desc: '预计年度收入',
-                },
-              ]"
-              bordered
-              reverse
-            />
-          </GridItem>
-          <GridItem>
-            <StatCard
-              title="累计订单"
-              :items="[{ value: customer.orders, desc: '历史成交订单' }]"
-              bordered
-              reverse
-            />
-          </GridItem>
-          <GridItem>
-            <StatCard
-              title="合作时长"
-              :items="[{ value: 26, suffix: '个月', desc: '自 2024 年 6 月' }]"
-              bordered
-              reverse
-            />
-          </GridItem>
-        </Grid>
-        <Card title="业务动态" bordered class="activity-card">
-          <div class="business-events">
-            <div v-for="item in events" :key="item.title">
-              <span><Icon :type="item.icon" /></span>
-              <div>
-                <strong>{{ item.title }}</strong>
-                <p>{{ item.description }}</p>
-                <small>{{ item.time }}</small>
-              </div>
-            </div>
+        <Card bordered>
+          <div class="company-profile">
+            <span style="background: var(--kui-color-primary)"><Icon :type="Building2" /></span>
+            <h2>{{ customer.name }}</h2>
+            <Space>
+              <Tag>{{ levels.find(item => item.value === customer?.level)?.label }}</Tag>
+              <Tag>{{ statuses.find(item => item.value === customer?.status)?.label }}</Tag>
+            </Space>
+          </div>
+          <Divider />
+          <div class="company-meta">
+            <p>编号：{{ customer.id }}</p>
+            <p>联系人：{{ customer.contact }}</p>
+            <p>电话：{{ customer.phone || '未填写' }}</p>
+            <p>邮箱：{{ customer.email || '未填写' }}</p>
+            <p>城市：{{ customer.city || '未填写' }}</p>
+            <p>创建时间：{{ customer.createdAt }}</p>
           </div>
         </Card>
-        <Card title="最近订单" bordered>
-          <Table :data="recentOrders" :columns="orderColumns" row-key="id">
-            <template #amount="{ value }">¥ {{ Number(value).toLocaleString() }}</template>
-            <template #status><Tag color="green">已完成</Tag></template>
-          </Table>
+      </GridItem>
+      <GridItem :span="{ xs: 1, lg: 8 }">
+        <Card title="客户资料" bordered>
+          <Form :model="form" layout="vertical">
+            <FormItem label="企业名称"><Input v-model="form.name" /></FormItem>
+            <FormItem label="所属行业"><Input v-model="form.industry" /></FormItem>
+            <FormItem label="客户等级"><Select v-model="form.level" :options="levels" /></FormItem>
+            <FormItem label="跟进状态"><Select v-model="form.status" :options="statuses" /></FormItem>
+            <FormItem label="联系人"><Input v-model="form.contact" /></FormItem>
+            <FormItem label="联系电话"><Input v-model="form.phone" /></FormItem>
+            <FormItem label="联系邮箱"><Input v-model="form.email" /></FormItem>
+            <FormItem label="城市"><Input v-model="form.city" /></FormItem>
+            <Button v-if="canEdit" type="primary" :loading="saving" @click="save">保存资料</Button>
+          </Form>
         </Card>
       </GridItem>
     </Grid>
@@ -107,103 +47,72 @@
 </template>
 
 <script setup lang="ts">
-import { customers } from "@/data/customers";
-import {
-  ArrowLeft,
-  Building2,
-  CheckCheck,
-  ContactRound,
-  FileText,
-  Mail,
-  MapPin,
-  Phone,
-  Plus,
-  ShoppingCart,
-} from "kui-icons";
-import type { BadgeStatusType, Column, IconType } from "kui-vue";
-import { PageHeader } from "kui-vue";
-import { computed } from "vue";
+import { ArrowLeft, Building2 } from "kui-icons";
+import { PageHeader, message } from "kui-vue";
+import { computed, onActivated, onDeactivated, onScopeDispose, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { catalogApi, customerInput, type Customer, type CustomerInput } from "@/api/catalog";
+import { hasPermission } from "@/routers/permissions";
+import { useAuthStore } from "@/stores/auth";
 
 const route = useRoute();
 const router = useRouter();
-const customer = computed(
-  () => customers.find((item) => item.id === route.params.id) || customers[0],
-);
-const levelLabel = computed(
-  () =>
-    ({ strategic: "战略客户", enterprise: "企业客户", growth: "成长客户" })[customer.value.level],
-);
-const statusLabel = computed(
-  () => ({ active: "合作中", follow: "跟进中", risk: "风险关注" })[customer.value.status],
-);
-const statusBadge = computed(
-  () =>
-    ({ active: "success", follow: "processing", risk: "warning" })[
-      customer.value.status
-    ] as BadgeStatusType,
-);
-const events: Array<{
-  title: string;
-  description: string;
-  time: string;
-  icon: IconType[];
-}> = [
-  {
-    title: "完成订单交付",
-    description: "企业协作平台专业版已完成授权交付",
-    time: "今天 11:20",
-    icon: CheckCheck,
-  },
-  {
-    title: "客户回访",
-    description: "客户对数据报表功能提出了新需求",
-    time: "昨天 16:40",
-    icon: ContactRound,
-  },
-  {
-    title: "签署续约合同",
-    description: "年度服务续约合同已完成电子签署",
-    time: "8 月 18 日",
-    icon: FileText,
-  },
-  {
-    title: "创建订单",
-    description: "购买企业协作平台专业版",
-    time: "8 月 12 日",
-    icon: ShoppingCart,
-  },
+const auth = useAuthStore();
+const canEdit = computed(() => hasPermission("customer:write", auth.user?.permissions || []));
+const customer = ref<Customer>();
+const loading = ref(false);
+const saving = ref(false);
+const error = ref("");
+const form = reactive<CustomerInput>({
+  name: "", industry: "", level: "growth", status: "follow",
+  contact: "", phone: "", email: "", city: "",
+});
+const levels = [
+  { label: "战略客户", value: "strategic" }, { label: "企业客户", value: "enterprise" },
+  { label: "成长客户", value: "growth" },
 ];
-const orderColumns: Column[] = [
-  { title: "订单号", key: "id" },
-  { title: "产品", key: "product" },
-  { title: "金额", key: "amount", width: 120 },
-  { title: "状态", key: "status", width: 100 },
-  { title: "日期", key: "date", width: 120 },
+const statuses = [
+  { label: "合作中", value: "active" }, { label: "跟进中", value: "follow" },
+  { label: "风险关注", value: "risk" },
 ];
-const recentOrders = [
-  {
-    id: "K202608230018",
-    product: "企业协作平台专业版",
-    amount: 12800,
-    status: "completed",
-    date: "2026-08-23",
-  },
-  {
-    id: "K202607160086",
-    product: "数据分析服务年度版",
-    amount: 28600,
-    status: "completed",
-    date: "2026-07-16",
-  },
-  {
-    id: "K202606080042",
-    product: "团队空间扩容包",
-    amount: 2399,
-    status: "completed",
-    date: "2026-06-08",
-  },
-];
+let generation = 0;
+let active = true;
+async function load() {
+  const id = String(route.params.id || "");
+  if (!id || !route.path.startsWith("/customer/")) return;
+  const current = ++generation;
+  customer.value = undefined;
+  error.value = "";
+  loading.value = true;
+  try {
+    const result = await catalogApi.customer(id);
+    if (current !== generation) return;
+    customer.value = result;
+    Object.assign(form, customerInput(result));
+  } catch (reason) {
+    if (current === generation)
+      error.value = reason instanceof Error ? reason.message : "客户资料加载失败";
+  } finally { if (current === generation) loading.value = false; }
+}
+async function save() {
+  if (saving.value || !customer.value || !canEdit.value) return;
+  if (!form.name.trim() || !form.contact.trim()) return message.warning("请填写企业名称和联系人");
+  const id = customer.value.id;
+  const current = generation;
+  saving.value = true;
+  try {
+    const result = await catalogApi.saveCustomer(form, id);
+    if (current !== generation) return;
+    customer.value = result;
+    Object.assign(form, customerInput(result));
+    message.success("客户资料已保存");
+  } catch { /* Request layer reports errors; do not discard edits. */ }
+  finally { saving.value = false; }
+}
+watch(() => route.params.id, () => { if (active) void load(); }, { immediate: true });
+onActivated(() => { if (!active) { active = true; void load(); } });
+onDeactivated(() => { active = false; generation++; });
+onScopeDispose(() => { generation++; });
 </script>
 
 <style scoped lang="less">

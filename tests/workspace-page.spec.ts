@@ -1,0 +1,169 @@
+import { createApp, defineComponent, h, nextTick, reactive } from "vue";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import ResourceManager from "@/components/business/resource-manager.vue";
+import { resources } from "@/api/workspace";
+import request from "@/utils/request";
+import { message } from "kui-vue";
+
+const auth = reactive({ permissions: ["*"], user: { id: "actor" } });
+vi.mock("@/stores/auth", () => ({ useAuthStore: () => auth }));
+vi.mock("@/utils/request", () => ({
+  default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+}));
+vi.mock("kui-vue", () => ({ message: { success: vi.fn(), warning: vi.fn() } }));
+const disposers: (() => void)[] = [];
+const flush = async () => {
+  for (let i = 0; i < 6; i++) {
+    await Promise.resolve();
+    await nextTick();
+  }
+};
+function mount() {
+  const app = createApp(ResourceManager, { definition: resources.projects! });
+  const root = document.createElement("div");
+  const box = defineComponent({
+    props: ["label"],
+    setup:
+      (props, { slots }) =>
+      () =>
+        h("div", { "data-field": props.label }, [
+          slots.default?.(),
+          slots.actions?.(),
+          slots.filters?.(),
+          slots.footer?.(),
+        ]),
+  });
+  for (const name of [
+    "PageHeader",
+    "ListPanel",
+    "Form",
+    "FormItem",
+    "Space",
+    "Page",
+    "Select",
+    "Switch",
+  ])
+    app.component(name, box);
+  app.component(
+    "Button",
+    defineComponent({
+      props: ["disabled", "loading"],
+      setup:
+        (props, { slots }) =>
+        () =>
+          h("button", { disabled: props.disabled || props.loading }, slots.default?.()),
+    }),
+  );
+  const dialog = defineComponent({
+    props: ["modelValue", "title"],
+    setup:
+      (props, { slots }) =>
+      () =>
+        props.modelValue
+          ? h("section", { "data-dialog": props.title }, [slots.default?.(), slots.footer?.()])
+          : null,
+  });
+  app.component("Drawer", dialog);
+  app.component("Modal", dialog);
+  const input = defineComponent({
+    props: ["modelValue", "disabled"],
+    emits: ["update:modelValue"],
+    setup:
+      (props, { emit }) =>
+      () =>
+        h("input", {
+          value: props.modelValue,
+          disabled: props.disabled,
+          onInput: (event: Event) =>
+            emit("update:modelValue", (event.target as HTMLInputElement).value),
+        }),
+  });
+  for (const name of ["Input", "TextArea", "InputNumber"]) app.component(name, input);
+  app.component(
+    "Table",
+    defineComponent({
+      props: ["data"],
+      setup:
+        (props, { slots }) =>
+        () =>
+          h(
+            "div",
+            (props.data || []).map((record: object) => slots.action?.({ record })),
+          ),
+    }),
+  );
+  app.mount(root);
+  disposers.push(() => app.unmount());
+  return root;
+}
+function click(root: Element, label: string) {
+  const button = [...root.querySelectorAll("button")].find((node) => node.textContent?.trim() === label);
+  expect(button).toBeDefined();
+  button!.click();
+}
+function fill(root: Element, label: string, value: string) {
+  const input = root.querySelector(`[data-field="${label}"] input`) as HTMLInputElement;
+  input.value = value;
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+beforeEach(() => {
+  vi.resetAllMocks();
+  auth.permissions = ["*"];
+  vi.mocked(request.get).mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 });
+});
+afterEach(() => disposers.splice(0).forEach((dispose) => dispose()));
+describe("workspace page workflows", () => {
+  it("retains failed input, and only closes after a successful server save", async () => {
+    const root = mount();
+    await flush();
+    click(root, "新增");
+    await flush();
+    fill(root, "名称", "Real project");
+    fill(root, "项目编码", "P1");
+    fill(root, "截止日期", "2026-12-31");
+    await flush();
+    vi.mocked(request.post).mockRejectedValueOnce(new Error("Offline"));
+    click(root, "保存");
+    await flush();
+    expect(root.querySelector("[data-dialog]")).not.toBeNull();
+    expect(message.success).not.toHaveBeenCalled();
+    expect((root.querySelector('[data-field="名称"] input') as HTMLInputElement).value).toBe(
+      "Real project",
+    );
+    vi.mocked(request.post).mockResolvedValueOnce({ id: "new" });
+    click(root, "保存");
+    await flush();
+    expect(request.post).toHaveBeenLastCalledWith(
+      "/projects",
+      expect.objectContaining({ name: "Real project", code: "P1", deadline: "2026-12-31" }),
+    );
+    expect(root.querySelector("[data-dialog]")).toBeNull();
+    expect(message.success).toHaveBeenCalledOnce();
+  });
+  it("does not offer create/delete to a read-only account", async () => {
+    auth.permissions = ["project:read"];
+    vi.mocked(request.get).mockResolvedValue({
+      items: [{ id: "p" }],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+    });
+    const root = mount();
+    await flush();
+    expect(root.textContent).not.toContain("新增");
+    expect(root.textContent).not.toContain("删除");
+  });
+  it("does not show a saveable default record when detail loading fails", async () => {
+    vi.mocked(request.get)
+      .mockResolvedValueOnce({ items: [{ id: "p" }], total: 1, page: 1, pageSize: 20 })
+      .mockRejectedValueOnce(new Error("Record missing"));
+    const root = mount();
+    await flush();
+    click(root, "详情 / 编辑");
+    await flush();
+    expect(root.textContent).toContain("Record missing");
+    const save = [...root.querySelectorAll("button")].find((node) => node.textContent?.trim() === "保存");
+    expect(save?.disabled).toBe(true);
+    expect(request.put).not.toHaveBeenCalled();
+  });
+});

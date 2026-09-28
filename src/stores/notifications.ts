@@ -1,95 +1,78 @@
 import { defineStore } from "pinia";
-import { computed, ref, watch } from "vue";
-
-export type NotificationType = "order" | "system" | "task" | "security";
-
-export interface NotificationItem {
-  id: string;
-  type: NotificationType;
-  title: string;
-  content: string;
-  time: string;
-  read: boolean;
-  link?: string;
-}
-
-const initialNotifications: NotificationItem[] = [
-  {
-    id: "N1001",
-    type: "order",
-    title: "新订单待处理",
-    content: "订单 K202608230018 已完成支付，请及时安排发货。",
-    time: "5 分钟前",
-    read: false,
-    link: "/commerce/orders",
-  },
-  {
-    id: "N1002",
-    type: "security",
-    title: "异常登录提醒",
-    content: "检测到来自新设备的登录行为，请确认是否为本人操作。",
-    time: "28 分钟前",
-    read: false,
-    link: "/system/logs",
-  },
-  {
-    id: "N1003",
-    type: "task",
-    title: "项目即将到期",
-    content: "移动端改版项目将在 5 天后到期。",
-    time: "1 小时前",
-    read: false,
-  },
-  {
-    id: "N1004",
-    type: "system",
-    title: "系统维护完成",
-    content: "数据分析服务已完成例行维护，全部功能恢复正常。",
-    time: "昨天 22:18",
-    read: true,
-  },
-  {
-    id: "N1005",
-    type: "order",
-    title: "退款申请",
-    content: "订单 K202608220096 提交了退款申请。",
-    time: "昨天 16:42",
-    read: true,
-    link: "/commerce/after-sales",
-  },
-];
-
-const readStored = () => {
-  try {
-    const value = JSON.parse(localStorage.getItem("notifications") || "null");
-    return Array.isArray(value)
-      ? (value as NotificationItem[])
-      : initialNotifications.map((item) => ({ ...item }));
-  } catch {
-    return initialNotifications.map((item) => ({ ...item }));
-  }
-};
-
+import { ref, watch } from "vue";
+import { systemApi, type NotificationItem } from "@/api/system";
+import { useAuthStore } from "./auth";
+export type { NotificationItem } from "@/api/system";
 export const useNotificationStore = defineStore("notifications", () => {
-  const items = ref<NotificationItem[]>(readStored());
-  const unreadCount = computed(() => items.value.filter((item) => !item.read).length);
-  const markRead = (id: string) => {
-    const item = items.value.find((notification) => notification.id === id);
-    if (item) item.read = true;
+  const auth = useAuthStore();
+  const items = ref<NotificationItem[]>([]),
+    unreadCount = ref(0),
+    total = ref(0),
+    page = ref(1);
+  const loading = ref(false),
+    saving = ref(false),
+    error = ref("");
+  let generation = 0;
+  function reset() {
+    generation++;
+    items.value = [];
+    unreadCount.value = 0;
+    total.value = 0;
+    page.value = 1;
+    loading.value = false;
+    error.value = "";
+  }
+  watch(() => auth.user.id, reset);
+  async function load(target = page.value) {
+    const current = ++generation,
+      user = auth.user.id;
+    loading.value = true;
+    error.value = "";
+    items.value = [];
+    try {
+      const result = await systemApi.notifications(target);
+      if (current !== generation || user !== auth.user.id) return;
+      items.value = result.items;
+      total.value = result.total;
+      unreadCount.value = result.unreadCount;
+      page.value = result.page;
+    } catch (reason) {
+      if (current === generation) {
+        error.value = reason instanceof Error ? reason.message : "加载失败";
+        unreadCount.value = 0;
+        total.value = 0;
+      }
+    } finally {
+      if (current === generation) loading.value = false;
+    }
+  }
+  async function markRead(id: string) {
+    if (saving.value) return false;
+    const user = auth.user.id;
+    saving.value = true;
+    try {
+      await systemApi.markRead(id);
+      if (user !== auth.user.id) return false;
+      await load();
+      return true;
+    } catch {
+      return false;
+    } finally {
+      saving.value = false;
+    }
+  }
+  const markAllRead = () => markRead("all");
+  return {
+    items,
+    unreadCount,
+    total,
+    page,
+    loading,
+    saving,
+    error,
+    load,
+    markRead,
+    markAllRead,
+    reset,
   };
-  const markAllRead = () =>
-    items.value.forEach((item) => {
-      item.read = true;
-    });
-  const remove = (id: string) => {
-    items.value = items.value.filter((item) => item.id !== id);
-  };
-  const clearRead = () => {
-    items.value = items.value.filter((item) => !item.read);
-  };
-
-  watch(items, (value) => localStorage.setItem("notifications", JSON.stringify(value)), {
-    deep: true,
-  });
-  return { items, unreadCount, markRead, markAllRead, remove, clearRead };
 });

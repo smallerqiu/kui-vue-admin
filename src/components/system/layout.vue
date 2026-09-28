@@ -84,7 +84,7 @@ import Main from "@/components/system/sys-main.vue";
 import Tab from "@/components/system/tab.vue";
 import Theme from "@/components/system/theme.vue";
 import { useTranslate } from "@/lang/useTranslate.ts";
-import { filterMenuByAccess } from "@/routers/permissions";
+import { filterMenuByAccess, hasPermission } from "@/routers/permissions";
 import { useAuthStore } from "@/stores/auth";
 import { useNotificationStore } from "@/stores/notifications";
 import { useSystemSettingsStore } from "@/stores/system-settings";
@@ -112,6 +112,16 @@ const tabViewsStore = useTabViewsStore();
 const authStore = useAuthStore();
 const notificationStore = useNotificationStore();
 const systemSettings = useSystemSettingsStore();
+watch(
+  () => [authStore.user.id, authStore.permissions.join(",")],
+  () => {
+    if (!authStore.user.id) return;
+    void notificationStore.load(1);
+    if (hasPermission("system:settings:read", authStore.permissions)) void systemSettings.load();
+    else systemSettings.reset();
+  },
+  { immediate: true },
+);
 const layoutMode = computed(() => systemSettings.settings.layoutMode || "side");
 const route = useRoute();
 const router = useRouter();
@@ -295,7 +305,8 @@ const switchMode = (event: MouseEvent) => {
       height: 100vh;
       margin: 0;
       border-width: 0 1px 0 0;
-      border-radius: 0 var(--kui-card-radius, var(--kui-border-radius-card)) var(--kui-card-radius, var(--kui-border-radius-card)) 0;
+      border-radius: 0 var(--kui-card-radius, var(--kui-border-radius-card))
+        var(--kui-card-radius, var(--kui-border-radius-card)) 0;
       transform: translateX(-105%);
       transition: transform var(--kui-motion-duration) var(--kui-motion-easing);
       box-shadow: var(--kui-pop-shadow);

@@ -7,8 +7,10 @@ import {
 } from "@/stores/tabs";
 import { defaultSystemSettings, useSystemSettingsStore } from "@/stores/system-settings";
 import { createPinia, setActivePinia } from "pinia";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
+import request from "@/utils/request";
+vi.mock("@/utils/request", () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }));
 
 describe("persistent stores", () => {
   beforeEach(() => {
@@ -16,20 +18,37 @@ describe("persistent stores", () => {
     setActivePinia(createPinia());
   });
 
-  it("synchronizes notification read state", () => {
+  it("synchronizes notification read state from the server", async () => {
     const store = useNotificationStore();
+    expect(store.unreadCount).toBe(0);
+    vi.mocked(request.get).mockResolvedValueOnce({
+      items: [],
+      total: 3,
+      unreadCount: 3,
+      page: 1,
+      pageSize: 20,
+    });
+    await store.load();
     expect(store.unreadCount).toBe(3);
-    store.markAllRead();
+    vi.mocked(request.post).mockResolvedValueOnce({ ok: true });
+    vi.mocked(request.get).mockResolvedValueOnce({
+      items: [],
+      total: 3,
+      unreadCount: 0,
+      page: 1,
+      pageSize: 20,
+    });
+    await store.markAllRead();
     expect(store.unreadCount).toBe(0);
   });
 
-  it("saves and restores system settings", () => {
+  it("saves system settings through the API without browser persistence", async () => {
     const store = useSystemSettingsStore();
-    store.settings.organizationName = "KUI Test";
-    store.save();
-    expect(JSON.parse(localStorage.getItem("system_settings") || "{}").organizationName).toBe(
-      "KUI Test",
-    );
+    const saved = { ...defaultSystemSettings, organizationName: "KUI Test" };
+    vi.mocked(request.put).mockResolvedValueOnce(saved);
+    await store.save(saved);
+    expect(store.settings.organizationName).toBe("KUI Test");
+    expect(localStorage.getItem("system_settings")).toBeNull();
     store.reset();
     expect(store.settings.organizationName).toBe(defaultSystemSettings.organizationName);
   });
