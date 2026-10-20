@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("kui-vue", () => ({ message: { error: vi.fn(), show: vi.fn() } }));
 vi.mock("@/config/app", () => ({ appConfig: { useMock: false, apiBaseUrl: "/api" } }));
 import request from "@/utils/request";
+import { message } from "kui-vue";
 import { getRefreshToken, getToken, setAuthSession, clearAuthSession } from "@/utils/auth";
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
@@ -46,5 +47,43 @@ describe("real API transport", () => {
     complete(json({ token: "new", refreshToken: "new-refresh", user: {} }));
     expect(await pending).toBe(false);
     expect(getToken()).toBe("");
+  });
+
+  // Two tabs of one session share the stored refresh token, and the server rotates it in
+  // place, so the tab that loses that race is told its token is spent. Its session is not
+  // over - the winner has already written the new pair where both tabs can read it.
+  it("adopts the rotated tokens the other tab stored instead of logging out", async () => {
+    setAuthSession("old", { name: "a" }, false, "r1");
+    const fetcher = vi.fn(async (url: string, options: RequestInit) => {
+      if (url.endsWith("/auth/refresh")) {
+        setAuthSession("t2", { name: "a" }, false, "r2");
+        return json({ msg: "refresh token already spent" }, 401);
+      }
+      return new Headers(options.headers).get("Authorization") === "Bearer t2"
+        ? json({ ok: true })
+        : json({ msg: "expired" }, 401);
+    });
+    vi.stubGlobal("fetch", fetcher);
+    await expect(request.get("/data")).resolves.toEqual({ ok: true });
+    expect(getToken()).toBe("t2");
+    expect(getRefreshToken()).toBe("r2");
+    expect(message.show).not.toHaveBeenCalled();
+  });
+
+  // A refresh that really is spent still ends the session; only a token the shared
+  // storage proves to have moved on counts as the other tab winning.
+  it("still logs out when no tab rotated the token", async () => {
+    setAuthSession("old", { name: "a" }, false, "r1");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url.endsWith("/auth/refresh")
+          ? json({ msg: "refresh token already spent" }, 401)
+          : json({ msg: "expired" }, 401),
+      ),
+    );
+    await expect(request.get("/data")).rejects.toThrow();
+    expect(getToken()).toBe("");
+    expect(message.show).toHaveBeenCalledOnce();
   });
 });

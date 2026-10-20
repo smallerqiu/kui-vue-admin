@@ -170,7 +170,7 @@ const request = {
           body: JSON.stringify({ refreshToken: originalRefresh }),
           signal: AbortSignal.timeout(15000),
         });
-        if (!response.ok) return false;
+        if (!response.ok) return this.adoptSharedSession(originalRefresh);
         const result = await response.json();
         const session = result.data || result;
         if (getRefreshToken() !== originalRefresh) return false;
@@ -186,6 +186,22 @@ const request = {
       }
     })();
     return this._refreshPromise;
+  },
+
+  /**
+   * The server rotates a session's refresh token in place, so when two tabs of the same
+   * session reach the access token's expiry together, one of them is told its token is
+   * already spent. That is not an expired login: the tab that won has written its new
+   * pair into the storage both tabs share. Take those instead of clearing the session --
+   * otherwise the loser logs the user out of every tab, the shared storage included.
+   * The winner's write can land a moment after its response, so look a few times.
+   */
+  async adoptSharedSession(staleRefresh: string): Promise<boolean> {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (getRefreshToken() !== staleRefresh && getToken()) return true;
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    }
+    return getRefreshToken() !== staleRefresh && Boolean(getToken());
   },
 
   async handleHttpError(response: Response): Promise<never> {
