@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { applyServerMenu, filterByDataScope, hasPermission } from "@/routers/permissions";
+import {
+  applyServerMenu,
+  filterByDataScope,
+  hasPermission,
+  routePermissions,
+} from "@/routers/permissions";
 
 describe("permission helpers", () => {
   it("supports explicit and wildcard permissions", () => {
@@ -23,6 +28,13 @@ describe("permission helpers", () => {
   it("fails closed for missing ownership identifiers", () => {
     expect(filterByDataScope([{}], { dataScope: "department" })).toEqual([]);
     expect(filterByDataScope([{}], { dataScope: "self" })).toEqual([]);
+  });
+
+  it("guards the detail routes a list row can link to", () => {
+    // A trailing slash means "this prefix", because the id is only known at runtime.
+    expect(routePermissions["/project/"]).toBe("project:read");
+    expect(routePermissions["/customer/"]).toBe("customer:read");
+    expect(routePermissions["/order/"]).toBe("order:read");
   });
 
   it("keeps local parent groups but never creates remote routes", () => {

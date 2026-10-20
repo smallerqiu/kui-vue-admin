@@ -53,11 +53,14 @@ export function applyServerMenu(local: AdminMenuItem[], records: ServerMenu[]): 
 }
 
 export const routePermissions: Record<string, string> = {
-  "/": "dashboard:read", "/commerce/orders": "order:read", "/order/": "order:read",
+  "/": "dashboard:read", "/data/analytics": "dashboard:read",
+  "/commerce/orders": "order:read", "/order/": "order:read",
   "/commerce/products": "product:read", "/commerce/after-sales": "after-sale:read",
   "/crm/customers": "customer:read", "/customer/": "customer:read",
-  "/projects": "project:read", "/tasks": "task:read", "/calendar": "calendar:read",
+  "/projects": "project:read", "/project/": "project:read",
+  "/tasks": "task:read", "/calendar": "calendar:read",
   "/approvals": "approval:read", "/system/users": "system:user:read",
+  "/system/departments": "system:user:read",
   "/system/roles": "system:role:read", "/system/menus": "system:menu:read",
   "/system/logs": "system:log:read", "/system/settings": "system:settings:read",
 };
