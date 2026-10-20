@@ -1,4 +1,5 @@
 import request from "@/utils/request";
+import { taskPriorityOptions, taskStatusOptions } from "./collaboration";
 import type { PageResult } from "./catalog";
 
 export type RecordValue = string | number | boolean | string[] | null;
@@ -27,6 +28,8 @@ export interface ResourceDefinition {
   adminWrite?: boolean;
   deletable?: boolean;
   review?: boolean;
+  /** Row action that opens a dedicated page, e.g. project membership. */
+  detail?: { label: string; basePath: string };
   fields: Field[];
 }
 const choices = (values: Record<string, string>) =>
@@ -61,6 +64,7 @@ export const resources: Record<string, ResourceDefinition> = {
     description: "维护项目资料、截止日期和进度。",
     permission: "project",
     deletable: true,
+    detail: { label: "成员", basePath: "/project" },
     fields: [
       name(),
       { ...name("code", "项目编码"), maxLength: 80 },
@@ -98,14 +102,15 @@ export const resources: Record<string, ResourceDefinition> = {
         label: "状态",
         kind: "select",
         initial: "todo",
-        options: choices({ todo: "待处理", doing: "进行中", review: "待验收", done: "已完成" }),
+        // Shared with the board columns so a card and its row never disagree.
+        options: taskStatusOptions,
       },
       {
         key: "priority",
         label: "优先级",
         kind: "select",
         initial: "medium",
-        options: choices({ high: "高", medium: "中", low: "低" }),
+        options: taskPriorityOptions,
       },
     ],
   },
