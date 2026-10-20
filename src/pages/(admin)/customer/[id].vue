@@ -23,7 +23,7 @@
             <p>电话：{{ customer.phone || '未填写' }}</p>
             <p>邮箱：{{ customer.email || '未填写' }}</p>
             <p>城市：{{ customer.city || '未填写' }}</p>
-            <p>创建时间：{{ customer.createdAt }}</p>
+            <p>创建时间：{{ formatDateTime(customer.createdAt) }}</p>
           </div>
         </Card>
       </GridItem>
@@ -55,6 +55,7 @@ import { catalogApi, customerInput, type Customer, type CustomerInput } from "@/
 import { hasPermission } from "@/routers/permissions";
 import { useAuthStore } from "@/stores/auth";
 import { reportFailure } from "@/utils/report-failure";
+import { formatDateTime } from "@/utils/common";
 
 const route = useRoute();
 const router = useRouter();

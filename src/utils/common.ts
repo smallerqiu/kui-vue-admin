@@ -40,6 +40,32 @@ export function utcStamp(value: Date): string {
   );
 }
 
+/**
+ * Reads one of those stamps the way it was written: `2026-10-20T08:59:02.975709` becomes
+ * `2026-10-20 08:59`. No zone shift and no `Date` object, because a row that displayed
+ * its own instant in the viewer's zone would show a created time eight hours away from
+ * the last-seen time sitting next to it. Day and minute are all the screens have room
+ * for; the seconds the server always sends carry nothing an operator acts on.
+ */
+export function formatDateTime(value: string | null | undefined) {
+  const match = value?.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
+  return match ? `${match[1]} ${match[2]}` : (value ?? "—");
+}
+
+/**
+ * Primary keys are 32 hex characters, which no one reads off a list. The first eight
+ * separate the rows on screen; the whole value stays available on hover and in full on
+ * the detail page, which is where it gets quoted from.
+ */
+export function shortId(value: string) {
+  return value.length > 8 ? value.slice(0, 8) : value;
+}
+
+/** Joins the parts a cell has to say, skipping the ones the record leaves empty. */
+export function joinParts(...parts: (string | null | undefined)[]) {
+  return parts.filter((part) => part && part.trim()).join(" · ");
+}
+
 export function parseTime(date: string) {
   return dayjs(date).format("YYYY/MM/DD HH:mm:ss");
 }

@@ -41,16 +41,16 @@
       >
         <template #id="{ record }">
           <div class="order-number">
-            <button type="button" @click="openDetail(record)">
-              {{ record.id }}
+            <button type="button" :title="record.id" @click="openDetail(record)">
+              {{ shortId(record.id) }}
             </button>
-            <small>{{ record.createdAt }}</small>
+            <small>{{ formatDateTime(record.createdAt) }}</small>
           </div>
         </template>
         <template #buyer="{ record }">
           <div class="buyer-cell">
             <strong>{{ record.customer }}</strong>
-            <span>{{ record.contact }} · {{ record.phone }}</span>
+            <span>{{ joinParts(record.contact, record.phone) }}</span>
           </div>
         </template>
         <template #items="{ record }">
@@ -111,6 +111,7 @@ import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import dayjs from "dayjs";
 import { reportFailure } from "@/utils/report-failure";
+import { formatDateTime, joinParts, shortId } from "@/utils/common";
 
 const router = useRouter();
 const auth = useAuthStore();

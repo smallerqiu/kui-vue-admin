@@ -27,11 +27,18 @@
       >
         <template #id="{ record }">
           <div class="sale-number">
-            <strong>{{ record.id }}</strong>
-            <button type="button" @click="router.push(`/order/${record.orderId}`)">
-              {{ record.orderId }}
+            <strong :title="record.id">{{ shortId(record.id) }}</strong>
+            <button
+              type="button"
+              :title="record.orderId"
+              @click="router.push(`/order/${record.orderId}`)"
+            >
+              {{ shortId(record.orderId) }}
             </button>
           </div>
+        </template>
+        <template #createdAt="{ value }">
+          {{ formatDateTime(value) }}
         </template>
         <template #type="{ value }">
           <Tag theme="fill">{{ typeLabel(value) }}</Tag>
@@ -152,6 +159,7 @@ import { message, type Column } from "kui-vue";
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { reportFailure } from "@/utils/report-failure";
+import { formatDateTime, shortId } from "@/utils/common";
 
 const router = useRouter();
 const auth = useAuthStore();

@@ -158,10 +158,12 @@
             </template>
             <Descriptions :column="2" bordered size="small">
               <DescriptionsItem label="订单编号">{{ order.id }}</DescriptionsItem>
-              <DescriptionsItem label="创建时间">{{ order.createdAt }}</DescriptionsItem>
+              <DescriptionsItem label="创建时间">
+                {{ formatDateTime(order.createdAt) }}
+              </DescriptionsItem>
               <DescriptionsItem label="支付方式">{{ order.paymentMethod }}</DescriptionsItem>
               <DescriptionsItem label="支付时间">
-                {{ order.paymentAt || "尚未支付" }}
+                {{ order.paymentAt ? formatDateTime(order.paymentAt) : "尚未支付" }}
               </DescriptionsItem>
               <DescriptionsItem label="订单来源">{{ order.source }}</DescriptionsItem>
               <DescriptionsItem label="商品件数">{{ itemCount }} 件</DescriptionsItem>
@@ -177,7 +179,7 @@
             <div v-for="shipment in order.shipments" :key="shipment.id" class="shipment-row">
               <div>
                 <strong>{{ shipment.company }} · {{ shipment.trackingNo }}</strong>
-                <small>{{ shipment.createdAt }}</small>
+                <small>{{ formatDateTime(shipment.createdAt) }}</small>
               </div>
               <Tag color="blue">
                 {{ shipment.items.reduce((total, item) => total + item.quantity, 0) }} 件商品
@@ -219,7 +221,7 @@
                 <i></i>
                 <strong>{{ event.title }}</strong>
                 <p>{{ event.description }}</p>
-                <small>{{ event.time }}</small>
+                <small>{{ formatDateTime(event.time) }}</small>
               </div>
             </div>
           </Card>
@@ -408,6 +410,7 @@ import {
 import { useRoute, useRouter } from "vue-router";
 import Big from "big.js";
 import { reportFailure } from "@/utils/report-failure";
+import { formatDateTime } from "@/utils/common";
 
 const route = useRoute();
 const router = useRouter();

@@ -18,7 +18,7 @@
       <strong>{{ item.title }}</strong>
       <Tag v-if="!item.readAt">未读</Tag>
       <p>{{ item.content }}</p>
-      <small>{{ item.createdAt }} UTC</small>
+      <small>{{ formatDateTime(item.createdAt) }} UTC</small>
       <Space>
         <Button
           v-if="!item.readAt"
@@ -54,6 +54,7 @@ import { computed, onMounted, onActivated, onDeactivated } from "vue";
 import { useRouter } from "vue-router";
 import { useNotificationStore } from "@/stores/notifications";
 import { notificationPath, type NotificationItem } from "@/api/system";
+import { formatDateTime } from "@/utils/common";
 const props = defineProps<{ compact?: boolean }>();
 const store = useNotificationStore(),
   router = useRouter();

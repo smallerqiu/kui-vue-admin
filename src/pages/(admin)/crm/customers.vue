@@ -43,7 +43,7 @@
             <span style="background: var(--kui-color-primary)"><Icon :type="Building2" /></span>
             <div>
               <strong>{{ record.name }}</strong>
-              <small>{{ record.id }} · {{ record.industry }}</small>
+              <small>{{ joinParts(record.email, record.industry) }}</small>
             </div>
           </button>
         </template>
@@ -104,6 +104,7 @@ import { useAuthStore } from "@/stores/auth";
 import { hasPermission } from "@/routers/permissions";
 import { useRouter } from "vue-router";
 import { reportFailure } from "@/utils/report-failure";
+import { joinParts } from "@/utils/common";
 
 const router = useRouter();
 const auth = useAuthStore();
