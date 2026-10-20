@@ -1,7 +1,7 @@
 import { createApp, defineComponent, h, nextTick, reactive } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ResourceManager from "@/components/business/resource-manager.vue";
-import { resources } from "@/api/workspace";
+import { resources, type ResourceDefinition } from "@/api/workspace";
 import request from "@/utils/request";
 import { message } from "kui-vue";
 
@@ -23,8 +23,8 @@ const flush = async () => {
     await nextTick();
   }
 };
-function mount() {
-  const app = createApp(ResourceManager, { definition: resources.projects! });
+function mount(definition: ResourceDefinition = resources.projects!) {
+  const app = createApp(ResourceManager, { definition });
   const root = document.createElement("div");
   const box = defineComponent({
     props: ["label"],
@@ -93,7 +93,16 @@ function mount() {
         () =>
           h(
             "div",
-            (props.data || []).map((record: object) => slots.action?.({ record })),
+            (props.data || []).map((record: object) =>
+              h("div", [
+                // The field slots are what the real table renders per cell, and the
+                // label-versus-raw-id behaviour lives entirely in them.
+                ...Object.entries(slots)
+                  .filter(([name]) => name !== "action")
+                  .flatMap(([, slot]) => slot?.({ record })),
+                slots.action?.({ record }),
+              ]),
+            ),
           ),
     }),
   );
@@ -198,5 +207,53 @@ describe("workspace page workflows", () => {
     const save = [...root.querySelectorAll("button")].find((node) => node.textContent?.trim() === "保存");
     expect(save?.disabled).toBe(true);
     expect(request.put).not.toHaveBeenCalled();
+  });
+  it("names the related record in the list instead of its primary key", async () => {
+    const page = (items: unknown[]) => ({ items, total: items.length, page: 1, pageSize: 20 });
+    vi.mocked(request.get).mockImplementation(async (path: string) =>
+      path === "/tasks"
+        ? page([
+            {
+              id: "t1",
+              title: "写月历",
+              projectId: "p1",
+              deadline: "2026-11-01",
+              status: "todo",
+              priority: "high",
+            },
+          ])
+        : page([{ id: "p1", name: "Kui 组件库", code: "KUI" }]),
+    );
+    const root = mount(resources.tasks!);
+    await flush();
+    expect(request.get).toHaveBeenCalledWith("/projects", expect.anything());
+    expect(root.textContent).toContain("Kui 组件库 (KUI)");
+    expect(root.textContent).not.toContain("p1");
+  });
+  it("keeps the seconds the server always sends out of the time column", async () => {
+    vi.mocked(request.get).mockImplementation(async (path: string) =>
+      path === "/calendar"
+        ? {
+            items: [
+              {
+                id: "c1",
+                title: "周会",
+                date: "2026-10-21",
+                time: "10:00:00",
+                category: "meeting",
+                location: "",
+                online: false,
+              },
+            ],
+            total: 1,
+            page: 1,
+            pageSize: 20,
+          }
+        : { items: [], total: 0, page: 1, pageSize: 20 },
+    );
+    const root = mount(resources.calendar!);
+    await flush();
+    expect(root.textContent).toContain("10:00");
+    expect(root.textContent).not.toContain("10:00:00");
   });
 });

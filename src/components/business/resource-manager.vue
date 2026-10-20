@@ -178,6 +178,7 @@ import {
   type ResourceDefinition,
 } from "@/api/workspace";
 import { useResourcePage } from "@/composables/use-resource-page";
+import { formatTime } from "@/api/calendar";
 import { hasPermission } from "@/routers/permissions";
 import { useAuthStore } from "@/stores/auth";
 import { reportFailure } from "@/utils/report-failure";
@@ -185,6 +186,18 @@ import { reportFailure } from "@/utils/report-failure";
 const props = defineProps<{ definition: ResourceDefinition }>();
 const auth = useAuthStore();
 const router = useRouter();
+/**
+ * A `source` field points at a directory the viewer has to be able to read. The table
+ * and the editor share one copy of it: a foreign key must never appear as a bare
+ * 32-character id just because nobody opened the drawer yet.
+ */
+const sourcePermissions: Record<NonNullable<Field["source"]>, string> = {
+  projects: "project:read",
+  roles: "system:role:read",
+  departments: "system:user:read",
+  permissions: "system:role:read",
+  menus: "system:menu:read",
+};
 /** Membership and other per-record pages live outside this generic table. */
 const openDetail = (id: string) =>
   router.push(`${props.definition.detail?.basePath || ""}/${encodeURIComponent(id)}`);
@@ -217,7 +230,7 @@ const detailLoading = ref(false),
   detailError = ref(""),
   saving = ref(false);
 const form = ref<FormData>({});
-const options = ref<Record<string, { label: string; value: string }[]>>({});
+const references = ref<Record<string, { label: string; value: string }[]>>({});
 const editable = computed(
   () =>
     canWrite.value &&
@@ -233,9 +246,30 @@ const suspend = () => {
 };
 onDeactivated(suspend);
 onScopeDispose(suspend);
+let referenceGeneration = 0;
+async function loadReferences() {
+  const current = ++referenceGeneration;
+  const readable = (field: Field) =>
+    Boolean(field.source) && hasPermission(sourcePermissions[field.source!], auth.permissions);
+  const sources = [...new Set(props.definition.fields.filter(readable).map((f) => f.source!))];
+  if (!sources.length) return;
+  try {
+    const entries = await Promise.all(
+      sources.map(async (source) => [source, await referenceOptions(source)] as const),
+    );
+    if (current === referenceGeneration) references.value = Object.fromEntries(entries);
+  } catch {
+    // Turning an id into a label is a display nicety. Without the directory the column
+    // keeps showing the stored value instead of blanking out the whole table.
+    if (current === referenceGeneration) references.value = {};
+  }
+}
+void loadReferences();
 function display(field: Field, value: unknown) {
   if (field.kind === "boolean") return value ? "是" : "否";
-  return field.options?.find((option) => option.value === value)?.label || String(value ?? "—");
+  if (field.kind === "time") return formatTime(String(value ?? ""));
+  const options = field.options || (field.source ? references.value[field.source] : undefined);
+  return options?.find((option) => option.value === value)?.label || String(value ?? "—");
 }
 function selectValue(field: Field): SelectValue | SelectValue[] | undefined {
   return (form.value[field.key] ?? undefined) as SelectValue | SelectValue[] | undefined;
@@ -251,7 +285,9 @@ function setSelection(field: Field, value: SelectValue | SelectValue[] | undefin
         : String(value);
 }
 function fieldOptions(field: Field) {
-  const result = [...(field.options || options.value[field.key] || [])];
+  const result = [
+    ...(field.options || (field.source ? references.value[field.source] : undefined) || []),
+  ];
   const values = Array.isArray(form.value[field.key])
     ? (form.value[field.key] as string[])
     : [form.value[field.key]];
@@ -270,31 +306,11 @@ async function openEditor(id?: string) {
   detailError.value = "";
   editorOpen.value = true;
   detailLoading.value = true;
-  options.value = {};
   try {
     const row = id ? await workspaceApi.get(props.definition.path, id) : undefined;
     if (current !== generation) return;
     detail.value = row;
     form.value = formValue(props.definition, row);
-    if (editable.value) {
-      const sourcePermissions = {
-        projects: "project:read",
-        roles: "system:role:read",
-        departments: "system:user:read",
-        permissions: "system:role:read",
-        menus: "system:menu:read",
-      };
-      const entries = await Promise.all(
-        props.definition.fields
-          .filter(
-            (field) =>
-              field.source && hasPermission(sourcePermissions[field.source], auth.permissions),
-          )
-          .map(async (field) => [field.key, await referenceOptions(field.source!)] as const),
-      );
-      if (current !== generation) return;
-      options.value = Object.fromEntries(entries);
-    }
   } catch (reason) {
     if (current === generation)
       detailError.value = reason instanceof Error ? reason.message : "加载失败";
@@ -314,7 +330,9 @@ async function save() {
     await workspaceApi.save(props.definition, form.value, editing.value);
     editorOpen.value = false;
     message.success("保存成功");
-    await reload();
+    // This page may itself be somebody else's directory (a project, a department),
+    // so the label cache is refreshed alongside the rows.
+    await Promise.all([reload(), loadReferences()]);
   } catch (reason) {
     reportFailure(reason, "保存失败");
   } finally {
@@ -340,7 +358,7 @@ async function remove() {
     await workspaceApi.remove(props.definition.path, deleteId.value);
     deleteId.value = "";
     message.success("已删除");
-    await reload();
+    await Promise.all([reload(), loadReferences()]);
   } catch (reason) {
     reportFailure(reason, "删除失败");
   } finally {
