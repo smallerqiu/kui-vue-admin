@@ -25,6 +25,21 @@ export function formatNumber(number: number) {
   }
 }
 dayjs.extend(utc);
+
+const pad = (value: number) => String(value).padStart(2, "0");
+
+/**
+ * Naive UTC ISO without an offset — the exact wire format kui-admin-api uses for
+ * timestamps. `new Date("2026-10-19T01:02:03")` would read that as local time, so
+ * window bounds compare these strings instead of Date objects.
+ */
+export function utcStamp(value: Date): string {
+  return (
+    `${value.getUTCFullYear()}-${pad(value.getUTCMonth() + 1)}-${pad(value.getUTCDate())}` +
+    `T${pad(value.getUTCHours())}:${pad(value.getUTCMinutes())}:${pad(value.getUTCSeconds())}`
+  );
+}
+
 export function parseTime(date: string) {
   return dayjs(date).format("YYYY/MM/DD HH:mm:ss");
 }
