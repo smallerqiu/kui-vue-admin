@@ -110,6 +110,7 @@ import { message, modal, PageHeader, type Column } from "kui-vue";
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import dayjs from "dayjs";
+import { reportFailure } from "@/utils/report-failure";
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -173,8 +174,9 @@ const closePendingOrder = (record: OrderRecord) =>
         await commerceApi.action(record.id, "close", undefined);
         message.success("订单已关闭");
         await reload();
-      } catch {
-        /* The request layer reports the failure. */
+      } catch (reason) {
+        // The row is re-read only after a success, so the order stays as it was.
+        reportFailure(reason, "关闭失败");
       } finally {
         busy.value = false;
       }

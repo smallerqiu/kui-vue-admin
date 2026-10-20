@@ -160,6 +160,7 @@ import { useRemoteData } from "@/composables/use-remote-data";
 import { defaultSystemSettings, useSystemSettingsStore } from "@/stores/system-settings";
 import { useAuthStore } from "@/stores/auth";
 import { hasPermission } from "@/routers/permissions";
+import { reportFailure } from "@/utils/report-failure";
 const store = useSystemSettingsStore(),
   auth = useAuthStore();
 const canWrite = computed(() => hasPermission("system:settings:write", auth.permissions));
@@ -194,7 +195,9 @@ async function save() {
   try {
     await store.save({ ...settings });
     message.success("系统设置已保存");
-  } catch {
+  } catch (reason) {
+    // The draft stays untouched, so the operator can fix whatever the server rejected.
+    reportFailure(reason, "系统设置保存失败");
   } finally {
     saving.value = false;
   }

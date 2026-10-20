@@ -407,6 +407,7 @@ import {
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import Big from "big.js";
+import { reportFailure } from "@/utils/report-failure";
 
 const route = useRoute();
 const router = useRouter();
@@ -570,8 +571,9 @@ async function action<K extends keyof OrderActions>(
     order.value = result;
     if (dialog) dialog.value = false;
     message.success("操作已保存");
-  } catch {
-    /* Preserve the form. The API owns state transitions. */
+  } catch (reason) {
+    // The form and the order's own state are left untouched; the API owns transitions.
+    reportFailure(reason, "操作失败");
   } finally {
     saving.value = false;
   }
@@ -686,8 +688,9 @@ const submitAfterSale = async () => {
     if (current !== generation) return;
     afterSaleOpen.value = false;
     message.success("售后申请已创建，等待审核");
-  } catch {
-    /* Never overwrite the order's fulfillment state. */
+  } catch (reason) {
+    // The order's fulfillment state is never overwritten by a failed request.
+    reportFailure(reason, "售后申请提交失败");
   } finally {
     saving.value = false;
   }

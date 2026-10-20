@@ -151,6 +151,7 @@ import { message, type Column } from "kui-vue";
 
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+import { reportFailure } from "@/utils/report-failure";
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -233,8 +234,9 @@ const submitReview = async () => {
     detailOpen.value = false;
     message.success("审核结果已保存");
     await reload();
-  } catch {
-    /* Keep review notes on failure. */
+  } catch (reason) {
+    // Review notes stay on screen, and the server's sentence explains the refusal.
+    reportFailure(reason, "审核失败");
   } finally {
     saving.value = false;
   }
@@ -255,8 +257,9 @@ const submitRefund = async () => {
     detailOpen.value = false;
     message.success("退款结果已登记（未发起转账）");
     await reload();
-  } catch {
-    /* Keep the same reference for an idempotent retry. */
+  } catch (reason) {
+    // The same reference is kept so the retry stays idempotent.
+    reportFailure(reason, "退款登记失败");
   } finally {
     saving.value = false;
   }

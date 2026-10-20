@@ -24,6 +24,15 @@
               详情 / 编辑
             </Button>
             <Button
+              v-if="definition.detail"
+              theme="plain"
+              size="small"
+              :disabled="saving"
+              @click="openDetail(record.id)"
+            >
+              {{ definition.detail.label }}
+            </Button>
+            <Button
               v-if="canReview(record)"
               theme="plain"
               size="small"
@@ -157,6 +166,7 @@
 </template>
 <script setup lang="ts">
 import { computed, onDeactivated, onScopeDispose, ref } from "vue";
+import { useRouter } from "vue-router";
 import { message, type Column, type SelectValue } from "kui-vue";
 import {
   formValue,
@@ -170,9 +180,14 @@ import {
 import { useResourcePage } from "@/composables/use-resource-page";
 import { hasPermission } from "@/routers/permissions";
 import { useAuthStore } from "@/stores/auth";
+import { reportFailure } from "@/utils/report-failure";
 
 const props = defineProps<{ definition: ResourceDefinition }>();
 const auth = useAuthStore();
+const router = useRouter();
+/** Membership and other per-record pages live outside this generic table. */
+const openDetail = (id: string) =>
+  router.push(`${props.definition.detail?.basePath || ""}/${encodeURIComponent(id)}`);
 const keyword = ref("");
 const { items, total, page, pageSize, loading, error, reload } = useResourcePage<BusinessRecord>(
   `/${props.definition.path}`,
@@ -193,7 +208,7 @@ const visibleFields = computed(() => props.definition.fields.filter((field) => !
 const columns = computed<Column[]>(() => [
   ...visibleFields.value.map((field) => ({ title: field.label, key: field.key, width: 160 })),
   ...(props.definition.review ? [{ title: "审核状态", key: "status", width: 120 }] : []),
-  { title: "操作", key: "action", width: 240, fixed: "right" },
+  { title: "操作", key: "action", width: props.definition.detail ? 296 : 240, fixed: "right" },
 ]);
 const editorOpen = ref(false),
   editing = ref<string>(),
@@ -300,8 +315,8 @@ async function save() {
     editorOpen.value = false;
     message.success("保存成功");
     await reload();
-  } catch {
-    /* Request layer reports errors; retain input. */
+  } catch (reason) {
+    reportFailure(reason, "保存失败");
   } finally {
     saving.value = false;
   }
@@ -326,7 +341,8 @@ async function remove() {
     deleteId.value = "";
     message.success("已删除");
     await reload();
-  } catch {
+  } catch (reason) {
+    reportFailure(reason, "删除失败");
   } finally {
     saving.value = false;
   }
@@ -340,7 +356,8 @@ async function review(approved: boolean) {
     reviewId.value = "";
     message.success("审核完成");
     await reload();
-  } catch {
+  } catch (reason) {
+    reportFailure(reason, "审核失败");
   } finally {
     saving.value = false;
   }

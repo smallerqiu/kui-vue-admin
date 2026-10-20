@@ -103,6 +103,7 @@ import { computed, reactive, ref } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { hasPermission } from "@/routers/permissions";
 import { useRouter } from "vue-router";
+import { reportFailure } from "@/utils/report-failure";
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -170,7 +171,10 @@ const createCustomer = async () => {
     Object.assign(form, { name: "", industry: "", level: "growth", contact: "", phone: "", email: "", city: "", status: "follow" });
     message.success("客户已创建");
     await reload();
-  } catch { /* Request layer reports the error; keep the form for retry. */ }
+  } catch (reason) {
+    // The form stays for a retry, and the refusal says why.
+    reportFailure(reason, "保存失败");
+  }
   finally { saving.value = false; }
 };
 </script>

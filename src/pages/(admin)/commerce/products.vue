@@ -121,6 +121,7 @@ import { useAuthStore } from "@/stores/auth";
 import { hasPermission } from "@/routers/permissions";
 import { catalogApi, productInput, type Product, type ProductInput } from "@/api/catalog";
 import { useResourcePage } from "@/composables/use-resource-page";
+import { reportFailure } from "@/utils/report-failure";
 
 const columns: Column[] = [
   { title: "商品", key: "product", width: 280 },
@@ -190,7 +191,10 @@ const toggleEnabled = async (record: Product, enabled: boolean) => {
     await catalogApi.setProductEnabled(record.id, enabled);
     message.success(enabled ? "已上架" : "已下架");
     await reload();
-  } catch { /* Preserve server state on failure. */ }
+  } catch (reason) {
+    // Server state is preserved, and the refusal is quoted.
+    reportFailure(reason, "上下架失败");
+  }
   finally { changing.value = false; }
 };
 const openCreate = () => {
@@ -216,7 +220,10 @@ const saveProduct = async () => {
     drawerOpen.value = false;
     message.success("商品信息已保存");
     await reload();
-  } catch { /* Keep user input for retry. */ }
+  } catch (reason) {
+    // Input stays for a retry; the server says what it rejected.
+    reportFailure(reason, "保存失败");
+  }
   finally { saving.value = false; }
 };
 </script>

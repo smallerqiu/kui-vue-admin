@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, watch } from "vue";
 import { systemApi, type NotificationItem } from "@/api/system";
+import { reportFailure } from "@/utils/report-failure";
 import { useAuthStore } from "./auth";
 export type { NotificationItem } from "@/api/system";
 export const useNotificationStore = defineStore("notifications", () => {
@@ -55,7 +56,9 @@ export const useNotificationStore = defineStore("notifications", () => {
       if (user !== auth.user.id) return false;
       await load();
       return true;
-    } catch {
+    } catch (reason) {
+      // The caller only learns "it did not work"; the server says why.
+      reportFailure(reason, "标记已读失败");
       return false;
     } finally {
       saving.value = false;

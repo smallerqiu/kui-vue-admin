@@ -28,7 +28,7 @@ vi.mock("kui-vue", async () => {
         () =>
           h("header", [props.title, slots.actions?.()]),
     }),
-    message: { success: vi.fn(), warning: vi.fn() },
+    message: { success: vi.fn(), warning: vi.fn(), error: vi.fn() },
     modal: { confirm: vi.fn() },
   };
 });
@@ -181,6 +181,9 @@ describe("order detail integration", () => {
     expect(commerceApi.action).toHaveBeenCalledWith("one", "payment", { method: "bank-transfer" });
     expect(root.querySelector("section")).not.toBeNull();
     expect(message.success).not.toHaveBeenCalled();
+    // A refused transition explains itself through the server's sentence, which the
+    // request layer does not announce for 4xx responses.
+    expect(message.error).toHaveBeenCalledWith("Payment conflict");
     expect((root.querySelector("section input") as HTMLInputElement).value).toBe("bank-transfer");
   });
 });

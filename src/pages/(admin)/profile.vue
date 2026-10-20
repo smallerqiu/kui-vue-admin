@@ -122,6 +122,7 @@ import { message, type IconType } from "kui-vue";
 import { computed, reactive, ref } from "vue";
 import { updateProfileApi } from "@/api/auth";
 import { appConfig } from "@/config/app";
+import { reportFailure } from "@/utils/report-failure";
 
 const authStore = useAuthStore();
 const themeStore = useThemeStore();
@@ -173,8 +174,9 @@ const saveBasic = async () => {
     const payload = { fullName: basicForm.fullName, email: basicForm.email, phone: basicForm.phone };
     authStore.updateUser(appConfig.useMock ? payload : await updateProfileApi(payload));
     message.success("个人信息已保存");
-  } catch {
-    // The request layer reports errors; keep the form for correction/retry.
+  } catch (reason) {
+    // The form stays for correction/retry; the refusal is quoted as written.
+    reportFailure(reason, "个人信息保存失败");
   } finally { saving.value = false; }
 };
 const toggleTheme = (dark: boolean) => themeStore.setTheme(dark ? "dark" : "light");

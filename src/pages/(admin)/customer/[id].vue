@@ -54,6 +54,7 @@ import { useRoute, useRouter } from "vue-router";
 import { catalogApi, customerInput, type Customer, type CustomerInput } from "@/api/catalog";
 import { hasPermission } from "@/routers/permissions";
 import { useAuthStore } from "@/stores/auth";
+import { reportFailure } from "@/utils/report-failure";
 
 const route = useRoute();
 const router = useRouter();
@@ -106,7 +107,10 @@ async function save() {
     customer.value = result;
     Object.assign(form, customerInput(result));
     message.success("客户资料已保存");
-  } catch { /* Request layer reports errors; do not discard edits. */ }
+  } catch (reason) {
+    // Edits are never discarded; the server explains the refusal.
+    reportFailure(reason, "保存失败");
+  }
   finally { saving.value = false; }
 }
 watch(() => route.params.id, () => { if (active) void load(); }, { immediate: true });

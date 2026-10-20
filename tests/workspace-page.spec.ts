@@ -7,10 +7,15 @@ import { message } from "kui-vue";
 
 const auth = reactive({ permissions: ["*"], user: { id: "actor" } });
 vi.mock("@/stores/auth", () => ({ useAuthStore: () => auth }));
+// The component reads the router only for its detail link; mounting it outside a
+// router would otherwise leave an unresolved injection in every test log.
+vi.mock("vue-router", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@/utils/request", () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
 }));
-vi.mock("kui-vue", () => ({ message: { success: vi.fn(), warning: vi.fn() } }));
+vi.mock("kui-vue", () => ({
+  message: { success: vi.fn(), warning: vi.fn(), error: vi.fn() },
+}));
 const disposers: (() => void)[] = [];
 const flush = async () => {
   for (let i = 0; i < 6; i++) {
@@ -127,6 +132,9 @@ describe("workspace page workflows", () => {
     await flush();
     expect(root.querySelector("[data-dialog]")).not.toBeNull();
     expect(message.success).not.toHaveBeenCalled();
+    // A rejected write has to say why: the request layer only toasts timeouts and
+    // network failures, so a 4xx sentence reaches the operator through this call.
+    expect(message.error).toHaveBeenCalledWith("Offline");
     expect((root.querySelector('[data-field="名称"] input') as HTMLInputElement).value).toBe(
       "Real project",
     );
@@ -139,6 +147,31 @@ describe("workspace page workflows", () => {
     );
     expect(root.querySelector("[data-dialog]")).toBeNull();
     expect(message.success).toHaveBeenCalledOnce();
+  });
+  it("keeps the row and quotes the server when a delete is refused", async () => {
+    vi.mocked(request.get).mockResolvedValue({
+      items: [{ id: "p1", name: "Locked" }],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+    });
+    const root = mount();
+    await flush();
+    click(root, "删除");
+    await flush();
+    vi.mocked(request.delete).mockRejectedValueOnce(
+      new Error("3 orders record(s) still reference this project"),
+    );
+    click(root, "确认删除");
+    await flush();
+
+    expect(message.error).toHaveBeenCalledWith(
+      "3 orders record(s) still reference this project",
+    );
+    expect(message.success).not.toHaveBeenCalled();
+    // The confirmation stays open, so what was refused is still on screen.
+    expect(root.querySelector('[data-dialog="删除记录"]')).not.toBeNull();
+    expect(request.get).toHaveBeenCalledTimes(1);
   });
   it("does not offer create/delete to a read-only account", async () => {
     auth.permissions = ["project:read"];
