@@ -1,6 +1,13 @@
 import { message } from "kui-vue";
 import { customAlphabet } from "nanoid";
-import { clearAuthSession, getRefreshToken, getToken, setAuthSession, updateAccessToken } from "./auth";
+import {
+  clearAuthSession,
+  getRefreshToken,
+  getToken,
+  isTokenExpired,
+  setAuthSession,
+  updateAccessToken,
+} from "./auth";
 import { appConfig } from "@/config/app";
 
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789";
@@ -72,6 +79,14 @@ const request = {
     this._maps.set(requestId, controller);
 
     let finalUrl = resolveRequestUrl(url, basePath);
+
+    // A token past its own `exp` is already refused by the server, so a cold boot used to pay for a
+    // rejected round trip on every first request of the session before the refresh retry saved it.
+    // Refresh before sending instead: concurrent callers join one refresh, and a token that is not
+    // a readable JWT or a refresh that fails falls through to the 401 handling below unchanged.
+    if (!_retry && !skipRefresh && getRefreshToken() && isTokenExpired(getToken())) {
+      await this.refreshSession();
+    }
 
     const token = getToken();
     const headers = new Headers(customHeaders);

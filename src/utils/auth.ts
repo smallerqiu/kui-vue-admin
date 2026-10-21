@@ -31,6 +31,29 @@ export const getAuthUser = (): AuthUser => {
 
 export const getRefreshToken = () =>
   localStorage.getItem(REFRESH_TOKEN_KEY) || sessionStorage.getItem(REFRESH_TOKEN_KEY) || "";
+
+/**
+ * Whether a signed access token is already past the second the server will stop accepting it.
+ *
+ * The API signs every access token with an `exp` claim and refuses it after that, so the client can
+ * read the same expiry instead of learning it from a rejected request. A cold boot whose token had
+ * aged out used to put one 401 in front of every first request of the session.
+ *
+ * Returns false for anything that is not a readable JWT, including the tokens the demo mode mints:
+ * an expiry the client cannot see is the server's to enforce, and the 401 path still refreshes.
+ */
+export const isTokenExpired = (token: string, now = Date.now()): boolean => {
+  const payload = token.split(".")[1];
+  if (!payload) return false;
+  try {
+    const encoded = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const claims = JSON.parse(atob(encoded + "=".repeat((4 - (encoded.length % 4)) % 4)));
+    return typeof claims?.exp === "number" && claims.exp * 1000 <= now;
+  } catch {
+    return false;
+  }
+};
+
 export const updateAccessToken = (token: string) => getSessionStorage().setItem(TOKEN_KEY, token);
 export const setAuthSession = (
   token: string,
