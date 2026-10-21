@@ -1,11 +1,12 @@
 import { useNotificationStore } from "@/stores/notifications";
 import {
   getRouteCacheName,
-  getRouteRecordCacheKey,
+  getViewCacheName,
   useTabViewsStore,
   type ViewItem,
 } from "@/stores/tabs";
 import { defaultSystemSettings, useSystemSettingsStore } from "@/stores/system-settings";
+import id from "hash-sum";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
@@ -64,7 +65,7 @@ describe("persistent stores", () => {
     const store = useTabViewsStore();
     const createView = (key: string): ViewItem => ({
       key,
-      cacheKeys: [key],
+      reload: 0,
       path: `/${key}`,
       fullPath: `/${key}`,
       loading: false,
@@ -80,7 +81,9 @@ describe("persistent stores", () => {
     ).toEqual(["b", "c", "a"]);
   });
 
-  it("builds and restores cache names for nested tab routes", () => {
+  // A tab caches under its own key and nothing else: the directories between the layout and a page
+  // contribute no component, so there is no parent cache name to keep in step.
+  it("builds one cache name per tab and restores it", () => {
     const store = useTabViewsStore();
     const route = {
       path: "/system/settings",
@@ -91,17 +94,44 @@ describe("persistent stores", () => {
       name: "/(admin)/system/settings",
       matched: [
         { name: "/(admin)", components: { default: {} } },
-        { name: "/(admin)/system", components: { default: {} } },
+        { path: "/system" },
         { name: "/(admin)/system/settings", components: { default: {} } },
       ],
     };
 
     store.addView(route);
-    const parentName = getRouteCacheName(getRouteRecordCacheKey(route.matched[1]));
-    const leafName = getRouteCacheName(store.views[0].key);
-    expect(store.keepViews).toEqual([parentName, leafName]);
+    const cacheName = getViewCacheName(store.views[0]);
+    expect(store.keepViews).toEqual([cacheName]);
 
     setActivePinia(createPinia());
-    expect(useTabViewsStore().keepViews).toEqual([parentName, leafName]);
+    expect(useTabViewsStore().keepViews).toEqual([cacheName]);
+  });
+
+  // Navigating back to a tab must not reset its reload count, and a page refresh must not lose it:
+  // either one moves the cache name back to the name the discarded instance was cached under.
+  it("keeps a reloaded tab on its new cache name", () => {
+    const store = useTabViewsStore();
+    const route = {
+      path: "/crm/customers",
+      fullPath: "/crm/customers",
+      query: {},
+      params: {},
+      meta: { title: "Customers" },
+      name: "/(admin)/crm/customers",
+    };
+    store.addView(route);
+    store.reloadView(route);
+    expect(store.views[0].reload).toBe(1);
+
+    store.addView(route);
+    expect(store.views[0].reload).toBe(1);
+    // Built without the store's own helper, so a name that stops carrying the count is caught here.
+    const reloadedName = getRouteCacheName(`${id(route.fullPath)}:1`);
+    expect(store.keepViews).toEqual([reloadedName]);
+
+    setActivePinia(createPinia());
+    const restored = useTabViewsStore();
+    expect(restored.views[0].reload).toBe(1);
+    expect(restored.keepViews).toEqual([reloadedName]);
   });
 });

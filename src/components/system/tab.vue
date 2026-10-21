@@ -78,7 +78,6 @@ import { useTranslate } from "@/lang/useTranslate";
 import type { ViewItem } from "@/stores/tabs";
 import { useTabViewsStore } from "@/stores/tabs";
 import { getTransitionHorProp } from "@/utils/transition";
-import id from "hash-sum";
 import * as kuiIcons from "kui-icons";
 import { ChevronDown, Loading, X } from "kui-icons";
 import type { MenuSelectEvent } from "kui-vue";
@@ -202,11 +201,8 @@ const handle = (e: MenuSelectEvent, view: ViewItem) => {
 };
 
 const reload = (view: ViewItem) => {
-  let currentId = id(route.fullPath);
-  if (currentId !== view.key) {
-    tab.reloadSelectView(view);
-    return;
-  }
+  // One action for both cases: dropping the tab's name out of `keep-alive`'s include list destroys
+  // its instance whether the tab is on screen or only cached in the background.
   tab.reloadView(view);
 };
 

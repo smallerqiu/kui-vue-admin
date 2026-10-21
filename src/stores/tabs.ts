@@ -4,8 +4,9 @@ import type { AdminMenuItem } from "@/components/system/useMenu";
 
 export interface ViewItem {
   key: string;
-  cacheKeys: string[];
   loading: boolean;
+  /** Bumped by "reload this tab"; it is part of the cache name, so the page mounts fresh. */
+  reload: number;
   path: string;
   fullPath: string;
   query: Record<string, any>;
@@ -15,25 +16,27 @@ export interface ViewItem {
   icon?: string;
 }
 
+/**
+ * A tab is cached under its own name, not its page's: two tabs of one page with different query
+ * (`?server=` links) hold two instances, and `keep-alive` can only pick between them by name.
+ */
 export const getRouteCacheName = (key: string | number) =>
   `RouteCache_${String(key).replace(/[^a-zA-Z0-9_]/g, "_")}`;
 
-export const getRouteRecordCacheKey = (route: { name?: unknown; path?: string }) =>
-  id(`route:${String(route.name || route.path || "unknown")}`);
+/** The cache name of one tab. `reload` is in it so a reload cannot land back on the old instance. */
+export const getViewCacheName = (view: { key: string; reload?: number }) =>
+  getRouteCacheName(`${view.key}:${view.reload || 0}`);
 
 const readStoredViews = (): ViewItem[] => {
   try {
     const value = JSON.parse(localStorage.getItem("routes") || "[]");
     if (!Array.isArray(value)) return [];
-    return value.map((view) => {
-      const key = view.key || id(view.fullPath);
-      return {
-        ...view,
-        key,
-        cacheKeys: Array.isArray(view.cacheKeys) ? view.cacheKeys : [key],
-        meta: { ...view.meta, keepAlive: true },
-      };
-    });
+    return value.map((view) => ({
+      ...view,
+      key: view.key || id(view.fullPath),
+      reload: Number(view.reload) || 0,
+      meta: { ...view.meta, keepAlive: true },
+    }));
   } catch {
     localStorage.removeItem("routes");
     return [];
@@ -41,20 +44,20 @@ const readStoredViews = (): ViewItem[] => {
 };
 
 export const useTabViewsStore = defineStore("tabViews", {
-  state: () => {
-    const views = readStoredViews();
-    return {
-      routes: [] as AdminMenuItem[],
-      views,
-      keepViews: [
-        ...new Set(
-          views
-            .filter((view) => view.meta.keepAlive)
-            .flatMap((view) => view.cacheKeys.map(getRouteCacheName)),
-        ),
-      ],
-      keepKey: "" as string | number,
-    };
+  state: () => ({
+    routes: [] as AdminMenuItem[],
+    views: readStoredViews(),
+  }),
+  getters: {
+    /** Read-only by design: `keep-alive` prunes whatever falls out of this list, so a tab that is
+     * closed, or reloaded to a new name, loses its cached page with no further bookkeeping. */
+    keepViews: (state): string[] => [
+      ...new Set(
+        state.views
+          .filter((view) => view.meta.keepAlive)
+          .map((view) => getViewCacheName(view)),
+      ),
+    ],
   },
   actions: {
     setRoutes(routes: AdminMenuItem[]) {
@@ -62,68 +65,64 @@ export const useTabViewsStore = defineStore("tabViews", {
     },
     retainAuthorizedViews(isAuthorized: (view: ViewItem) => boolean) {
       this.views = this.views.filter(isAuthorized);
-      this.syncKeepViews();
       this.updateLocalRoutes();
     },
     addView(route: any) {
-      this.keepKey = id(route.fullPath);
       const { view, index } = this.getView(route);
-
+      // A tab keeps its reload count across navigations, or every return to it would remount.
+      if (index >= 0) view.reload = this.views[index].reload || 0;
       if (index < 0) {
         this.views.push(view);
       } else {
         this.views.splice(index, 1, view);
       }
-
-      this.syncKeepViews();
       this.updateLocalRoutes();
     },
-    reloadSelectView(route: any) {
-      const { index, keepViewKey } = this.getView(route);
-      if (index !== -1) {
-        if (keepViewKey) {
-          this.keepViews = this.keepViews.filter((name) => name !== keepViewKey);
-        }
-        route.loading = true;
-        setTimeout(() => {
-          route.loading = false;
-          if (keepViewKey && !this.keepViews.includes(keepViewKey)) {
-            this.keepViews.push(keepViewKey);
-          }
-        }, 500);
-      }
+    /**
+     * Discard a tab's cached page and let it load again, whether it is on screen or not.
+     *
+     * The reload count is part of the cache name, so the tab moves to a name nothing has ever been
+     * cached under: `keep-alive` drops the old instance, mounts one new one, and caches it under the
+     * new name. This used to also swap a random key in and back out, which mounted twice -- and asked
+     * the remote database for the same list twice.
+     */
+    reloadView(route: any) {
+      const { index } = this.getView(route);
+      if (index === -1) return;
+      const view = this.views[index];
+      view.reload = (view.reload || 0) + 1;
+      view.loading = true;
+      this.updateLocalRoutes();
+      setTimeout(() => {
+        view.loading = false;
+      }, 500);
     },
     closeView(route: any) {
       const { index } = this.getView(route);
       if (index !== -1) {
         this.views.splice(index, 1);
-        this.syncKeepViews();
         this.updateLocalRoutes();
       }
     },
     closeOtherView(route: any) {
       const { view } = this.getView(route);
       this.views = [view];
-      this.syncKeepViews();
       this.updateLocalRoutes();
     },
     closeRightView(route: any) {
       if (this.views.length <= 1) return;
       const { index } = this.getView(route);
       this.views = this.views.slice(0, index + 1);
-      this.syncKeepViews();
       this.updateLocalRoutes();
     },
     closeLeftView(route: any) {
       if (this.views.length <= 1) return;
       const { index } = this.getView(route);
       this.views = this.views.slice(index);
-      this.syncKeepViews();
       this.updateLocalRoutes();
     },
     closeAllView() {
       this.views = [];
-      this.keepViews = [];
       this.updateLocalRoutes();
     },
     moveView(fromIndex: number, toIndex: number) {
@@ -139,29 +138,10 @@ export const useTabViewsStore = defineStore("tabViews", {
       this.views.splice(toIndex, 0, view);
       this.updateLocalRoutes();
     },
-    reloadView(route: any) {
-      const { index, keepViewKey } = this.getView(route);
-      if (index !== -1 && keepViewKey) {
-        this.keepViews = this.keepViews.filter((name) => name !== keepViewKey);
-        this.keepKey = Math.random();
-        route.loading = true;
-        setTimeout(() => {
-          if (!this.keepViews.includes(keepViewKey)) this.keepViews.push(keepViewKey);
-          this.keepKey = id(route.fullPath);
-          route.loading = false;
-        }, 500);
-      }
-    },
-    syncKeepViews() {
-      this.keepViews = this.views
-        .filter((view) => view.meta.keepAlive)
-        .flatMap((view) => view.cacheKeys.map(getRouteCacheName))
-        .filter((name, index, names) => names.indexOf(name) === index);
-    },
     updateLocalRoutes() {
       const routes = this.views.map((v) => ({
         key: v.key || id(v.fullPath),
-        cacheKeys: v.cacheKeys,
+        reload: v.reload,
         loading: v.loading,
         icon: v.icon,
         fullPath: v.fullPath,
@@ -178,7 +158,7 @@ export const useTabViewsStore = defineStore("tabViews", {
       const { path, fullPath, query, params, meta, name, icon, loading } = route;
       const view: ViewItem = {
         key: id(fullPath),
-        cacheKeys: [],
+        reload: Number(route.reload) || 0,
         loading: loading === true ? true : false,
         path,
         fullPath,
@@ -188,16 +168,6 @@ export const useTabViewsStore = defineStore("tabViews", {
         name,
         icon,
       };
-
-      const matched = Array.isArray(route.matched)
-        ? route.matched.filter((record: any) => record.components?.default)
-        : [];
-      view.cacheKeys = matched
-        .slice(1)
-        .map((record: any, index: number, records: any[]) =>
-          index === records.length - 1 ? view.key : getRouteRecordCacheKey(record),
-        );
-      if (!view.cacheKeys.length) view.cacheKeys = [view.key];
 
       const server = view.query.server || "";
       let index = -1;
@@ -210,7 +180,7 @@ export const useTabViewsStore = defineStore("tabViews", {
         index = this.views.findIndex((x) => x.path === view.path);
       }
 
-      return { view, index, keepViewKey: getRouteCacheName(view.key) };
+      return { view, index };
     },
   },
 });

@@ -1,70 +1,47 @@
 <template>
   <router-view v-slot="{ Component }">
     <keep-alive :include="keepViews" :max="100">
-      <component :is="getCacheComponent(Component, cacheKey)" :key="cacheKey" />
+      <component :is="getCacheComponent(Component, cacheName)" :key="cacheName" />
     </keep-alive>
   </router-view>
 </template>
 
 <script setup lang="ts">
-import {
-  getRouteCacheName,
-  getRouteRecordCacheKey,
-  useTabViewsStore,
-} from "@/stores/tabs";
+import { getViewCacheName, useTabViewsStore } from "@/stores/tabs";
 import id from "hash-sum";
-import {
-  computed,
-  defineComponent,
-  h,
-  inject,
-  unref,
-  type Component,
-  type VNode,
-} from "vue";
-import { matchedRouteKey, useRoute, viewDepthKey } from "vue-router";
+import { computed, defineComponent, h, type Component, type VNode } from "vue";
+import { useRoute } from "vue-router";
 
 const tab = useTabViewsStore();
 const route = useRoute();
-const injectedDepth = inject(viewDepthKey, 0);
+
+/**
+ * One cache for every page.
+ *
+ * A directory in `src/pages` leaves a route record with no component behind, and `<router-view>`
+ * steps over those, so a page arrives here directly -- no section subtree left to deactivate, and no
+ * second `keep-alive` to keep in step with the first.
+ *
+ * The reload count travels in the name, through the same helper the store uses to build `include`, so
+ * the two cannot disagree about what a reloaded tab is called: a reload moves the tab to a name
+ * nothing has ever been cached under, which drops the old instance and mounts exactly one new one.
+ */
+const cacheName = computed(() =>
+  getViewCacheName({
+    key: id(route.fullPath),
+    reload: tab.views.find((view) => view.fullPath === route.fullPath)?.reload,
+  }),
+);
+const keepViews = computed(() => tab.keepViews);
+
 const cacheComponents = new Map<string, Component>();
 
 /**
- * The route record whose component rendered this view, read once while that record is the current
- * one. `route` is global, so a section page that is on its way out still re-renders its own view
- * against the incoming route: without the check below it mounts the incoming page inside the dying
- * subtree. Every cross-section navigation then paid for the list request twice (1.6s against the
- * deployed database, twice) and parked a duplicate instance of the incoming page in the outgoing
- * section's cache, which refetched each time the section came back.
+ * `keep-alive` selects by component name, and every page shares one component, so the tab's name is
+ * put on a wrapper of its own. The wrapper renders the route component untouched, keeping its props.
  */
-const ownerRecord = inject(matchedRouteKey, undefined)?.value;
-
-const keepViews = computed(() => tab.keepViews);
-const cacheKey = computed(() => {
-  let depth = unref(injectedDepth);
-  let record = route.matched[depth];
-  while (record && !record.components?.default) {
-    record = route.matched[++depth];
-  }
-
-  const records = route.matched.filter((item) => item.components?.default);
-  const isLeaf = record === records.at(-1);
-  return isLeaf
-    ? tab.keepKey || id(route.fullPath)
-    : getRouteRecordCacheKey(record || { path: route.path });
-});
-
-const getCacheComponent = (
-  routeComponent: VNode | undefined,
-  currentCacheKey: string | number,
-) => {
+const getCacheComponent = (routeComponent: VNode | undefined, name: string) => {
   if (!routeComponent) return undefined;
-  // The route left this view's section, so the subtree is on its way out and has nothing to
-  // render for it. Dropping the child deactivates the section's own page into its cache -- which
-  // is what the section is expected to restore when it comes back.
-  if (ownerRecord && !route.matched.includes(ownerRecord)) return undefined;
-
-  const name = getRouteCacheName(currentCacheKey);
   let component = cacheComponents.get(name);
   if (!component) {
     const componentType = routeComponent.type as Component;
