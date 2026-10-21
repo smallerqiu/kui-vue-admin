@@ -2,10 +2,10 @@ import { loading } from "kui-vue";
 import { createRouter, createWebHistory } from "vue-router";
 import { routes } from "vue-router/auto-routes";
 import { createMenuItems } from "../components/system/useMenu";
+import { loadServerMenu } from "./server-menu";
 import { appConfig, getRuntimeAppName } from "../config/app";
 import { getAuthUser, getToken } from "../utils/auth";
-import { applyServerMenu, hasPermission, hasRole, routePermissions, type ServerMenu } from "./permissions";
-import request from "@/utils/request";
+import { hasPermission, hasRole, routePermissions } from "./permissions";
 import { useAuthStore } from "@/stores/auth";
 import { useTabViewsStore } from "@/stores/tabs";
 //import { buildRoute } from "./utils.ts";
@@ -43,12 +43,12 @@ const router = createRouter({
   },
 });
 
-export const routerInitialized = async () => {
-  const local = createMenuItems(router.options.routes);
-  if (appConfig.useMock) return local;
-  if (!getToken()) return [];
-  return applyServerMenu(local, await request.get<ServerMenu[]>("/navigation"));
-};
+/**
+ * Resolved once per boot; `loadServerMenu` keeps a single in-flight promise per account, so
+ * the guard and `main.ts` never pay for the round trip twice.
+ */
+export const routerInitialized = () =>
+  loadServerMenu(createMenuItems(router.options.routes));
 
 export const canAccessRoute = (route: { meta: Record<string, any>; path?: string }) => {
   const user = getAuthUser();
@@ -78,7 +78,7 @@ router.beforeEach(async (to) => {
   if (to.path === "/account/login") return "/";
   if (!appConfig.useMock && !whiteList.includes(to.path)) {
     try {
-      await useAuthStore().loadUser();
+      await useAuthStore().refreshUser();
       const tabs = useTabViewsStore();
       tabs.setRoutes(await routerInitialized());
       tabs.retainAuthorizedViews((view) => canAccessRoute(router.resolve(view.fullPath || view.path)));
