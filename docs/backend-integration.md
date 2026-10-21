@@ -36,7 +36,7 @@
 
 ## 待接入
 
-离线模式（`VITE_USE_MOCK=true`）目前只覆盖登录、导航和订单/客户等页面自带的数据源；工作台、系统设置、通知中心和走 `use-resource-page` 的列表仍会请求 `/api`，在没有后端时显示加载失败而不是演示数据。把这套页面收敛成一套代码前，需要先给这些入口补上本地数据源或明确离线范围。
+离线模式（`VITE_USE_MOCK=true`）只覆盖登录、导航，以及显式写了演示分支的入口：经营分析（`src/api/reports.ts::loadAnalyticsReport` 换算法同源）和任务看板、项目成员名单，以及这两处选择用的项目与人员候选（`src/api/collaboration.ts`）。订单、客户、项目与任务列表、日程、工作台、系统设置、通知中心和所有走 `use-resource-page` 的列表仍会请求 `/api`，在没有后端时显示加载失败而不是演示数据；`src/data/customers.ts` 当前没有任何模块引用它。把这套页面收敛成一套代码前，需要先给这些入口补上本地数据源或明确离线范围。
 
 接口模式下 `/data/analytics`、`/system/departments` 依赖后端 `menus` 表有该路由，[002_analytics_menu.sql](../../kui-admin-api/admin_api/migrations/002_analytics_menu.sql) 与 [003_departments_menu.sql](../../kui-admin-api/admin_api/migrations/003_departments_menu.sql) 已提供，已部署的库要重新执行 `kui-admin migrate` 才会出现入口。两个文件里的 `sort_order` 与 `migrate.py` 的菜单初始化列表按下标对齐，新页面只能追加到列表末尾，插到中间会让全新库与升级后的库排序不一致。
 
