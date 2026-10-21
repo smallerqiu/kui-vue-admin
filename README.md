@@ -2,7 +2,7 @@
 
 > v1.0.0 · 基于 KUI Vue 的企业级中后台解决方案
 
-基于 Vue 3、TypeScript 和 KUI Vue 的企业级后台解决方案。项目包含完整的应用外壳、权限体系和常见业务页面，可作为中后台项目的开发起点。
+基于 Vue 3、TypeScript 和 KUI Vue 的中后台解决方案。项目自带应用外壳、权限体系和一整套业务页面，默认对接同仓库组的 `kui-admin-api`（Cloudoll + MySQL），也保留一个离线演示开关，可以在没有后端的情况下看页面长什么样。
 
 ## 界面预览
 
@@ -21,27 +21,25 @@
 
 ## 功能
 
-- 响应式工作台、深浅主题和移动端侧栏
-- 文件路由、多页签、面包屑和全局菜单搜索
-- 登录、会话刷新、路由/菜单/按钮权限和数据范围控制
-- 侧栏、顶部、混合三种布局模式
-- 订单、售后、商品、客户、用户、角色和菜单管理
-- ECharts 经营分析与访问趋势
-- 通知中心、操作日志和系统设置
-- 本地 Mock、Vitest、Playwright E2E 与 GitHub Actions CI
+- **应用外壳**：响应式工作台、深浅主题、移动端侧栏，侧栏/顶部/混合三种布局，多页签、面包屑和全局菜单搜索。
+- **会话与权限**：账号密码登录、access token 过期刷新与 refresh token 轮换、服务端退出撤销；路由、菜单、按钮三层权限，`all`/`department`/`self` 三种数据范围。菜单项由服务端下发，只匹配前端已经编译好的路由，不执行远程组件地址。
+- **业务页面**：订单（筛选、导出、部分发货、改价、收款结果登记、售后申请）、售后、商品、客户（列表与四张同口径统计卡片）、审批、项目与项目成员、任务列表/看板（拖拽换状态列）、日程（月历/列表两种视图）、通知中心。
+- **数据**：工作台读 `/dashboard` 聚合；经营分析读 `/analytics`，支持 7 天/30 天/今年三种周期，含收入趋势、订单渠道、支付方式、履约漏斗和 CSV 导出，图表用 ECharts。
+- **系统管理**：用户、角色、部门、菜单、操作日志（含导出）、系统设置。
+- **工程化**：类型检查、Vitest 单元测试、生产构建、GitHub Actions CI，Playwright 负责构建期样式校验。
 
 ## 技术栈
 
-- Vue 3 + TypeScript + Vite
-- KUI Vue + KUI Icons
-- Pinia + Vue Router
-- ECharts + Vue ECharts
-- Vitest + jsdom
-- Playwright
+- Vue 3.5 + TypeScript + Vite 8
+- KUI Vue 6.2 + KUI Icons 5
+- Vue Router 5（文件路由）+ Pinia 4
+- ECharts 6 + vue-echarts
+- big.js（金额）+ dayjs（时间窗口）
+- Vitest 5 + jsdom、Playwright
 
 ## 快速创建
 
-CLI 从 Git 仓库拉取项目，不再内置独立模板；需要安装 Git，并能访问 GitHub。默认使用仓库默认分支，依赖版本和锁文件跟随仓库。
+CLI 从 Git 仓库拉取项目，不内置独立模板；需要安装 Git，并能访问 GitHub。默认使用仓库默认分支，依赖版本和锁文件跟随仓库。
 
 ```bash
 npm create kui-vue-pro@latest my-app
@@ -57,15 +55,18 @@ pnpm create kui-vue-pro my-app
 yarn create kui-vue-pro my-app
 ```
 
-需要固定版本时，通过 `--ref` 指定已存在的分支或 tag：
+需要固定版本时，通过 `--ref` 指定一个已存在的分支或 tag；需要换来源时用 `--repo`：
 
 ```bash
-npm create kui-vue-pro@latest my-app -- --ref main
+npm create kui-vue-pro@latest my-app -- --ref master
+npm create kui-vue-pro@latest my-app -- --repo https://github.com/your-org/kui-vue-admin.git
 ```
 
-目标目录必须为空。生成项目不保留原仓库的 Git 历史、发布工作流和 CLI 包目录；后端配置见[接入说明](./docs/backend-integration.md)。
+目标目录必须为空。生成项目不保留原仓库的 Git 历史、发布工作流、CLI 包目录和 `.env` 密钥，`.env.example` 会保留；依赖不会自动安装。后端配置见[接入说明](./docs/backend-integration.md)。
 
-## 仓库开发
+## 本地开发
+
+前端只需要 Node 和 pnpm：
 
 ```bash
 git clone https://github.com/smallerqiu/kui-vue-admin.git
@@ -75,70 +76,109 @@ cp .env.example .env.local
 pnpm dev
 ```
 
-演示账号：`admin@k-ui.cn` / `123456`。
+开发服务默认起在 `http://localhost:7006`，`/api` 代理到 `http://127.0.0.1:9001`，对应后端项目 `../kui-admin-api`（Python 3.11+、Cloudoll 4.3.0、MySQL 8.0.16+）。后端需要先建好库（`utf8mb4` + InnoDB，时区 UTC），再按顺序执行：
+
+```bash
+kui-admin migrate
+kui-admin create-admin --account admin@example.com
+cloudoll start -n kui-admin
+```
+
+`create-admin` 交互式读取密码（12–128 字符），库里没有账号时初始化管理员、权限字典和菜单，已有账号时是重置密码并解锁、撤销旧会话。可选的演示数据用 `kui-admin seed-demo` 导入，只允许 `KUI_ENV=local`。健康检查是 `GET /api/health`。
+
+登录页不预填任何凭证，账号必须由后端命令创建。登录不上时先确认三件事：账号 `enabled`、`locked_until` 是否还在 15 分钟锁定期内、前端连的是不是接口模式——后端的 `scripts/diagnose_login.py` 只做只读查询，会把这几项和数据库时区一起打出来，不输出密码哈希。
+
+改组件库本身时可以在本地链接：`pnpm link ../kui-vue`。这时需要在 `vite.config.ts` 的 `resolve.dedupe` 里补上 `["vue", "vue-router", "pinia", "kui-icons"]`，并在 `tsconfig.app.json` 里把 `kui-vue` 指到本地源码，否则应用和组件库会各自加载一份 Vue 运行时。这两处属于本机开发环境，不随功能提交。
+
+## 离线演示模式
+
+```env
+VITE_USE_MOCK=true
+```
+
+只有显式打开这个开关时，登录页才会预填演示账号 `admin@k-ui.cn` / `123456`，并出现手机号登录、第三方登录入口和演示提示；导航改用本地菜单，经营分析改用 `src/data/analytics-demo.ts` 对同一批演示订单做同规则计算，任务看板和项目成员（含它们选择用的项目与人员候选）改用 `src/data/demo/collaboration.ts`。这些演示模块是懒加载的独立 chunk，接口模式不会请求它们。
+
+其余入口不在这个开关的覆盖范围内——订单、客户、项目与任务列表、日程、工作台、系统设置、通知中心和所有走 `use-resource-page` 的列表仍然请求 `/api`，没有后端时显示加载失败，而不是编一组演示数字。接口模式下绝不回退演示数据：读不到就说读不到。
 
 ## 环境变量
 
-| 变量                   | 默认值                  | 说明                     |
-| ---------------------- | ----------------------- | ------------------------ |
-| `VITE_APP_NAME`        | `KUI Vue Pro`           | 应用完整名称             |
-| `VITE_APP_SHORT_NAME`  | `KUI Pro`               | 侧栏简称                 |
-| `VITE_APP_DESCRIPTION` | -                       | 应用描述                 |
-| `VITE_API_BASE_URL`    | `/api`                  | API 请求前缀或完整地址   |
-| `VITE_SITE_URL`        | `https://admin.k-ui.cn` | 部署地址                 |
-| `VITE_APP_VERSION`     | `1.0.0`                 | 页面展示的版本号         |
-| `VITE_USE_MOCK`        | `true`                  | 是否使用内置演示登录数据 |
+| 变量                   | 默认值                                       | 说明                                       |
+| ---------------------- | -------------------------------------------- | ------------------------------------------ |
+| `VITE_APP_NAME`        | `KUI Vue Pro`                                | 应用名，出现在登录页和页签                 |
+| `VITE_APP_SHORT_NAME`  | `KUI Pro`                                    | 浏览器标签页标题用的简称（侧栏 logo 读的是系统设置里的简称） |
+| `VITE_APP_DESCRIPTION` | `Enterprise admin solution powered by KUI Vue` | 写进 `appConfig`，当前页面未消费           |
+| `VITE_API_BASE_URL`    | `/api`                                        | 请求前缀，也可以填完整地址                 |
+| `VITE_SITE_URL`        | `https://admin.example.com`                  | 部署站点地址，当前页面未消费               |
+| `VITE_APP_VERSION`     | `1.0.0`                                      | 侧栏底部展示的 `Version x.y.z`             |
+| `VITE_USE_MOCK`        | `false`                                      | 离线演示登录与页面自带数据源的开关         |
 
 ## 权限模型
 
-路由可声明 `roles` 和 `permissions`，同一份配置会同时用于路由守卫与菜单过滤；操作按钮可使用权限指令：
+路由块可以声明 `roles` 和 `permissions`，同一份配置同时用于路由守卫和菜单过滤；按钮级用权限指令：
 
 ```vue
 <Button v-permission="'order:close'">关闭订单</Button>
 ```
 
-登录用户支持 `all`、`department`、`self` 三种数据范围。业务 API 返回数据后，可使用 `filterByDataScope` 统一收口演示数据；生产环境仍应由服务端执行最终的数据权限校验。
+登录用户支持 `all`、`department`、`self` 三种数据范围。`src/routers/permissions.ts::filterByDataScope` 是给离线演示数据做本地收口用的工具函数，真实页面不消费它——服务端已经按数据范围返回行集，页面显示的写入入口也跟随真实权限，最终判据始终在服务端。
 
-## API 与 Mock
+## 数据口径
 
-所有请求通过 `src/utils/request.ts` 发起。遇到 401 时会使用 refresh token 刷新会话，并自动重放一次原请求；并发 401 只会触发一次刷新。
+改这些页面前值得先读几遍的几条约定，它们决定了显示和文件里的数字对不对：
 
-默认使用真实认证 API。开发代理指向本机 `http://127.0.0.1:9001`，对应后端项目为 `../kui-admin-api`。当前完成认证、导航和个人资料接入，**业务页面仍有演示数据**，完整范围见 [后端接入状态](docs/backend-integration.md)。仅显式配置 `VITE_USE_MOCK=true` 时使用演示登录。
+- **金额**：API 传两位小数的十进制字符串。显示只有一条路径 `src/utils/common.ts::formatMoney`（字符串自己不会分组，`toLocaleString` 必须先把值转成数字，并把两位小数钉住）；写进 CSV 或提交回服务端的仍是未分组原值，因为 `1,234.00` 重新导入只剩 `1`。判零要用数值比较（`big.js`），不能用真值——`"0.00"` 是恒真的字符串，`order.freight ? … : "免运费"` 那种写法永远走不到免邮分支。
+- **时间**：服务端写 naive UTC。列表按原值读（`formatDateTime` 不做时区平移，否则同一行的创建时间和最近登录时间会差 8 小时），统计窗口用 UTC 自然日和自然月，导出文件名里的日期也是 UTC 当天，可能与本地日期差一天。
+- **导出**：CSV 只有一条路径 `src/utils/csv.ts`——`toCsv` 负责单元格引号（含逗号、引号、换行的值包起来、内部引号翻倍）和 `\r\n`，`downloadCsv` 负责 UTF-8 BOM（Excel 读裸 UTF-8 会把中文表头按老代码页解码）和释放 object URL。订单、操作日志、经营分析三个导出共用它。
+- **失败可见**：请求层只对超时和网络错误发声，4xx/5xx 以异常抛给页面，所以每个写入入口要么把服务端原话显示在表单/弹窗内，要么经 `src/utils/report-failure.ts` 提示并保留输入；只有 401 不再重复提示，因为请求层已经在结束会话并跳转登录页。读取允许静默降级，但页面要说明降级了什么。
 
-```env
-VITE_USE_MOCK=false
-VITE_API_BASE_URL=/api
+完整的接入状态、待接入范围和已知限制在 [docs/backend-integration.md](./docs/backend-integration.md)。
+
+## 目录结构
+
+```text
+src/api           每个后端资源一个模块，请求封装与 CSV 导出都在这里
+src/pages         文件路由；(admin) 是带应用外壳的分组，业务页按交易中心/客户中心/数据中心/系统管理摆放
+src/routers       路由守卫、权限判断、服务端菜单、侧栏分组标题
+src/stores        会话、偏好、主题、页签、通知
+src/composables   use-resource-page、use-remote-data、use-pane-activate
+src/components    business / charts / system 三组，外加代码与 JSON/YAML 预览
+src/utils         request（401 轮换与重放）、auth、common、csv、report-failure、share
+src/directives    v-permission
+src/data          离线演示数据源，懒加载，接口模式不会请求
+src/lang          中英文案
+tests             Vitest 单元测试与源码扫描守卫
+e2e               Playwright 用例与构建期样式校验
+packages          create-kui-vue-pro CLI
 ```
-
-## 布局与国际化
-
-在“系统管理 → 系统设置”中可切换侧栏、顶部和混合布局，配置会保存在浏览器中。应用外壳、路由标题和通用操作支持简体中文/英文切换；业务页面文案可继续按 `src/lang` 的同一机制扩展。
 
 ## 质量检查
 
 ```bash
-pnpm typecheck
-pnpm test
-pnpm test:e2e
-pnpm build
+pnpm check      # 类型检查 + 单元测试
+pnpm test       # vitest run
+pnpm build      # vue-tsc -b && vite build
+pnpm test:e2e   # 自动起 127.0.0.1:7007 的开发服务，用系统 Chrome 执行
 ```
 
-也可运行 `pnpm check` 同时执行类型检查和单元测试。E2E 会自动启动本地开发服务，并使用系统 Chrome 执行登录和核心页面冒烟测试。
+单元测试目前 32 个文件、236 例，跑在 jsdom 上：页面用例挂载的是真实页面组件，Kui 控件按需要注册轻量替身，所以屏幕上的文案、发出的请求参数、确认之后的重读都在断言范围内。收口类的改动另有源码扫描守卫（`tests/format.spec.ts` 扫模板里每一行 `¥` 是否走 `formatMoney`，`tests/csv.spec.ts` 扫有没有模块绕开 `src/utils/csv.ts` 自己拼 CSV），因为多数页面没有运行时用例，光靠行为测试挡不住"某处又写回原始字符串"。
+
+E2E 里的 `e2e/app.spec.ts` 走的是离线演示登录，需要 `VITE_USE_MOCK=true` 才成立；`e2e/theme-css.spec.ts` 是构建期的样式校验，不依赖后端。`pnpm format` 需要自行安装 prettier，它没有列在依赖里。
 
 ## 部署
 
-构建产物位于 `dist`：
+构建产物在 `dist`：
 
 ```bash
 pnpm build
 ```
 
-仓库提供了 [Dockerfile](./Dockerfile) 和 [Nginx 配置](./deploy/nginx.conf)。Nginx 已包含 SPA history fallback；部署时请将 `/api/` 的上游地址替换为实际后端服务。
+仓库提供了 [Dockerfile](./Dockerfile) 和 [Nginx 配置](./deploy/nginx.conf)，Nginx 已包含 SPA history fallback。后端默认不放跨域，生产环境请把 `/api/` 反代到实际后端服务，与前端保持同源。
 
-生产环境建议关闭 Mock、使用 HTTPS、由后端签发短期 access token 和可轮换 refresh token，并在服务端再次校验角色、权限与数据范围。
+上线前建议：关闭 `VITE_USE_MOCK`、使用 HTTPS、由后端签发短期 access token 和可轮换 refresh token，并在服务端再次校验角色、权限与数据范围。
 
 ## 在线预览与版本
 
+- 组件库文档：<https://vue.k-ui.cn/guide/pro>
 - 在线预览：<https://admin.k-ui.cn>
 - 当前版本：`1.0.0`
 - 更新记录：[CHANGELOG.md](./CHANGELOG.md)
