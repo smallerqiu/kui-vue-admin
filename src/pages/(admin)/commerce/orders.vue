@@ -1,6 +1,11 @@
 <template>
   <div class="pro-list-page">
     <PageHeader title="订单管理" description="查询和跟踪全部交易订单。"></PageHeader>
+    <Grid :cols="{ xs: 1, sm: 2, xl: 4 }" :x-gap="12" :y-gap="12" class="order-stats">
+      <GridItem v-for="card in cards" :key="card.title">
+        <StatCard :title="card.title" :items="[card.item]" bordered reverse />
+      </GridItem>
+    </Grid>
     <p v-if="error" role="alert">
       {{ error }}
       <Button @click="reload">重试</Button>
@@ -66,13 +71,13 @@
                 <strong>{{ item.name }}</strong>
                 <small>{{ item.specs }} · {{ item.sku }}</small>
               </div>
-              <span>¥{{ item.price.toLocaleString() }} × {{ item.quantity }}</span>
+              <span>¥{{ money(item.price) }} × {{ item.quantity }}</span>
             </div>
           </div>
         </template>
         <template #paidAmount="{ record }">
           <div class="amount-cell">
-            <strong>¥ {{ record.paidAmount.toLocaleString() }}</strong>
+            <strong>¥ {{ money(record.paidAmount) }}</strong>
             <small>共 {{ itemCount(record) }} 件</small>
           </div>
         </template>
@@ -101,13 +106,13 @@
 </template>
 
 <script setup lang="ts">
-import { commerceApi, orderStatusOptions, type OrderRecord } from "@/api/commerce";
+import { commerceApi, orderStatusOptions, type OrderRecord, type OrderSummary } from "@/api/commerce";
 import { useResourcePage } from "@/composables/use-resource-page";
 import { useAuthStore } from "@/stores/auth";
 import { hasPermission } from "@/routers/permissions";
 import { Eye, Search } from "kui-icons";
-import { message, modal, PageHeader, type Column } from "kui-vue";
-import { computed, ref } from "vue";
+import { message, modal, PageHeader, type Column, type StatNumberItem } from "kui-vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import dayjs from "dayjs";
 import { reportFailure } from "@/utils/report-failure";
@@ -138,15 +143,48 @@ const {
   startDate: dateRange.value?.[0] ? dayjs(dateRange.value[0]).format("YYYY-MM-DD") : undefined,
   endDate: dateRange.value?.[1] ? dayjs(dateRange.value[1]).format("YYYY-MM-DD") : undefined,
 }));
+const summary = ref<OrderSummary>();
+const loadSummary = async () => {
+  try {
+    summary.value = await commerceApi.summary();
+  } catch (reason) {
+    // No numbers rather than invented ones: the cards stay off the page and the server's own words
+    // say why.
+    reportFailure(reason, "订单统计加载失败");
+  }
+};
+onMounted(loadSummary);
+// One aggregate read, and each card is the row set the list filter of that meaning selects -- the
+// 待发货 card is `paid` because that is this status ladder's word for "paid, not shipped yet".
+const cards = computed<Array<{ title: string; item: StatNumberItem }>>(() => {
+  const data = summary.value;
+  if (!data) return [];
+  return [
+    { title: "今日订单", item: { value: data.today, desc: "全部渠道" } },
+    { title: "待付款", item: { value: data.byStatus.pending, desc: "等待客户支付" } },
+    { title: "待发货", item: { value: data.byStatus.paid, desc: "需要仓库处理" } },
+    {
+      title: "退款申请",
+      item: {
+        value: data.refundRequests ?? 0,
+        desc: data.refundRequests === null ? "当前账号无法读取售后" : "需要售后处理",
+      },
+    },
+  ];
+});
 const columns: Column[] = [
   { title: "订单号", key: "id", width: 210 },
-  { title: "客户", key: "buyer", width: 180 },
+  { title: "买家", key: "buyer", width: 180 },
   { title: "商品明细", key: "items", width: 450 },
-  { title: "订单金额", key: "paidAmount", width: 130 },
+  { title: "实付金额", key: "paidAmount", width: 130 },
   { title: "状态", key: "status", width: 100 },
   { title: "操作", key: "action", width: 170, fixed: "right" },
 ];
 const statusOptions = orderStatusOptions;
+// Money arrives as a two-decimal string, and a string's `toLocaleString` is Object.prototype's: it
+// hands the digits back ungrouped, so 12345.00 never becomes 12,345.00 on its own.
+const money = (value: unknown) =>
+  Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const hiddenColumnKeys = ref<string[]>([]);
 const statusLabel = (value: string) =>
   statusOptions.find((item) => item.value === value)?.label || value;
@@ -174,7 +212,9 @@ const closePendingOrder = (record: OrderRecord) =>
       try {
         await commerceApi.action(record.id, "close", undefined);
         message.success("订单已关闭");
-        await reload();
+        // The closed order leaves both the list and the 待付款 card, so neither keeps a number it
+        // has just made false.
+        await Promise.all([reload(), loadSummary()]);
       } catch (reason) {
         // The row is re-read only after a success, so the order stays as it was.
         reportFailure(reason, "关闭失败");

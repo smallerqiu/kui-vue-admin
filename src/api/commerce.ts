@@ -79,7 +79,19 @@ export const orderStatusOptions = [
   { value: "closed", label: "已关闭" },
   { value: "refunded", label: "已全额退款" },
 ];
+/**
+ * The four numbers above the order list.  `today` is the UTC day the rows are stamped with, and the
+ * status keys are the same codes the 状态 dropdown filters on -- the 待发货 card reads `paid`
+ * because that is this ladder's word for "paid and not shipped yet".  A null `refundRequests` is the
+ * server saying this account may not read after-sales, which the card reports instead of counting 0.
+ */
+export interface OrderSummary {
+  today: number;
+  byStatus: { pending: number; paid: number };
+  refundRequests: number | null;
+}
 export const commerceApi = {
+  summary: () => request.get<OrderSummary>("/orders/summary"),
   detail: (id: string) => request.get<OrderRecord>(`/orders/${encodeURIComponent(id)}`),
   action: <K extends keyof OrderActions>(id: string, action: K, data: OrderActions[K]) =>
     request.post<OrderRecord>(`/orders/${encodeURIComponent(id)}/${action}`, data ?? {}),
