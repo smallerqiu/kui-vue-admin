@@ -8,7 +8,7 @@ export type FormData = Record<string, RecordValue>;
 export interface Field {
   key: string;
   label: string;
-  kind?: "text" | "textarea" | "date" | "time" | "password" | "number" | "boolean" | "select";
+  kind?: "text" | "textarea" | "date" | "datetime" | "time" | "password" | "number" | "boolean" | "select";
   initial: RecordValue;
   required?: boolean;
   nullable?: boolean;
@@ -30,6 +30,12 @@ export interface ResourceDefinition {
   review?: boolean;
   /** Row action that opens a dedicated page, e.g. project membership. */
   detail?: { label: string; basePath: string };
+  /**
+   * Columns the server works out for a list row and nobody types -- the name a foreign key points
+   * at, how many rows link back. They render beside the editable ones and stay out of the form,
+   * so an account list can show 角色 and 部门 instead of a page of 32 character ids.
+   */
+  derived?: Field[];
   fields: Field[];
 }
 const choices = (values: Record<string, string>) =>
@@ -67,6 +73,16 @@ const deadline: Field = {
   required: true,
 };
 const enabled: Field = { key: "enabled", label: "启用", kind: "boolean", initial: true };
+/**
+ * One entry of a definition's `derived` list. `initial` is part of the field shape the table
+ * renderer shares with the form; a derived value is never typed, so it has none.
+ */
+const derived = (key: string, label: string, kind?: Field["kind"]): Field => ({
+  key,
+  label,
+  kind,
+  initial: null,
+});
 export const resources: Record<string, ResourceDefinition> = {
   projects: {
     path: "projects",
@@ -177,6 +193,11 @@ export const resources: Record<string, ResourceDefinition> = {
     description: "账号仅可停用，不删除。初始管理员请通过个人中心修改资料和密码。",
     permission: "system:user",
     adminWrite: true,
+    derived: [
+      derived("departmentName", "部门"),
+      derived("roleNames", "角色"),
+      derived("lastLoginAt", "最近登录", "datetime"),
+    ],
     fields: [
       { ...name("account", "账号"), maxLength: 160 },
       { ...name("fullName", "姓名"), maxLength: 120 },
@@ -218,6 +239,7 @@ export const resources: Record<string, ResourceDefinition> = {
     description: "维护角色权限及数据范围；初始管理员角色不可修改。",
     permission: "system:role",
     adminWrite: true,
+    derived: [derived("memberCount", "成员数"), derived("createdAt", "创建时间", "datetime")],
     fields: [
       { ...name("code", "角色编码"), maxLength: 80 },
       { ...name(), maxLength: 120 },

@@ -283,4 +283,87 @@ describe("workspace page workflows", () => {
     expect(root.textContent).toContain("待审核");
     expect(root.textContent).not.toContain("pending");
   });
+  it("shows an account's department and roles by name, not by key", async () => {
+    const items = [
+      {
+        id: "u1",
+        account: "lin",
+        fullName: "林肯",
+        email: "lin@example.com",
+        phone: "13800000000",
+        enabled: true,
+        departmentId: "d1",
+        roleIds: ["r1", "r2"],
+        departmentName: "平台团队",
+        roleNames: ["分析师", "运营"],
+        lastLoginAt: "2026-10-20T08:12:33",
+      },
+      {
+        id: "u2",
+        account: "qiu",
+        fullName: "小裘",
+        email: "qiu@example.com",
+        phone: "13900000000",
+        enabled: false,
+        departmentId: "d2",
+        roleIds: ["r3"],
+        departmentName: "增长团队",
+        roleNames: ["访客"],
+        lastLoginAt: null,
+      },
+    ];
+    vi.mocked(request.get).mockImplementation(async (path: string) =>
+      path === "/users"
+        ? { items, total: items.length, page: 1, pageSize: 20 }
+        : { items: [], total: 0, page: 1, pageSize: 20 },
+    );
+    const root = mount(resources.users!);
+    await flush();
+    // A department and a role reach the row as primary keys -- those are what the form writes
+    // back -- and neither is what an operator reads while managing accounts.
+    expect(root.textContent).toContain("平台团队");
+    expect(root.textContent).not.toContain("d1");
+    // Several roles arrive as an array, so the cell must join with 顿号; String() would print
+    // the comma between them.
+    expect(root.textContent).toContain("分析师、运营");
+    expect(root.textContent).not.toContain("分析师,运营");
+    // The server always sends the seconds; the column shows the minute the sign-in happened.
+    expect(root.textContent).toContain("2026-10-20 08:12");
+    expect(root.textContent).not.toContain("2026-10-20T08:12:33");
+    expect(root.textContent).not.toContain("null");
+    // Every other cell of the second row is filled, so the only dash on the page belongs to the
+    // account that has never signed in: no recorded event, not epoch zero and not a blank cell.
+    expect(root.textContent.match(/—/g)).toHaveLength(1);
+  });
+  it("counts a role's members and dates the role from the server", async () => {
+    vi.mocked(request.get).mockImplementation(async (path: string) =>
+      path === "/roles"
+        ? {
+            items: [
+              {
+                id: "r1",
+                code: "analyst",
+                name: "分析师",
+                description: "看数据",
+                enabled: true,
+                dataScope: "department",
+                permissions: ["report:read", "project:read"],
+                memberCount: 7,
+                createdAt: "2026-09-01T03:00:00",
+              },
+            ],
+            total: 1,
+            page: 1,
+            pageSize: 20,
+          }
+        : { items: [], total: 0, page: 1, pageSize: 20 },
+    );
+    const root = mount(resources.roles!);
+    await flush();
+    expect(root.textContent).toContain("本部门");
+    // Chosen so it cannot be borrowed from the stamp, the page size or the total.
+    expect(root.textContent).toContain("7");
+    expect(root.textContent).toContain("2026-09-01 03:00");
+    expect(root.textContent).not.toContain("2026-09-01T03:00:00");
+  });
 });

@@ -180,6 +180,7 @@ import {
 } from "@/api/workspace";
 import { useResourcePage } from "@/composables/use-resource-page";
 import { formatTime } from "@/api/calendar";
+import { formatDateTime } from "@/utils/common";
 import { hasPermission } from "@/routers/permissions";
 import { useAuthStore } from "@/stores/auth";
 import { reportFailure } from "@/utils/report-failure";
@@ -231,9 +232,13 @@ const reviewStatus: Field = {
   initial: "pending",
   options: reviewStatusOptions,
 };
-const tableFields = computed<Field[]>(() =>
-  props.definition.review ? [...visibleFields.value, reviewStatus] : visibleFields.value,
-);
+const tableFields = computed<Field[]>(() => {
+  const fields = [...visibleFields.value, ...(props.definition.derived ?? [])];
+  // The review state is not editable -- the server moves it -- so it is not one of the
+  // definition's fields, but it is a column, and it needs the same label lookup as the
+  // editable ones. Without it the table prints the bare enum.
+  return props.definition.review ? [...fields, reviewStatus] : fields;
+});
 const columns = computed<Column[]>(() => [
   ...tableFields.value.map((field) => ({ title: field.label, key: field.key, width: 160 })),
   { title: "操作", key: "action", width: props.definition.detail ? 296 : 240, fixed: "right" },
@@ -283,7 +288,17 @@ void loadReferences();
 function display(field: Field, value: unknown) {
   if (field.kind === "boolean") return value ? "是" : "否";
   if (field.kind === "time") return formatTime(String(value ?? ""));
+  // A naive UTC stamp from the server, shown the way the rest of the admin shows one. An empty
+  // one is a row that has never had the event -- an account that never signed in, a record with
+  // no recorded time -- and "—" says that better than printing the epoch or nothing.
+  if (field.kind === "datetime") return value ? formatDateTime(String(value)) : "—";
   const options = field.options || (field.source ? references.value[field.source] : undefined);
+  // A derived list column (an account's role names) arrives as an array, and `String([...])`
+  // would print it with commas inside a bracket. Same label lookup as a single select value.
+  if (Array.isArray(value))
+    return value.length
+      ? value.map((item) => options?.find((option) => option.value === item)?.label || String(item)).join("、")
+      : "—";
   return options?.find((option) => option.value === value)?.label || String(value ?? "—");
 }
 const reviewLabel = computed(() => display(reviewStatus, detail.value?.status));
