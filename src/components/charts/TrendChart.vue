@@ -45,7 +45,16 @@ const option = computed<ChartOption>(() => {
 
   return {
     animationDuration: 550,
-    grid: { top: 16, right: 12, bottom: 8, left: 8, containLabel: true },
+    // ECharts 6 spells `containLabel: true` out; the two keys below are its documented equivalent,
+    // so the plot keeps shrinking to fit axis labels instead of letting them run past the card.
+    grid: {
+      top: 16,
+      right: 12,
+      bottom: 8,
+      left: 8,
+      outerBoundsMode: "same",
+      outerBoundsContain: "axisLabel",
+    },
     tooltip: {
       trigger: "axis",
       backgroundColor: dark ? "#262626" : "#ffffff",
