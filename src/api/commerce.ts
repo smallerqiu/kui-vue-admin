@@ -1,3 +1,4 @@
+import Big from "big.js";
 import request from "@/utils/request";
 import { toCsv } from "@/utils/csv";
 import type { PageResult } from "./catalog";
@@ -89,6 +90,17 @@ export const orderStatusOptions = [
  */
 export const orderStatusLabel = (value: string) =>
   orderStatusOptions.find((item) => item.value === value)?.label || value;
+/**
+ * Whether an order carries freight at all -- the question the detail page's 运费 cell asks before it
+ * writes a price.
+ *
+ * Money arrives as decimal text, and `"0.00"` is a truthy string, so `order.freight ? … : "免运费"`
+ * cannot reach the free branch: every order that pays nothing still reads `¥ 0.00` under a label that
+ * says it costs something.  The value is compared as a number rather than against the literal
+ * `"0.00"`, because the server writes what the column holds -- `0`, `0.0`, `0.00` all mean the same
+ * order.  An empty cell counts as no freight charged, not as NaN.
+ */
+export const hasFreight = (value: string) => !new Big(value || 0).eq(0);
 /**
  * The four numbers above the order list.  `today` is the UTC day the rows are stamped with, and the
  * status keys are the same codes the 状态 dropdown filters on -- the 待发货 card reads `paid`

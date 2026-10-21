@@ -1,7 +1,7 @@
 import { createApp, defineComponent, h, nextTick, reactive } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import OrderDetail from "@/pages/(admin)/order/[id].vue";
-import { commerceApi, type OrderRecord } from "@/api/commerce";
+import { commerceApi, hasFreight, type OrderRecord } from "@/api/commerce";
 import { message } from "kui-vue";
 
 const route = reactive({ params: { id: "one" }, path: "/order/one" });
@@ -15,9 +15,15 @@ vi.mock("kui-icons", () => ({
   Truck: [],
 }));
 vi.mock("@/stores/auth", () => ({ useAuthStore: () => ({ user: { permissions: ["*"] } }) }));
-vi.mock("@/api/commerce", () => ({
-  commerceApi: { detail: vi.fn(), action: vi.fn(), afterSale: vi.fn() },
-}));
+// The page's 运费 cell asks the module's own `hasFreight`, so the mock keeps the real one and only
+// stubs the api object: a fixture that answered the zero question for itself would test nothing.
+vi.mock("@/api/commerce", async () => {
+  const actual = await vi.importActual<Record<string, unknown>>("@/api/commerce");
+  return {
+    ...actual,
+    commerceApi: { detail: vi.fn(), action: vi.fn(), afterSale: vi.fn() },
+  };
+});
 vi.mock("kui-vue", async () => {
   const { defineComponent, h } = await import("vue");
   return {
@@ -223,5 +229,33 @@ describe("order detail integration", () => {
     expect(commerceApi.action).toHaveBeenCalledWith("one", "adjust", { discount: "2345.67" });
     expect(message.warning).not.toHaveBeenCalled();
     expect(message.success).toHaveBeenCalledWith("操作已保存");
+  });
+  it("writes 免运费 for the order that pays no freight", async () => {
+    // The freight the server sends is the string "0.00", which is truthy: the label already says
+    // 运费, so a cell that costs nothing is only free if something compares the figure instead of
+    // asking whether characters exist.
+    vi.mocked(commerceApi.detail).mockResolvedValueOnce(order("one"));
+    const root = mount();
+    await flush();
+    const cell = [...root.querySelectorAll("span")].find((el) => el.textContent?.includes("运费"));
+    expect(cell?.querySelector("strong")?.textContent).toBe("免运费");
+  });
+  it("prices the freight an order does pay", async () => {
+    const paid: OrderRecord = { ...order("one"), freight: "1234.50" };
+    vi.mocked(commerceApi.detail).mockResolvedValueOnce(paid);
+    const root = mount();
+    await flush();
+    const cell = [...root.querySelectorAll("span")].find((el) => el.textContent?.includes("运费"));
+    expect(cell?.querySelector("strong")?.textContent).toBe("¥ 1,234.50");
+  });
+  it("reads a zero freight in whatever shape the column writes it", () => {
+    // `0`, `0.00` and an empty cell are the same order; matching the literal string would make the
+    // page disagree with itself the moment the column is written with fewer decimals.
+    expect([hasFreight("0"), hasFreight("0.00"), hasFreight(""), hasFreight("12.00")]).toEqual([
+      false,
+      false,
+      false,
+      true,
+    ]);
   });
 });

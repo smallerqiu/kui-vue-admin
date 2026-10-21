@@ -107,7 +107,9 @@
               </span>
               <span>
                 运费
-                <strong>{{ order.freight ? `¥ ${formatMoney(order.freight)}` : "免运费" }}</strong>
+                <strong>
+                  {{ hasFreight(order.freight) ? `¥ ${formatMoney(order.freight)}` : "免运费" }}
+                </strong>
               </span>
               <span>
                 优惠
@@ -396,7 +398,12 @@
 
 <script setup lang="ts">
 import { PageHeader, message, modal, type IconType } from "kui-vue";
-import { commerceApi, type OrderRecord, type OrderActions } from "@/api/commerce";
+import {
+  commerceApi,
+  hasFreight,
+  type OrderRecord,
+  type OrderActions,
+} from "@/api/commerce";
 import { useAuthStore } from "@/stores/auth";
 import { hasPermission } from "@/routers/permissions";
 import { ArrowLeft, CircleCheck, Clock, RotateCcw, Truck } from "kui-icons";
