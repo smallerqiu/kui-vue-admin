@@ -402,7 +402,6 @@ import { hasPermission } from "@/routers/permissions";
 import { ArrowLeft, CircleCheck, Clock, RotateCcw, Truck } from "kui-icons";
 import {
   computed,
-  onActivated,
   onDeactivated,
   onScopeDispose,
   reactive,
@@ -412,6 +411,7 @@ import {
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import Big from "big.js";
+import { usePaneActivate } from "@/composables/use-pane-activate";
 import { reportFailure } from "@/utils/report-failure";
 import { formatDateTime, shortId } from "@/utils/common";
 
@@ -716,12 +716,11 @@ watch(
   },
   { immediate: true },
 );
-onActivated(() => {
-  if (!active) {
-    active = true;
-    void load();
-  }
+usePaneActivate(() => {
+  active = true;
+  void load();
 });
+
 onDeactivated(() => {
   active = false;
   generation++;

@@ -1,6 +1,7 @@
-import { createApp, defineComponent, nextTick, ref } from "vue";
+import { createApp, defineComponent, h, KeepAlive, nextTick, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useResourcePage } from "@/composables/use-resource-page";
+import { usePaneActivate } from "@/composables/use-pane-activate";
 import request from "@/utils/request";
 
 vi.mock("@/utils/request", () => ({ default: { get: vi.fn() } }));
@@ -72,5 +73,60 @@ describe("server resource pages", () => {
     await state.reload();
     expect(state.error.value).toBe("");
     expect(state.items.value).toEqual([{ id: "real" }]);
+  });
+
+  const cached = (page: ReturnType<typeof defineComponent>) => {
+    const show = ref(true);
+    const app = createApp(
+      defineComponent({
+        setup: () => () => h(KeepAlive, null, { default: () => (show.value ? h(page) : h("div")) }),
+      }),
+    );
+    app.mount(document.createElement("div"));
+    disposers.push(() => app.unmount());
+    return { show };
+  };
+
+  it("asks the server nothing when a cached tab comes back", async () => {
+    vi.mocked(request.get).mockResolvedValue(result("page"));
+    const { show } = cached(
+      defineComponent({
+        setup() {
+          useResourcePage("/customers", () => ({}));
+          return () => null;
+        },
+      }),
+    );
+    await nextTick();
+    expect(request.get).toHaveBeenCalledTimes(1);
+    show.value = false;
+    await nextTick();
+    show.value = true;
+    await nextTick();
+    expect(request.get).toHaveBeenCalledTimes(1);
+  });
+
+  // The pair to the test above: it proves the harness really fires `activated`, so the count that
+  // did not move there means the composable stopped refetching, not that the hook never ran. The
+  // activation that comes with the first mount is skipped, so the page still loads exactly once.
+  it("refetches for a page that registers usePaneActivate", async () => {
+    vi.mocked(request.get).mockResolvedValue(result("page"));
+    let state!: ReturnType<typeof useResourcePage<{ id: string }>>;
+    const { show } = cached(
+      defineComponent({
+        setup() {
+          state = useResourcePage("/customers", () => ({}));
+          usePaneActivate(() => void state.reload());
+          return () => null;
+        },
+      }),
+    );
+    await nextTick();
+    expect(request.get).toHaveBeenCalledTimes(1);
+    show.value = false;
+    await nextTick();
+    show.value = true;
+    await nextTick();
+    expect(request.get).toHaveBeenCalledTimes(2);
   });
 });

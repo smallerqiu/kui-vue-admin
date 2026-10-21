@@ -49,9 +49,10 @@
 <script setup lang="ts">
 import { ArrowLeft, Building2 } from "kui-icons";
 import { PageHeader, message } from "kui-vue";
-import { computed, onActivated, onDeactivated, onScopeDispose, reactive, ref, watch } from "vue";
+import { computed, onDeactivated, onScopeDispose, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { catalogApi, customerInput, type Customer, type CustomerInput } from "@/api/catalog";
+import { usePaneActivate } from "@/composables/use-pane-activate";
 import { hasPermission } from "@/routers/permissions";
 import { useAuthStore } from "@/stores/auth";
 import { reportFailure } from "@/utils/report-failure";
@@ -115,7 +116,10 @@ async function save() {
   finally { saving.value = false; }
 }
 watch(() => route.params.id, () => { if (active) void load(); }, { immediate: true });
-onActivated(() => { if (!active) { active = true; void load(); } });
+usePaneActivate(() => {
+  active = true;
+  void load();
+});
 onDeactivated(() => { active = false; generation++; });
 onScopeDispose(() => { generation++; });
 </script>

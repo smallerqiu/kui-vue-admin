@@ -92,7 +92,7 @@
 <script setup lang="ts">
 import { ArrowLeft, FolderKanban } from "kui-icons";
 import { PageHeader, message } from "kui-vue";
-import { computed, onActivated, onDeactivated, onScopeDispose, ref, watch } from "vue";
+import { computed, onDeactivated, onScopeDispose, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   loadAssignablePeople,
@@ -103,6 +103,7 @@ import {
   type ProjectRoster,
 } from "@/api/collaboration";
 import { resources, workspaceApi, type BusinessRecord } from "@/api/workspace";
+import { usePaneActivate } from "@/composables/use-pane-activate";
 import { hasPermission } from "@/routers/permissions";
 import { useAuthStore } from "@/stores/auth";
 import { reportFailure } from "@/utils/report-failure";
@@ -225,11 +226,9 @@ watch(
   },
   { immediate: true },
 );
-onActivated(() => {
-  if (!active) {
-    active = true;
-    void load();
-  }
+usePaneActivate(() => {
+  active = true;
+  void load();
 });
 onDeactivated(() => {
   active = false;

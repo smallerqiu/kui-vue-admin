@@ -61,9 +61,22 @@ export function useResourcePage<T>(path: string, filters: () => Record<string, u
   });
   watch([page, pageSize], () => { if (active) void reload(); });
   onMounted(() => void reload());
-  onActivated(() => { if (!active) { active = true; void reload(); } });
-  const suspend = () => { active = false; ++generation; clearTimeout(timer); };
+  // `active` keeps a hidden tab from asking for pages nobody is looking at. Coming back to it is not
+  // an edit: the list on screen is the list its filters asked for, so it costs no round trip. A page
+  // that wants the server's newest rows on return calls `reload()` from its own `onActivated`.
+  onActivated(() => {
+    active = true;
+  });
+  const suspend = () => {
+    active = false;
+    clearTimeout(timer);
+  };
+  // A request already on its way is left to land: dropping it would strand the tab on an empty list
+  // with nothing scheduled to fill it back in.
   onDeactivated(suspend);
-  onScopeDispose(suspend);
+  onScopeDispose(() => {
+    suspend();
+    ++generation;
+  });
   return { items, total, page, pageSize, loading, error, reload };
 }
