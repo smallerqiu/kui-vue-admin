@@ -1,4 +1,5 @@
 import { appConfig } from "@/config/app";
+import { toCsv } from "@/utils/csv";
 import request from "@/utils/request";
 
 /** Mirrors `GET /api/analytics` in kui-admin-api; the demo builder returns the same shape. */
@@ -70,11 +71,10 @@ export async function loadAnalyticsReport(range: AnalyticsRange): Promise<Analyt
   return buildAnalyticsReport(demoOrders, range);
 }
 
-const csvCell = (value: string | number) =>
-  /[",\n]/.test(String(value)) ? `"${String(value).replace(/"/g, '""')}"` : String(value);
-
 /** The trend table is the part users re-import elsewhere; totals stay on the page. */
 export function analyticsToCsv(report: AnalyticsReport): string {
-  const rows = [["周期", "订单量", "收入"], ...report.trend.map((point) => [point.bucket, point.orders, point.revenue])];
-  return rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
+  return toCsv([
+    ["周期", "订单量", "收入"],
+    ...report.trend.map((point) => [point.bucket, point.orders, point.revenue]),
+  ]);
 }

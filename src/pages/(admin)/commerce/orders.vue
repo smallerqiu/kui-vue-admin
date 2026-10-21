@@ -1,6 +1,10 @@
 <template>
   <div class="pro-list-page">
-    <PageHeader title="订单管理" description="查询和跟踪全部交易订单。"></PageHeader>
+    <PageHeader title="订单管理" description="查询和跟踪全部交易订单。">
+      <template #actions>
+        <Button :icon="Download" :loading="exporting" @click="exportOrders">导出订单</Button>
+      </template>
+    </PageHeader>
     <Grid :cols="{ xs: 1, sm: 2, xl: 4 }" :x-gap="12" :y-gap="12" class="order-stats">
       <GridItem v-for="card in cards" :key="card.title">
         <StatCard :title="card.title" :items="[card.item]" bordered reverse />
@@ -20,8 +24,13 @@
           style="width: 200px"
         />
         <Select v-model="status" clearable placeholder="全部状态" :options="statusOptions" />
-        <Input v-model="paymentMethod" clearable placeholder="支付方式（精确匹配）" />
-        <Input v-model="source" clearable placeholder="订单来源（精确匹配）" />
+        <Select
+          v-model="paymentMethod"
+          clearable
+          placeholder="支付方式"
+          :options="paymentOptions"
+        />
+        <Select v-model="source" clearable placeholder="订单来源" :options="sourceOptions" />
         <DatePicker v-model="dateRange" mode="dateRange" placeholder="下单日期（UTC）" />
       </template>
       <template #actions>
@@ -82,7 +91,7 @@
           </div>
         </template>
         <template #status="{ value }">
-          <Tag :color="statusColor(value)">{{ statusLabel(value) }}</Tag>
+          <Tag :color="statusColor(value)">{{ orderStatusLabel(value) }}</Tag>
         </template>
         <template #action="{ record }">
           <Space compact>
@@ -106,16 +115,26 @@
 </template>
 
 <script setup lang="ts">
-import { commerceApi, orderStatusOptions, type OrderRecord, type OrderSummary } from "@/api/commerce";
+import {
+  commerceApi,
+  orderStatusOptions,
+  orderStatusLabel,
+  ordersToCsv,
+  type OrderFacets,
+  type OrderQuery,
+  type OrderRecord,
+  type OrderSummary,
+} from "@/api/commerce";
 import { useResourcePage } from "@/composables/use-resource-page";
 import { useAuthStore } from "@/stores/auth";
 import { hasPermission } from "@/routers/permissions";
-import { Eye, Search } from "kui-icons";
+import { Download, Eye, Search } from "kui-icons";
 import { message, modal, PageHeader, type Column, type StatNumberItem } from "kui-vue";
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import dayjs from "dayjs";
 import { reportFailure } from "@/utils/report-failure";
+import { downloadCsv } from "@/utils/csv";
 import { formatDateTime, formatMoney, joinParts, shortId } from "@/utils/common";
 
 const router = useRouter();
@@ -123,10 +142,21 @@ const auth = useAuthStore();
 const canClose = computed(() => hasPermission("order:close", auth.user?.permissions || []));
 const keyword = ref("");
 const status = ref<string>();
-const paymentMethod = ref("");
-const source = ref("");
+const paymentMethod = ref<string>();
+const source = ref<string>();
 const dateRange = ref<[number, number]>();
 const busy = ref(false);
+const exporting = ref(false);
+// One filter row described once: the page on screen and the exported file are the same question, so
+// a file cannot arrive holding rows the dropdowns on screen had just excluded.
+const currentQuery = (): OrderQuery => ({
+  keyword: keyword.value.trim(),
+  status: status.value,
+  paymentMethod: paymentMethod.value,
+  source: source.value,
+  startDate: dateRange.value?.[0] ? dayjs(dateRange.value[0]).format("YYYY-MM-DD") : undefined,
+  endDate: dateRange.value?.[1] ? dayjs(dateRange.value[1]).format("YYYY-MM-DD") : undefined,
+});
 const {
   items: orders,
   total,
@@ -135,14 +165,7 @@ const {
   loading,
   error,
   reload,
-} = useResourcePage<OrderRecord>("/orders", () => ({
-  keyword: keyword.value.trim(),
-  status: status.value,
-  paymentMethod: paymentMethod.value.trim(),
-  source: source.value.trim(),
-  startDate: dateRange.value?.[0] ? dayjs(dateRange.value[0]).format("YYYY-MM-DD") : undefined,
-  endDate: dateRange.value?.[1] ? dayjs(dateRange.value[1]).format("YYYY-MM-DD") : undefined,
-}));
+} = useResourcePage<OrderRecord>("/orders", currentQuery);
 const summary = ref<OrderSummary>();
 const loadSummary = async () => {
   try {
@@ -153,7 +176,26 @@ const loadSummary = async () => {
     reportFailure(reason, "订单统计加载失败");
   }
 };
-onMounted(loadSummary);
+const facets = ref<OrderFacets>();
+// The 支付方式 and 订单来源 choices are the values the orders this account can read actually carry.
+// Neither column is an enum this app owns -- whoever recorded a payment typed the word -- so a list
+// kept here could only ever offer names that happen to match, and a channel written once would be
+// unfilterable from the page that shows it.
+const loadFacets = async () => {
+  try {
+    facets.value = await commerceApi.facets();
+  } catch (reason) {
+    reportFailure(reason, "筛选候选值加载失败");
+  }
+};
+onMounted(() => {
+  void loadSummary();
+  void loadFacets();
+});
+const asOptions = (values: string[] | undefined) =>
+  (values ?? []).map((value) => ({ label: value, value }));
+const paymentOptions = computed(() => asOptions(facets.value?.paymentMethods));
+const sourceOptions = computed(() => asOptions(facets.value?.sources));
 // One aggregate read, and each card is the row set the list filter of that meaning selects -- the
 // 待发货 card is `paid` because that is this status ladder's word for "paid, not shipped yet".
 const cards = computed<Array<{ title: string; item: StatNumberItem }>>(() => {
@@ -182,8 +224,6 @@ const columns: Column[] = [
 ];
 const statusOptions = orderStatusOptions;
 const hiddenColumnKeys = ref<string[]>([]);
-const statusLabel = (value: string) =>
-  statusOptions.find((item) => item.value === value)?.label || value;
 const statusColor = (value: string) =>
   ({ pending: "orange", paid: "blue", shipped: "cyan", completed: "green", refunded: "red" })[
     value
@@ -191,8 +231,8 @@ const statusColor = (value: string) =>
 const resetFilters = () => {
   keyword.value = "";
   status.value = undefined;
-  paymentMethod.value = "";
-  source.value = "";
+  paymentMethod.value = undefined;
+  source.value = undefined;
   dateRange.value = undefined;
 };
 const itemCount = (record: OrderRecord) =>
@@ -219,6 +259,29 @@ const closePendingOrder = (record: OrderRecord) =>
       }
     },
   });
+const exportOrders = async () => {
+  if (exporting.value) return;
+  exporting.value = true;
+  try {
+    const { rows, truncated } = await commerceApi.allMatching(currentQuery());
+    if (!rows.length) {
+      message.warning("当前条件下没有订单");
+      return;
+    }
+    downloadCsv(
+      ordersToCsv(rows),
+      `orders-${new Date().toISOString().slice(0, 10)}.csv`,
+    );
+    // The list is newest-first, so the rows a capped walk leaves out are always the older ones; the
+    // file says which half of the answer it is.
+    if (truncated) message.warning(`导出已到 ${rows.length} 条上限，更早的订单不在文件里`);
+    else message.success(`已导出 ${rows.length} 条订单`);
+  } catch (reason) {
+    message.error(reason instanceof Error ? reason.message : "导出失败，请重试");
+  } finally {
+    exporting.value = false;
+  }
+};
 </script>
 
 <style scoped lang="less">

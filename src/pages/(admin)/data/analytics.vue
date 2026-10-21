@@ -72,6 +72,7 @@ import DonutChart from "@/components/charts/DonutChart.vue";
 import TrendChart from "@/components/charts/TrendChart.vue";
 import { analyticsToCsv, loadAnalyticsReport, type AnalyticsRange } from "@/api/reports";
 import { useRemoteData } from "@/composables/use-remote-data";
+import { downloadCsv } from "@/utils/csv";
 import { Download } from "kui-icons";
 import Big from "big.js";
 import type { StatNumberItem } from "kui-vue";
@@ -232,16 +233,10 @@ const funnel = computed(() => {
 
 function exportCsv() {
   if (!data.value) return;
-  // BOM first so Excel opens the Chinese header row without mojibake.
-  const blob = new Blob([`\ufeff${analyticsToCsv(data.value)}`], {
-    type: "text/csv;charset=utf-8",
-  });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `analytics-${data.value.range}-${data.value.end.slice(0, 10)}.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
+  downloadCsv(
+    analyticsToCsv(data.value),
+    `analytics-${data.value.range}-${data.value.end.slice(0, 10)}.csv`,
+  );
 }
 </script>
 

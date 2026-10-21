@@ -1,4 +1,5 @@
 import request from "@/utils/request";
+import { toCsv } from "@/utils/csv";
 import type { PageResult } from "./catalog";
 export interface SystemSettings {
   organizationName: string;
@@ -126,8 +127,6 @@ export const auditLogApi = {
   },
 };
 
-const csvCell = (value: string) => (/[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value);
-
 /** The columns the page shows, plus the three ids an operator greps a server log with. */
 export function auditLogsToCsv(rows: AuditLogRecord[]): string {
   const header = [
@@ -154,7 +153,7 @@ export function auditLogsToCsv(rows: AuditLogRecord[]): string {
     row.resourceId,
     row.requestId,
   ]);
-  return [header, ...body].map((cells) => cells.map(csvCell).join(",")).join("\r\n");
+  return toCsv([header, ...body]);
 }
 // Backend content is not permission to navigate to an external site or execute a URL.
 export function notificationPath(link: string | null): string | undefined {

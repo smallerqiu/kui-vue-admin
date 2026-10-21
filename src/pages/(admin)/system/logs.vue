@@ -86,6 +86,7 @@ import { message, PageHeader, type Column } from "kui-vue";
 import { computed, ref } from "vue";
 import { useResourcePage } from "@/composables/use-resource-page";
 import { formatDateTime } from "@/utils/common";
+import { downloadCsv } from "@/utils/csv";
 import type { AuditLogPage, AuditLogRecord } from "@/api/system";
 
 const keyword = ref("");
@@ -149,16 +150,10 @@ const exportLogs = async () => {
       message.warning("当前条件下没有日志");
       return;
     }
-    // BOM first so Excel opens the Chinese header row without mojibake.
-    const blob = new Blob([`\ufeff${auditLogsToCsv(rows)}`], {
-      type: "text/csv;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadCsv(
+      auditLogsToCsv(rows),
+      `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`,
+    );
     if (truncated) message.warning(`导出已到 ${rows.length} 条上限，更早的日志不在文件里`);
     else message.success(`已导出 ${rows.length} 条日志`);
   } catch (reason) {
