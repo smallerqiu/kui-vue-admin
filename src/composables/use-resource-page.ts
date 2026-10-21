@@ -15,9 +15,19 @@ const querySignature = (values: Record<string, unknown>) =>
       .sort(([a], [b]) => a.localeCompare(b)),
   );
 
-/** Server pagination; failed/stale responses never become a successful empty result. */
-export function useResourcePage<T>(path: string, filters: () => Record<string, unknown>) {
+/**
+ * Server pagination; failed/stale responses never become a successful empty result.
+ *
+ * `P` is the response shape when a list endpoint answers more than the rows: `payload` keeps the
+ * whole answer, so a page can read a vocabulary (the log page's 模块 and 级别 options) that belongs
+ * to the endpoint rather than to one page of it.
+ */
+export function useResourcePage<T, P extends PageResult<T> = PageResult<T>>(
+  path: string,
+  filters: () => Record<string, unknown>,
+) {
   const items = shallowRef<T[]>([]);
+  const payload = shallowRef<P | null>(null);
   const total = ref(0);
   const page = ref(1);
   const pageSize = ref(20);
@@ -33,13 +43,14 @@ export function useResourcePage<T>(path: string, filters: () => Record<string, u
     error.value = "";
     items.value = [];
     try {
-      const result = await request.get<PageResult<T>>(path, {
+      const result = await request.get<P>(path, {
         ...filters(), page: page.value, pageSize: pageSize.value,
       });
       if (current !== generation) return;
       const lastPage = Math.max(1, Math.ceil(result.total / pageSize.value));
       if (page.value > lastPage) { page.value = lastPage; return; }
       items.value = result.items;
+      payload.value = result;
       total.value = result.total;
     } catch (reason) {
       if (current === generation) {
@@ -78,5 +89,5 @@ export function useResourcePage<T>(path: string, filters: () => Record<string, u
     suspend();
     ++generation;
   });
-  return { items, total, page, pageSize, loading, error, reload };
+  return { items, payload, total, page, pageSize, loading, error, reload };
 }
