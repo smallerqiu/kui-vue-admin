@@ -55,7 +55,25 @@ export const customerInput = (value: CustomerInput): CustomerInput => ({
   status: value.status, contact: value.contact, phone: value.phone,
   email: value.email, city: value.city,
 });
+/**
+ * The four numbers above the customer list. Each one is the row set a filter on that list selects:
+ * `total` the unfiltered list, `byLevel.strategic` the 等级 dropdown, and `annualValue` the sum of
+ * the 年价值 column over every page rather than the one on screen.  `monthlyAdded` /
+ * `lastMonthlyAdded` count whole calendar months of the same UTC clock the rows' `createdAt` carries,
+ * and `beforeThisMonth` is where the count stood at the end of last month -- the pair the 客户总数
+ * trend is measured against, so a deletion this month cannot move the baseline it compares to.
+ */
+export interface CustomerSummary {
+  total: number;
+  byLevel: { strategic: number };
+  monthlyAdded: number;
+  lastMonthlyAdded: number;
+  beforeThisMonth: number;
+  annualValue: string;
+  strategicAnnualValue: string;
+}
 export const catalogApi = {
+  customerSummary: () => request.get<CustomerSummary>("/customers/summary"),
   setProductEnabled: (id: string, enabled: boolean) =>
     request.post<Product>(`/products/${encodeURIComponent(id)}/availability`, { enabled }),
   customer: (id: string) => request.get<Customer>(`/customers/${encodeURIComponent(id)}`),

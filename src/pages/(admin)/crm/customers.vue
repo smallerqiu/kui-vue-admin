@@ -5,6 +5,11 @@
         <Button v-if="canEdit" type="primary" :icon="UserRoundPlus" @click="drawerOpen = true">新增客户</Button>
       </template>
     </PageHeader>
+    <Grid :cols="{ xs: 1, sm: 2, xl: 4 }" :x-gap="12" :y-gap="12" class="customer-stats">
+      <GridItem v-for="card in cards" :key="card.title">
+        <StatCard :title="card.title" :items="[card.item]" bordered reverse />
+      </GridItem>
+    </Grid>
     <p v-if="error" role="alert">{{ error }} <Button @click="reload">重试</Button></p>
     <ListPanel :summary="`${total} 家客户`">
       <template #filters>
@@ -93,7 +98,7 @@
 </template>
 
 <script setup lang="ts">
-import { catalogApi, type Customer } from "@/api/catalog";
+import { catalogApi, type Customer, type CustomerSummary } from "@/api/catalog";
 import { useResourcePage } from "@/composables/use-resource-page";
 import { Building2, Eye, Search, UserRoundPlus } from "kui-icons";
 import {
@@ -101,8 +106,10 @@ import {
   PageHeader,
   type BadgeStatusType,
   type Column,
+  type StatNumberItem,
 } from "kui-vue";
-import { computed, reactive, ref } from "vue";
+import Big from "big.js";
+import { computed, onMounted, reactive, ref } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { hasPermission } from "@/routers/permissions";
 import { useRouter } from "vue-router";
@@ -141,6 +148,76 @@ const status = ref<Customer["status"]>();
 const { items: customerData, total, page, pageSize, loading, error, reload } = useResourcePage<Customer>(
   "/customers", () => ({ keyword: keyword.value.trim(), level: level.value, status: status.value }),
 );
+const summary = ref<CustomerSummary>();
+const loadSummary = async () => {
+  try {
+    summary.value = await catalogApi.customerSummary();
+  } catch (reason) {
+    // No numbers rather than invented ones: the cards stay off the page and the server's own words
+    // say why.
+    reportFailure(reason, "客户统计加载失败");
+  }
+};
+onMounted(loadSummary);
+// Master draws the value in 万, and the server sends the same two-decimal text the 年价值 column
+// carries, so the only thing decided here is the unit the card prints in.
+const wan = (value: string) => Number(Big(value).div(10000).round(2));
+const trendText = (value: number | null) =>
+  value === null ? "" : `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
+// Four cards, one aggregate read, and each of them is the row set the list answers for that same
+// question: the unfiltered total, the row set the 等级 dropdown selects, the sum of the 年价值 column
+// over every page, and the calendar month a row's own `createdAt` falls in. The list's own counter
+// beside it is a different number on purpose -- it follows the filters on screen, these do not.
+const cards = computed<Array<{ title: string; item: StatNumberItem }>>(() => {
+  const data = summary.value;
+  if (!data) return [];
+  // 较上月 is measured against where the count stood at the end of last month, which is the row set
+  // the server calls `beforeThisMonth` -- not against a total this month's deletions already moved.
+  // Both are counts, so the only float in this page is the display rounding below.
+  const growth =
+    data.beforeThisMonth > 0
+      ? ((data.total - data.beforeThisMonth) / data.beforeThisMonth) * 100
+      : null;
+  const value = Big(data.annualValue);
+  // A share of revenue means something only once there is revenue to share, and the two figures
+  // divided here are decimal text rather than counts.
+  const share = value.eq(0)
+    ? null
+    : Number(Big(data.strategicAnnualValue).div(value).times(100).round(0));
+  return [
+    {
+      title: "客户总数",
+      item: {
+        value: data.total,
+        separator: ",",
+        desc: growth === null ? "上月末还没有客户" : "较上月",
+        trend: trendText(growth),
+        trendStatus: growth === null ? "default" : growth >= 0 ? "success" : "danger",
+      },
+    },
+    {
+      title: "战略客户",
+      item: {
+        value: data.byLevel.strategic,
+        desc: share === null ? "客户订单还没有收入" : `贡献 ${share}% 收入`,
+      },
+    },
+    {
+      title: "本月新增",
+      item: { value: data.monthlyAdded, desc: `上月新增 ${data.lastMonthlyAdded} 家` },
+    },
+    {
+      title: "客户年价值",
+      item: {
+        value: wan(data.annualValue),
+        precision: 2,
+        prefix: "¥",
+        suffix: "万",
+        desc: "全部客户订单合计",
+      },
+    },
+  ];
+});
 const saving = ref(false);
 const drawerOpen = ref(false);
 const hiddenColumnKeys = ref<string[]>([]);
@@ -185,7 +262,7 @@ const createCustomer = async () => {
     drawerOpen.value = false;
     Object.assign(form, { name: "", industry: "", level: "growth", contact: "", phone: "", email: "", city: "", status: "follow" });
     message.success("客户已创建");
-    await reload();
+    await Promise.all([reload(), loadSummary()]);
   } catch (reason) {
     // The form stays for a retry, and the refusal says why.
     reportFailure(reason, "保存失败");
