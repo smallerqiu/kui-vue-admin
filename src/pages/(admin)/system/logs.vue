@@ -13,25 +13,33 @@
         :loading="loading"
         row-key="id"
         :scroll="{ x: 1100 }"
-      />
+      >
+        <template #createdAt="{ value }">
+          {{ formatDateTime(value) }}
+        </template>
+      </Table>
       <Page v-model:page="page" :page-size="pageSize" :total="total" :disabled="loading" />
     </ListPanel>
   </div>
 </template>
 <script setup lang="ts">
 import { useResourcePage } from "@/composables/use-resource-page";
+import { formatDateTime } from "@/utils/common";
 import type { BusinessRecord } from "@/api/workspace";
 import type { Column } from "kui-vue";
 const { items, total, page, pageSize, loading, error, reload } = useResourcePage<BusinessRecord>(
   "/audit-logs",
   () => ({}),
 );
+// The three ids stay in full here: this is the page an operator copies them from to
+// grep a request out of the server log, so shortening them would cost the one thing
+// the table is for. Only the clock gets formatted -- the header already says UTC.
 const columns: Column[] = [
   { title: "操作", key: "action", width: 180 },
   { title: "操作人 ID", key: "actorId", width: 260 },
   { title: "资源 ID", key: "resourceId", width: 260 },
   { title: "请求 ID", key: "requestId", width: 260 },
-  { title: "时间 (UTC)", key: "createdAt", width: 210 },
+  { title: "时间 (UTC)", key: "createdAt", width: 150 },
 ];
 </script>
 <route lang="yaml">

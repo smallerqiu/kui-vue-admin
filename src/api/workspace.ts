@@ -34,6 +34,16 @@ export interface ResourceDefinition {
 }
 const choices = (values: Record<string, string>) =>
   Object.entries(values).map(([value, label]) => ({ value, label }));
+/**
+ * A review resource keeps its state out of the editable fields -- the server moves it,
+ * nobody types it -- so without this the table would print the bare enum. Same words as
+ * the review dialog's buttons, so a row and the dialog cannot disagree.
+ */
+export const reviewStatusOptions = choices({
+  pending: "待审核",
+  approved: "已通过",
+  rejected: "已驳回",
+});
 const name = (key = "name", label = "名称"): Field => ({
   key,
   label,

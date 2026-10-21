@@ -256,4 +256,31 @@ describe("workspace page workflows", () => {
     expect(root.textContent).toContain("10:00");
     expect(root.textContent).not.toContain("10:00:00");
   });
+  it("labels the review state the server owns", async () => {
+    vi.mocked(request.get).mockImplementation(async (path: string) =>
+      path === "/approvals"
+        ? {
+            items: [
+              {
+                id: "a1",
+                title: "报销申请",
+                type: "expense",
+                amount: "200.00",
+                description: "",
+                status: "pending",
+              },
+            ],
+            total: 1,
+            page: 1,
+            pageSize: 20,
+          }
+        : { items: [], total: 0, page: 1, pageSize: 20 },
+    );
+    const root = mount(resources.approvals!);
+    await flush();
+    // The state is not an editable field, so it reaches the table through no definition
+    // field of its own -- and the enum must not be what the operator reads.
+    expect(root.textContent).toContain("待审核");
+    expect(root.textContent).not.toContain("pending");
+  });
 });

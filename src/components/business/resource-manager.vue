@@ -15,7 +15,7 @@
       </template>
       <template #actions><Button :loading="loading" @click="reload">刷新</Button></template>
       <Table :data="items" :columns="columns" :loading="loading" row-key="id" :scroll="{ x: 1000 }">
-        <template v-for="field in visibleFields" :key="field.key" #[field.key]="{ record }">
+        <template v-for="field in tableFields" :key="field.key" #[field.key]="{ record }">
           {{ display(field, record[field.key]) }}
         </template>
         <template #action="{ record }">
@@ -117,7 +117,7 @@
           />
         </FormItem>
         <p v-if="definition.review && editing">
-          审核状态：{{ detail?.status }}；审核备注：{{ detail?.reviewNote || "无" }}
+          审核状态：{{ reviewLabel }}；审核备注：{{ detail?.reviewNote || "无" }}
         </p>
       </Form>
       <template #footer>
@@ -171,6 +171,7 @@ import { message, type Column, type SelectValue } from "kui-vue";
 import {
   formValue,
   referenceOptions,
+  reviewStatusOptions,
   workspaceApi,
   type BusinessRecord,
   type Field,
@@ -218,9 +219,23 @@ const canDelete = computed(
     hasPermission(`${props.definition.permission}:delete`, auth.permissions),
 );
 const visibleFields = computed(() => props.definition.fields.filter((field) => !field.hidden));
+/**
+ * The review state is not editable -- the server moves it -- so it is not one of the
+ * definition's fields, but it is a column, and it needs the same label lookup as the
+ * editable ones. Without it the table prints the bare enum.
+ */
+const reviewStatus: Field = {
+  key: "status",
+  label: "审核状态",
+  kind: "select",
+  initial: "pending",
+  options: reviewStatusOptions,
+};
+const tableFields = computed<Field[]>(() =>
+  props.definition.review ? [...visibleFields.value, reviewStatus] : visibleFields.value,
+);
 const columns = computed<Column[]>(() => [
-  ...visibleFields.value.map((field) => ({ title: field.label, key: field.key, width: 160 })),
-  ...(props.definition.review ? [{ title: "审核状态", key: "status", width: 120 }] : []),
+  ...tableFields.value.map((field) => ({ title: field.label, key: field.key, width: 160 })),
   { title: "操作", key: "action", width: props.definition.detail ? 296 : 240, fixed: "right" },
 ]);
 const editorOpen = ref(false),
@@ -271,6 +286,7 @@ function display(field: Field, value: unknown) {
   const options = field.options || (field.source ? references.value[field.source] : undefined);
   return options?.find((option) => option.value === value)?.label || String(value ?? "—");
 }
+const reviewLabel = computed(() => display(reviewStatus, detail.value?.status));
 function selectValue(field: Field): SelectValue | SelectValue[] | undefined {
   return (form.value[field.key] ?? undefined) as SelectValue | SelectValue[] | undefined;
 }

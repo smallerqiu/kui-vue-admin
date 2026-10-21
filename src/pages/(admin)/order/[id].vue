@@ -1,6 +1,9 @@
 <template>
   <div v-if="order" class="order-detail-page">
-    <PageHeader :title="`订单 ${order.id}`" description="查看订单状态、客户信息和操作记录。">
+    <PageHeader
+      :title="`订单 ${shortId(order.id)}`"
+      description="查看订单状态、客户信息和操作记录。"
+    >
       <template #actions>
         <Button
           v-if="order.status === 'pending' && allowed('order:payment')"
@@ -410,7 +413,7 @@ import {
 import { useRoute, useRouter } from "vue-router";
 import Big from "big.js";
 import { reportFailure } from "@/utils/report-failure";
-import { formatDateTime } from "@/utils/common";
+import { formatDateTime, shortId } from "@/utils/common";
 
 const route = useRoute();
 const router = useRouter();
@@ -508,8 +511,16 @@ const statusColor = computed(() => currentStatus.value.color);
 const statusIcon = computed(() => currentStatus.value.icon);
 const stepCurrent = computed(() => currentStatus.value.step);
 const stepItems = computed(() => [
-  { title: "提交订单", description: order.value?.createdAt },
-  { title: "登记收款", description: order.value?.paymentAt || undefined },
+  // Both of these are stamps the server sends with seconds and microseconds attached;
+  // the step row has room for a minute, and the full value sits in 订单信息 below.
+  {
+    title: "提交订单",
+    description: order.value ? formatDateTime(order.value.createdAt) : undefined,
+  },
+  {
+    title: "登记收款",
+    description: order.value?.paymentAt ? formatDateTime(order.value.paymentAt) : undefined,
+  },
   { title: "商品出库" },
   { title: "确认收货" },
 ]);

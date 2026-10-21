@@ -66,6 +66,9 @@
           <Switch :model-value="record.enabled" :disabled="!canEdit || changing || loading" size="small"
             true-text="上架" false-text="下架" @update:model-value="value => toggleEnabled(record, Boolean(value))" />
         </template>
+        <template #updatedAt="{ value }">
+          {{ formatDateTime(value) }}
+        </template>
         <template #action="{ record }">
           <Button v-if="canEdit" size="small" theme="plain" :icon="Pencil" @click="openEdit(record)">编辑</Button>
         </template>
@@ -122,6 +125,7 @@ import { hasPermission } from "@/routers/permissions";
 import { catalogApi, productInput, type Product, type ProductInput } from "@/api/catalog";
 import { useResourcePage } from "@/composables/use-resource-page";
 import { reportFailure } from "@/utils/report-failure";
+import { formatDateTime } from "@/utils/common";
 
 const columns: Column[] = [
   { title: "商品", key: "product", width: 280 },
