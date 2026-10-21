@@ -36,7 +36,7 @@
         :columns="columns"
         :hidden-column-keys="hiddenColumnKeys"
         row-key="id"
-        :scroll="{ x: 1050 }"
+        :scroll="{ x: 1440 }"
       >
         <template #customer="{ record }">
           <button class="customer-cell" type="button" @click="openDetail(record)">
@@ -53,6 +53,9 @@
         <template #status="{ value }">
           <Badge :status="statusBadge(value)" :text="statusLabel(value)" />
         </template>
+        <template #ownerName="{ value }">{{ value || "—" }}</template>
+        <template #annualValue="{ value }">¥{{ money(value) }}</template>
+        <template #lastContactAt="{ value }">{{ formatDateTime(value) }}</template>
         <template #action="{ record }">
           <Button size="small" theme="plain" :icon="Eye" @click="openDetail(record)">详情</Button>
         </template>
@@ -104,7 +107,7 @@ import { useAuthStore } from "@/stores/auth";
 import { hasPermission } from "@/routers/permissions";
 import { useRouter } from "vue-router";
 import { reportFailure } from "@/utils/report-failure";
-import { joinParts } from "@/utils/common";
+import { joinParts, formatDateTime } from "@/utils/common";
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -113,9 +116,13 @@ const columns: Column[] = [
   { title: "客户", key: "customer", width: 290 },
   { title: "等级", key: "level", width: 110 },
   { title: "状态", key: "status", width: 110 },
+  { title: "负责人", key: "ownerName", width: 120 },
   { title: "联系人", key: "contact", width: 100 },
   { title: "电话", key: "phone", width: 140 },
   { title: "城市", key: "city", width: 110 },
+  { title: "订单数", key: "orderCount", width: 90 },
+  { title: "年价值", key: "annualValue", width: 130 },
+  { title: "最近联系", key: "lastContactAt", width: 150 },
   { title: "操作", key: "action", width: 90, fixed: "right" },
 ];
 const levelOptions = [
@@ -149,6 +156,13 @@ const form = reactive({
 });
 const levelLabel = (value: string) =>
   levelOptions.find((item) => item.value === value)?.label || value;
+/**
+ * The server folds a customer's orders into a two-decimal string. Grouping the thousands is the
+ * only reason to touch it: an operator compares customers by magnitude, and 1234567.00 is not a
+ * magnitude at a glance.
+ */
+const money = (value: unknown) =>
+  Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const levelColor = (value: string) =>
   ({ strategic: "purple", enterprise: "blue", growth: "green" })[value] || "gray";
 const statusLabel = (value: string) =>

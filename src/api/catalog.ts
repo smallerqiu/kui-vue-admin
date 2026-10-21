@@ -20,6 +20,12 @@ export interface Customer extends CustomerInput {
   id: string;
   createdAt: string;
   updatedAt: string;
+  // Computed by the server for the list, never typed into the form: whose customer it is, and
+  // what the orders pointing back at it add up to inside the viewer's own data scope.
+  ownerName: string | null;
+  orderCount: number;
+  annualValue: string;
+  lastContactAt: string | null;
   [key: string]: unknown;
 }
 export interface ProductInput {
