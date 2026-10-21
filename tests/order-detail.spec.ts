@@ -186,4 +186,42 @@ describe("order detail integration", () => {
     expect(message.error).toHaveBeenCalledWith("Payment conflict");
     expect((root.querySelector("section input") as HTMLInputElement).value).toBe("bank-transfer");
   });
+  it("shows amounts in groups while the price dialog still works on the flat figure", async () => {
+    // Two shapes of the same number are needed here at once: the operator reads 1,234,567.89,
+    // while the dialog's own guard parses the preview with `new Big(...)`. Grouping inside the
+    // computed would make that throw, which refuses a discount the server would have accepted.
+    const amounts: OrderRecord = {
+      ...order("one"),
+      goodsAmount: "1234567.89",
+      freight: "1000.00",
+      discount: "0.00",
+      paidAmount: "1234567.89",
+      refundedAmount: "0.00",
+    };
+    vi.mocked(commerceApi.detail).mockResolvedValueOnce(amounts);
+    vi.mocked(commerceApi.action).mockResolvedValueOnce(amounts);
+    const root = mount();
+    await flush();
+    expect(root.textContent).toContain("¥ 1,234,567.89");
+    expect(root.textContent).not.toContain("1234567.89");
+
+    [...root.querySelectorAll("button")]
+      .find((button) => button.textContent?.trim() === "调整价格")!
+      .click();
+    await nextTick();
+    const input = root.querySelector("section input") as HTMLInputElement;
+    input.value = "2345.67";
+    input.dispatchEvent(new Event("input"));
+    await nextTick();
+    // 商品 1234567.89 + 运费 1000.00 − 优惠 2345.67.
+    expect(root.textContent).toContain("¥ 1,233,222.22");
+
+    [...root.querySelectorAll("button")]
+      .find((button) => button.textContent?.trim() === "确认提交")!
+      .click();
+    await flush();
+    expect(commerceApi.action).toHaveBeenCalledWith("one", "adjust", { discount: "2345.67" });
+    expect(message.warning).not.toHaveBeenCalled();
+    expect(message.success).toHaveBeenCalledWith("操作已保存");
+  });
 });

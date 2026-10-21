@@ -66,6 +66,25 @@ export function joinParts(...parts: (string | null | undefined)[]) {
   return parts.filter((part) => part && part.trim()).join(" · ");
 }
 
+/**
+ * Money leaves the API as two-decimal text, and text does not group itself: `toLocaleString` on a
+ * string is the one inherited from `Object.prototype`, which hands the same characters back, so
+ * "12345.00" prints as 12345.00 no matter how many times it is called. Converting first is the
+ * whole fix, and the two decimals are then held in place — a row worth 12345.00 must not round
+ * down to 12,345 and one worth 0.50 must not lose its cent to 0.5.
+ *
+ * The separator is pinned to `en-US` rather than left to the browser because the application has
+ * no language switch yet (its own copy is Chinese, Kui's built-in strings are English), and a
+ * figure that changes shape with the operator's OS locale cannot be checked on screen or in a
+ * test. An empty value stays empty: a cell the server left blank is not a zero somebody paid.
+ */
+export function formatMoney(value: string | number | null | undefined) {
+  if (value === null || value === undefined || value === "") return "";
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return String(value);
+  return amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export function parseTime(date: string) {
   return dayjs(date).format("YYYY/MM/DD HH:mm:ss");
 }

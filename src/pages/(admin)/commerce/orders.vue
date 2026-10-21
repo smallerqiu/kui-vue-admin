@@ -71,13 +71,13 @@
                 <strong>{{ item.name }}</strong>
                 <small>{{ item.specs }} · {{ item.sku }}</small>
               </div>
-              <span>¥{{ money(item.price) }} × {{ item.quantity }}</span>
+              <span>¥{{ formatMoney(item.price) }} × {{ item.quantity }}</span>
             </div>
           </div>
         </template>
         <template #paidAmount="{ record }">
           <div class="amount-cell">
-            <strong>¥ {{ money(record.paidAmount) }}</strong>
+            <strong>¥ {{ formatMoney(record.paidAmount) }}</strong>
             <small>共 {{ itemCount(record) }} 件</small>
           </div>
         </template>
@@ -116,7 +116,7 @@ import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import dayjs from "dayjs";
 import { reportFailure } from "@/utils/report-failure";
-import { formatDateTime, joinParts, shortId } from "@/utils/common";
+import { formatDateTime, formatMoney, joinParts, shortId } from "@/utils/common";
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -181,10 +181,6 @@ const columns: Column[] = [
   { title: "操作", key: "action", width: 170, fixed: "right" },
 ];
 const statusOptions = orderStatusOptions;
-// Money arrives as a two-decimal string, and a string's `toLocaleString` is Object.prototype's: it
-// hands the digits back ungrouped, so 12345.00 never becomes 12,345.00 on its own.
-const money = (value: unknown) =>
-  Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const hiddenColumnKeys = ref<string[]>([]);
 const statusLabel = (value: string) =>
   statusOptions.find((item) => item.value === value)?.label || value;

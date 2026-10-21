@@ -44,7 +44,7 @@
           <Tag theme="fill">{{ typeLabel(value) }}</Tag>
         </template>
         <template #amount="{ value }">
-          <strong>¥ {{ Number(value).toLocaleString() }}</strong>
+          <strong>¥ {{ formatMoney(value) }}</strong>
         </template>
         <template #status="{ value }">
           <Tag :color="statusInfo(value).color">{{ statusInfo(value).label }}</Tag>
@@ -84,7 +84,7 @@
       :esc-key="!saving"
     >
       <p>请先确认已在银行或支付平台完成退款。本操作仅登记结果，不实际转账。</p>
-      <p>金额：¥ {{ activeRecord?.amount }}</p>
+      <p>金额：¥ {{ formatMoney(activeRecord?.amount) }}</p>
       <FormItem label="外部退款凭证号">
         <Input v-model="refundReference" placeholder="银行或支付平台的退款流水号" />
       </FormItem>
@@ -101,7 +101,7 @@
           <DescriptionsItem label="客户">{{ activeRecord.customer }}</DescriptionsItem>
           <DescriptionsItem label="售后类型">{{ typeLabel(activeRecord.type) }}</DescriptionsItem>
           <DescriptionsItem label="申请金额">
-            ¥ {{ activeRecord.amount.toLocaleString() }}
+            ¥ {{ formatMoney(activeRecord.amount) }}
           </DescriptionsItem>
           <DescriptionsItem label="申请原因">{{ activeRecord.reason }}</DescriptionsItem>
           <DescriptionsItem label="审核结果">
@@ -159,7 +159,7 @@ import { message, type Column } from "kui-vue";
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { reportFailure } from "@/utils/report-failure";
-import { formatDateTime, shortId } from "@/utils/common";
+import { formatDateTime, formatMoney, shortId } from "@/utils/common";
 
 const router = useRouter();
 const auth = useAuthStore();

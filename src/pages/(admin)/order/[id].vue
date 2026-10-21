@@ -67,7 +67,7 @@
         </div>
         <div class="order-total">
           <span>订单金额</span>
-          <strong>¥ {{ order.paidAmount.toLocaleString() }}</strong>
+          <strong>¥ {{ formatMoney(order.paidAmount) }}</strong>
         </div>
       </Flex>
       <Steps
@@ -95,7 +95,7 @@
                   <small>SKU：{{ item.sku }}</small>
                 </div>
                 <div class="product-price">
-                  <strong>¥ {{ item.price.toLocaleString() }}</strong>
+                  <strong>¥ {{ formatMoney(item.price) }}</strong>
                   <span>× {{ item.quantity }}</span>
                 </div>
               </div>
@@ -103,23 +103,23 @@
             <div class="amount-summary">
               <span>
                 商品金额
-                <strong>¥ {{ order.goodsAmount.toLocaleString() }}</strong>
+                <strong>¥ {{ formatMoney(order.goodsAmount) }}</strong>
               </span>
               <span>
                 运费
-                <strong>{{ order.freight ? `¥ ${order.freight}` : "免运费" }}</strong>
+                <strong>{{ order.freight ? `¥ ${formatMoney(order.freight)}` : "免运费" }}</strong>
               </span>
               <span>
                 优惠
-                <strong class="discount">- ¥ {{ order.discount.toLocaleString() }}</strong>
+                <strong class="discount">- ¥ {{ formatMoney(order.discount) }}</strong>
               </span>
               <span class="paid">
                 订单应付
-                <strong>¥ {{ order.paidAmount.toLocaleString() }}</strong>
+                <strong>¥ {{ formatMoney(order.paidAmount) }}</strong>
               </span>
               <span>
                 已登记退款
-                <strong>¥ {{ order.refundedAmount }}</strong>
+                <strong>¥ {{ formatMoney(order.refundedAmount) }}</strong>
               </span>
             </div>
           </Card>
@@ -339,7 +339,7 @@
         </FormItem>
         <p class="price-preview">
           调整后应付：
-          <strong>¥ {{ pricePreview }}</strong>
+          <strong>¥ {{ formatMoney(pricePreview) }}</strong>
         </p>
       </Form>
     </Modal>
@@ -413,7 +413,7 @@ import { useRoute, useRouter } from "vue-router";
 import Big from "big.js";
 import { usePaneActivate } from "@/composables/use-pane-activate";
 import { reportFailure } from "@/utils/report-failure";
-import { formatDateTime, shortId } from "@/utils/common";
+import { formatDateTime, formatMoney, shortId } from "@/utils/common";
 
 const route = useRoute();
 const router = useRouter();

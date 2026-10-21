@@ -59,7 +59,7 @@
           <Badge :status="statusBadge(value)" :text="statusLabel(value)" />
         </template>
         <template #ownerName="{ value }">{{ value || "—" }}</template>
-        <template #annualValue="{ value }">¥{{ money(value) }}</template>
+        <template #annualValue="{ value }">¥{{ formatMoney(value) }}</template>
         <template #lastContactAt="{ value }">{{ formatDateTime(value) }}</template>
         <template #action="{ record }">
           <Button size="small" theme="plain" :icon="Eye" @click="openDetail(record)">详情</Button>
@@ -114,7 +114,7 @@ import { useAuthStore } from "@/stores/auth";
 import { hasPermission } from "@/routers/permissions";
 import { useRouter } from "vue-router";
 import { reportFailure } from "@/utils/report-failure";
-import { joinParts, formatDateTime } from "@/utils/common";
+import { joinParts, formatDateTime, formatMoney } from "@/utils/common";
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -233,13 +233,6 @@ const form = reactive({
 });
 const levelLabel = (value: string) =>
   levelOptions.find((item) => item.value === value)?.label || value;
-/**
- * The server folds a customer's orders into a two-decimal string. Grouping the thousands is the
- * only reason to touch it: an operator compares customers by magnitude, and 1234567.00 is not a
- * magnitude at a glance.
- */
-const money = (value: unknown) =>
-  Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const levelColor = (value: string) =>
   ({ strategic: "purple", enterprise: "blue", growth: "green" })[value] || "gray";
 const statusLabel = (value: string) =>

@@ -57,7 +57,7 @@
           </div>
         </template>
         <template #price="{ value }">
-          <strong>¥ {{ Number(value).toLocaleString() }}</strong>
+          <strong>¥ {{ formatMoney(value) }}</strong>
         </template>
         <template #stock="{ value }">
           <span :class="{ 'stock-low': Number(value) < 20 }">{{ value }}</span>
@@ -125,7 +125,7 @@ import { hasPermission } from "@/routers/permissions";
 import { catalogApi, productInput, type Product, type ProductInput } from "@/api/catalog";
 import { useResourcePage } from "@/composables/use-resource-page";
 import { reportFailure } from "@/utils/report-failure";
-import { formatDateTime } from "@/utils/common";
+import { formatDateTime, formatMoney } from "@/utils/common";
 
 const columns: Column[] = [
   { title: "商品", key: "product", width: 280 },

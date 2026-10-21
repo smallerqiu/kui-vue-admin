@@ -14,7 +14,9 @@
     <Grid v-if="data" :cols="{ xs: 1, sm: 2, lg: 3 }" :x-gap="16" :y-gap="16">
       <GridItem v-for="metric in metrics" :key="metric.key">
         <Card :title="metric.label" bordered>
-          <strong class="metric">{{ data[metric.key] }}</strong>
+          <strong class="metric">{{
+            metric.money ? formatMoney(data[metric.key]) : data[metric.key]
+          }}</strong>
         </Card>
       </GridItem>
     </Grid>
@@ -35,12 +37,15 @@ import { systemApi, type Dashboard } from "@/api/system";
 import { useRemoteData } from "@/composables/use-remote-data";
 import { useAuthStore } from "@/stores/auth";
 import { hasPermission } from "@/routers/permissions";
+import { formatMoney } from "@/utils/common";
 const auth = useAuthStore(),
   router = useRouter();
 const { data, loading, error, reload } = useRemoteData(systemApi.dashboard);
-const metrics: { key: keyof Dashboard; label: string }[] = [
+const metrics: { key: keyof Dashboard; label: string; money?: boolean }[] = [
   { key: "orders", label: "订单总数" },
-  { key: "revenue", label: "累计净收款金额" },
+  // The one money figure on this page, and the server sends it as decimal text like every other
+  // amount: grouped here, counted as plain digits everywhere else.
+  { key: "revenue", label: "累计净收款金额", money: true },
   { key: "customers", label: "客户总数" },
   { key: "products", label: "商品总数" },
   { key: "projects", label: "项目总数" },
