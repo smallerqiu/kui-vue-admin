@@ -24,7 +24,7 @@
             </div>
             <div>
               <span>上次登录</span>
-              <strong>暂未提供</strong>
+              <strong>{{ lastLogin }}</strong>
             </div>
             <div>
               <span>登录地点</span>
@@ -122,6 +122,7 @@ import { message, type IconType } from "kui-vue";
 import { computed, reactive, ref } from "vue";
 import { updateProfileApi } from "@/api/auth";
 import { appConfig } from "@/config/app";
+import { formatDateTime } from "@/utils/common";
 import { reportFailure } from "@/utils/report-failure";
 
 const authStore = useAuthStore();
@@ -129,6 +130,15 @@ const themeStore = useThemeStore();
 const preferenceStore = usePreferenceStore();
 const activeTab = ref("basic");
 const displayName = computed(() => authStore.user.fullName || authStore.user.name || "管理员");
+// The server answers null when the account has no sign-in behind this one, and says nothing at all
+// for a snapshot taken before it started keeping the column -- an absent key is not a first login.
+const lastLogin = computed(() =>
+  authStore.user.lastLoginAt === undefined
+    ? "暂未提供"
+    : authStore.user.lastLoginAt === null
+      ? "首次登录"
+      : formatDateTime(authStore.user.lastLoginAt),
+);
 const basicForm = reactive({
   fullName: String(authStore.user.fullName || "Administrator"),
   name: String(authStore.user.name || "admin"),

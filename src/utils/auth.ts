@@ -7,6 +7,11 @@ export interface AuthUser {
   roles?: string[];
   permissions?: string[];
   dataScope?: "all" | "department" | "self";
+  /**
+   * The sign-in before the current session, as the server's naive UTC stamp. `null` means this is
+   * the account's first recorded sign-in; the key is absent when the source never answered.
+   */
+  lastLoginAt?: string | null;
   [key: string]: unknown;
 }
 
