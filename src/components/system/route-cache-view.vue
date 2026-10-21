@@ -22,12 +22,22 @@ import {
   type Component,
   type VNode,
 } from "vue";
-import { useRoute, viewDepthKey } from "vue-router";
+import { matchedRouteKey, useRoute, viewDepthKey } from "vue-router";
 
 const tab = useTabViewsStore();
 const route = useRoute();
 const injectedDepth = inject(viewDepthKey, 0);
 const cacheComponents = new Map<string, Component>();
+
+/**
+ * The route record whose component rendered this view, read once while that record is the current
+ * one. `route` is global, so a section page that is on its way out still re-renders its own view
+ * against the incoming route: without the check below it mounts the incoming page inside the dying
+ * subtree. Every cross-section navigation then paid for the list request twice (1.6s against the
+ * deployed database, twice) and parked a duplicate instance of the incoming page in the outgoing
+ * section's cache, which refetched each time the section came back.
+ */
+const ownerRecord = inject(matchedRouteKey, undefined)?.value;
 
 const keepViews = computed(() => tab.keepViews);
 const cacheKey = computed(() => {
@@ -49,6 +59,10 @@ const getCacheComponent = (
   currentCacheKey: string | number,
 ) => {
   if (!routeComponent) return undefined;
+  // The route left this view's section, so the subtree is on its way out and has nothing to
+  // render for it. Dropping the child deactivates the section's own page into its cache -- which
+  // is what the section is expected to restore when it comes back.
+  if (ownerRecord && !route.matched.includes(ownerRecord)) return undefined;
 
   const name = getRouteCacheName(currentCacheKey);
   let component = cacheComponents.get(name);
