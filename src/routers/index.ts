@@ -6,6 +6,7 @@ import { loadServerMenu } from "./server-menu";
 import { appConfig, getRuntimeAppName } from "../config/app";
 import { getAuthUser, getToken } from "../utils/auth";
 import { hasPermission, hasRole, routePermissions } from "./permissions";
+import { sectionFor } from "./menu-sections";
 import { useAuthStore } from "@/stores/auth";
 import { useTabViewsStore } from "@/stores/tabs";
 //import { buildRoute } from "./utils.ts";
@@ -59,9 +60,12 @@ export const canAccessRoute = (route: { meta: Record<string, any>; path?: string
     )?.[1];
     return hasPermission(code, user.permissions || []);
   }
+  // `meta.roles` used to come down from the section's layout record; with the sections in
+  // `menu-sections` the group has to be consulted directly, or `/system` stops being admin-only.
+  const meta: Record<string, any> = { ...sectionFor(route.path), ...route.meta };
   return (
-    hasRole(route.meta.roles, user.roles || []) &&
-    hasPermission(route.meta.permissions, user.permissions || [])
+    hasRole(meta.roles, user.roles || []) &&
+    hasPermission(meta.permissions, user.permissions || [])
   );
 };
 

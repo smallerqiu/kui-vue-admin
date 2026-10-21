@@ -39,21 +39,17 @@ declare module 'vue-router/auto-routes' {
       | '/(admin)/'
       | '/(admin)/approvals'
       | '/(admin)/calendar'
-      | '/(admin)/commerce'
       | '/(admin)/commerce/after-sales'
       | '/(admin)/commerce/orders'
       | '/(admin)/commerce/products'
-      | '/(admin)/crm'
       | '/(admin)/crm/customers'
       | '/(admin)/customer/[id]'
-      | '/(admin)/data'
       | '/(admin)/data/analytics'
       | '/(admin)/notifications'
       | '/(admin)/order/[id]'
       | '/(admin)/profile'
       | '/(admin)/project/[id]'
       | '/(admin)/projects'
-      | '/(admin)/system'
       | '/(admin)/system/departments'
       | '/(admin)/system/logs'
       | '/(admin)/system/menus'
@@ -83,15 +79,6 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
-    '/(admin)/commerce': RouteRecordInfo<
-      '/(admin)/commerce',
-      '/commerce',
-      Record<never, never>,
-      Record<never, never>,
-      | '/(admin)/commerce/after-sales'
-      | '/(admin)/commerce/orders'
-      | '/(admin)/commerce/products'
-    >,
     '/(admin)/commerce/after-sales': RouteRecordInfo<
       '/(admin)/commerce/after-sales',
       '/commerce/after-sales',
@@ -113,13 +100,6 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
-    '/(admin)/crm': RouteRecordInfo<
-      '/(admin)/crm',
-      '/crm',
-      Record<never, never>,
-      Record<never, never>,
-      | '/(admin)/crm/customers'
-    >,
     '/(admin)/crm/customers': RouteRecordInfo<
       '/(admin)/crm/customers',
       '/crm/customers',
@@ -133,13 +113,6 @@ declare module 'vue-router/auto-routes' {
       { id: ParamValue<true> },
       { id: ParamValue<false> },
       | never
-    >,
-    '/(admin)/data': RouteRecordInfo<
-      '/(admin)/data',
-      '/data',
-      Record<never, never>,
-      Record<never, never>,
-      | '/(admin)/data/analytics'
     >,
     '/(admin)/data/analytics': RouteRecordInfo<
       '/(admin)/data/analytics',
@@ -182,18 +155,6 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       Record<never, never>,
       | never
-    >,
-    '/(admin)/system': RouteRecordInfo<
-      '/(admin)/system',
-      '/system',
-      Record<never, never>,
-      Record<never, never>,
-      | '/(admin)/system/departments'
-      | '/(admin)/system/logs'
-      | '/(admin)/system/menus'
-      | '/(admin)/system/roles'
-      | '/(admin)/system/settings'
-      | '/(admin)/system/users'
     >,
     '/(admin)/system/departments': RouteRecordInfo<
       '/(admin)/system/departments',
@@ -298,21 +259,17 @@ declare module 'vue-router/auto-routes' {
         | '/(admin)/'
         | '/(admin)/approvals'
         | '/(admin)/calendar'
-        | '/(admin)/commerce'
         | '/(admin)/commerce/after-sales'
         | '/(admin)/commerce/orders'
         | '/(admin)/commerce/products'
-        | '/(admin)/crm'
         | '/(admin)/crm/customers'
         | '/(admin)/customer/[id]'
-        | '/(admin)/data'
         | '/(admin)/data/analytics'
         | '/(admin)/notifications'
         | '/(admin)/order/[id]'
         | '/(admin)/profile'
         | '/(admin)/project/[id]'
         | '/(admin)/projects'
-        | '/(admin)/system'
         | '/(admin)/system/departments'
         | '/(admin)/system/logs'
         | '/(admin)/system/menus'
@@ -349,17 +306,6 @@ declare module 'vue-router/auto-routes' {
       pathParamNames:
         | never
     }
-    'src/pages/(admin)/commerce.vue': {
-      routes:
-        | '/(admin)/commerce'
-        | '/(admin)/commerce/after-sales'
-        | '/(admin)/commerce/orders'
-        | '/(admin)/commerce/products'
-      views:
-        | 'default'
-      pathParamNames:
-        | never
-    }
     'src/pages/(admin)/commerce/after-sales.vue': {
       routes:
         | '/(admin)/commerce/after-sales'
@@ -384,15 +330,6 @@ declare module 'vue-router/auto-routes' {
       pathParamNames:
         | never
     }
-    'src/pages/(admin)/crm.vue': {
-      routes:
-        | '/(admin)/crm'
-        | '/(admin)/crm/customers'
-      views:
-        | 'default'
-      pathParamNames:
-        | never
-    }
     'src/pages/(admin)/crm/customers.vue': {
       routes:
         | '/(admin)/crm/customers'
@@ -408,15 +345,6 @@ declare module 'vue-router/auto-routes' {
         | never
       pathParamNames:
         | 'id'
-    }
-    'src/pages/(admin)/data.vue': {
-      routes:
-        | '/(admin)/data'
-        | '/(admin)/data/analytics'
-      views:
-        | 'default'
-      pathParamNames:
-        | never
     }
     'src/pages/(admin)/data/analytics.vue': {
       routes:
@@ -463,20 +391,6 @@ declare module 'vue-router/auto-routes' {
         | '/(admin)/projects'
       views:
         | never
-      pathParamNames:
-        | never
-    }
-    'src/pages/(admin)/system.vue': {
-      routes:
-        | '/(admin)/system'
-        | '/(admin)/system/departments'
-        | '/(admin)/system/logs'
-        | '/(admin)/system/menus'
-        | '/(admin)/system/roles'
-        | '/(admin)/system/settings'
-        | '/(admin)/system/users'
-      views:
-        | 'default'
       pathParamNames:
         | never
     }

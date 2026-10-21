@@ -1,4 +1,5 @@
 import type { RouteMeta, RouteRecordRaw } from "vue-router";
+import { sectionRecord } from "@/routers/menu-sections";
 
 export interface AdminMenuItem {
   key: string;
@@ -26,22 +27,26 @@ export function createMenuItems(
   routes.forEach((route) => {
     const path = joinPath(parentPath, route.path);
     const children = createMenuItems(route.children || [], path);
-    const title = route.meta?.title as string | undefined;
+    // The group a directory draws comes from `menu-sections`, because the directory has no file of
+    // its own to hold a `<route>` block any more.
+    const section = sectionRecord(path);
+    const meta = { ...section, ...route.meta };
+    const title = meta.title as string | undefined;
 
     if (!title) {
       menus.push(...children);
       return;
     }
-    if (route.meta?.showInMenu === false) return;
+    if (meta.showInMenu === false) return;
 
     menus.push({
       key: path,
       path,
       meta: {
-        ...route.meta,
+        ...meta,
         title,
-        icon: route.meta?.icon as string | undefined,
-        order: (route.meta?.order as number | undefined) ?? 99,
+        icon: meta.icon as string | undefined,
+        order: (meta.order as number | undefined) ?? 99,
       },
       children: children.length ? children : undefined,
     });
