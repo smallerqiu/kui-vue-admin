@@ -2,6 +2,19 @@ import { onActivated, onDeactivated, onMounted, onScopeDispose, ref, shallowRef,
 import request from "@/utils/request";
 import type { PageResult } from "@/api/catalog";
 
+/**
+ * The part of a filter row the server can see: `request` drops empty cells from a GET query, so two
+ * snapshots that differ only in `undefined` versus `""` ask for the same page. A control that
+ * normalises its empty value on mount is not an edit, and a page against the deployed database
+ * costs 1.6s when it is treated as one.
+ */
+const querySignature = (values: Record<string, unknown>) =>
+  JSON.stringify(
+    Object.entries(values)
+      .filter(([, value]) => value !== null && value !== undefined && value !== "")
+      .sort(([a], [b]) => a.localeCompare(b)),
+  );
+
 /** Server pagination; failed/stale responses never become a successful empty result. */
 export function useResourcePage<T>(path: string, filters: () => Record<string, unknown>) {
   const items = shallowRef<T[]>([]);
@@ -37,13 +50,15 @@ export function useResourcePage<T>(path: string, filters: () => Record<string, u
       if (current === generation) loading.value = false;
     }
   }
-  watch(filters, () => {
+  // Comparing the signature string, not the object: an object identity changes on every
+  // re-evaluation, and a string comparison is exact, so no deep traversal is needed.
+  watch(() => querySignature(filters()), () => {
     ++generation;
     items.value = [];
     page.value = 1;
     clearTimeout(timer);
     if (active) timer = setTimeout(() => void reload(), 250);
-  }, { deep: true });
+  });
   watch([page, pageSize], () => { if (active) void reload(); });
   onMounted(() => void reload());
   onActivated(() => { if (!active) { active = true; void reload(); } });
