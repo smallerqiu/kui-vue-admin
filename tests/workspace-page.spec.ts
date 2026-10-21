@@ -335,6 +335,42 @@ describe("workspace page workflows", () => {
     // account that has never signed in: no recorded event, not epoch zero and not a blank cell.
     expect(root.textContent.match(/—/g)).toHaveLength(1);
   });
+  it("says who filed an approval, for which team, and when", async () => {
+    vi.mocked(request.get).mockImplementation(async (path: string) =>
+      path === "/approvals"
+        ? {
+            items: [
+              {
+                id: "a1",
+                title: "报销申请",
+                type: "expense",
+                amount: "200.00",
+                description: "",
+                status: "pending",
+                ownerId: "u9",
+                departmentId: "d9",
+                applicantName: "林晓",
+                departmentName: "产品中心",
+                createdAt: "2026-10-19T16:05:41",
+              },
+            ],
+            total: 1,
+            page: 1,
+            pageSize: 20,
+          }
+        : { items: [], total: 0, page: 1, pageSize: 20 },
+    );
+    const root = mount(resources.approvals!);
+    await flush();
+    // The row carries both keys; a review queue that prints them is a queue of strings nobody
+    // can act on, and the person who filed is not a field anyone types into the form.
+    expect(root.textContent).toContain("林晓");
+    expect(root.textContent).toContain("产品中心");
+    expect(root.textContent).not.toContain("u9");
+    expect(root.textContent).not.toContain("d9");
+    expect(root.textContent).toContain("2026-10-19 16:05");
+    expect(root.textContent).not.toContain("2026-10-19T16:05:41");
+  });
   it("counts a role's members and dates the role from the server", async () => {
     vi.mocked(request.get).mockImplementation(async (path: string) =>
       path === "/roles"

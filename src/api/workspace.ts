@@ -174,6 +174,11 @@ export const resources: Record<string, ResourceDefinition> = {
     description: "提交申请并查看审核结果；不能审核自己的申请。",
     permission: "approval",
     review: true,
+    derived: [
+      derived("applicantName", "申请人"),
+      derived("departmentName", "部门"),
+      derived("createdAt", "申请时间", "datetime"),
+    ],
     fields: [
       name("title", "申请标题"),
       {
