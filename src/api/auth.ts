@@ -35,5 +35,9 @@ export const loginApi = async (account: string, password: string): Promise<Login
 
 export const meApi = () => request.get<AuthUser>("/auth/me");
 export const logoutApi = () => request.post("/auth/logout", {}, { skipRefresh: true });
-export const updateProfileApi = (data: { fullName: string; email: string; phone: string }) =>
-  request.put<AuthUser>("/auth/me", data);
+export const updateProfileApi = (data: {
+  fullName: string;
+  email: string;
+  phone: string;
+  bio: string;
+}) => request.put<AuthUser>("/auth/me", data);

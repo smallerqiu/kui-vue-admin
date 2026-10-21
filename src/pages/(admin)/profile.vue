@@ -16,7 +16,7 @@
           <div class="profile-meta">
             <div>
               <span>所属部门</span>
-              <strong>{{ authStore.user.departmentId || "未设置" }}</strong>
+              <strong>{{ department }}</strong>
             </div>
             <div>
               <span>账号状态</span>
@@ -28,7 +28,7 @@
             </div>
             <div>
               <span>登录地点</span>
-              <strong>暂未提供</strong>
+              <strong>{{ loginPlace }}</strong>
             </div>
           </div>
         </Card>
@@ -58,6 +58,9 @@
                     </FormItem>
                   </GridItem>
                 </Grid>
+                <FormItem label="个人简介">
+                  <Input v-model="basicForm.bio" clearable placeholder="一句话介绍自己" />
+                </FormItem>
                 <Button type="primary" :loading="saving" @click="saveBasic">保存修改</Button>
               </Form>
             </TabPanel>
@@ -139,11 +142,18 @@ const lastLogin = computed(() =>
       ? "首次登录"
       : formatDateTime(authStore.user.lastLoginAt),
 );
+// The card shows a department name, so it reads the name the account carries rather than the id
+// beside it -- a 32 character key is a row reference, not something to print on a profile page.
+const department = computed(() => authStore.user.departmentName || "未设置");
+// The one sign-in fact the application can actually observe is the address the connection came
+// from, so this cell names that address. There is no place lookup behind it to invent a city.
+const loginPlace = computed(() => authStore.user.lastLoginIp || "暂未提供");
 const basicForm = reactive({
   fullName: String(authStore.user.fullName || "Administrator"),
   name: String(authStore.user.name || "admin"),
   email: String(authStore.user.email || ""),
   phone: String(authStore.user.phone || ""),
+  bio: String(authStore.user.bio || ""),
 });
 const securityItems: Array<{
   title: string;
@@ -181,7 +191,12 @@ const saveBasic = async () => {
   if (saving.value) return;
   saving.value = true;
   try {
-    const payload = { fullName: basicForm.fullName, email: basicForm.email, phone: basicForm.phone };
+    const payload = {
+      fullName: basicForm.fullName,
+      email: basicForm.email,
+      phone: basicForm.phone,
+      bio: basicForm.bio,
+    };
     authStore.updateUser(appConfig.useMock ? payload : await updateProfileApi(payload));
     message.success("个人信息已保存");
   } catch (reason) {

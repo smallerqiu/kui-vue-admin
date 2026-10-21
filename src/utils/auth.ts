@@ -7,6 +7,16 @@ export interface AuthUser {
   roles?: string[];
   permissions?: string[];
   dataScope?: "all" | "department" | "self";
+  /** The biography the account owner types on the profile page; `null` when none was ever written. */
+  bio?: string | null;
+  /** The name of the department behind `departmentId`, or `null` for an account that has none. */
+  departmentName?: string | null;
+  /**
+   * Where the sign-in before the current session came from, as the address the server saw. `null`
+   * means this is the account's first recorded sign-in; the key is absent when the source never
+   * answered. There is no place name behind it -- the application observes connections, not cities.
+   */
+  lastLoginIp?: string | null;
   /**
    * The sign-in before the current session, as the server's naive UTC stamp. `null` means this is
    * the account's first recorded sign-in; the key is absent when the source never answered.
