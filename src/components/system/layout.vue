@@ -85,7 +85,7 @@ import Tab from "@/components/system/tab.vue";
 import Theme from "@/components/system/theme.vue";
 import { useTranslate } from "@/lang/useTranslate.ts";
 import { filterMenuByAccess, hasPermission } from "@/routers/permissions";
-import { useAuthStore } from "@/stores/auth";
+import { sessionSignature, useAuthStore } from "@/stores/auth";
 import { useNotificationStore } from "@/stores/notifications";
 import { useSystemSettingsStore } from "@/stores/system-settings";
 import { useTabViewsStore } from "@/stores/tabs.ts";
@@ -113,7 +113,7 @@ const authStore = useAuthStore();
 const notificationStore = useNotificationStore();
 const systemSettings = useSystemSettingsStore();
 watch(
-  () => [authStore.user.id, authStore.permissions.join(",")],
+  () => sessionSignature(authStore.user.id, authStore.permissions),
   () => {
     if (!authStore.user.id) return;
     void notificationStore.load(1);

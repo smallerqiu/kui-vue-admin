@@ -16,6 +16,20 @@ import { appConfig } from "@/config/app";
  */
 const USER_SNAPSHOT_WINDOW = 60_000;
 
+/**
+ * The drawn session as one comparable value: who is logged in and what they may do.
+ *
+ * Watchers need it as a string. A getter that returns `[id, permissions.join(",")]` builds a new
+ * array on every run, and Vue compares a getter's result by identity, so replacing the snapshot
+ * with identical content still counts as a change -- which made every background `/auth/me`
+ * refresh (once a minute) pull the notification list and the system settings over again, two more
+ * round trips each against a database that is not on this host.
+ */
+export const sessionSignature = (
+  id: AuthUser["id"],
+  permissions: string[],
+): string => `${id}|${permissions.join(",")}`;
+
 export const useAuthStore = defineStore("auth", {
   state: () => ({
     token: getToken(),

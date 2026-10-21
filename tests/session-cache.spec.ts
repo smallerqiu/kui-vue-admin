@@ -1,9 +1,10 @@
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { nextTick, watch } from "vue";
 import { clearAuthSession, setAuthSession } from "@/utils/auth";
 import { appConfig } from "@/config/app";
 import { loadServerMenu } from "@/routers/server-menu";
-import { useAuthStore } from "@/stores/auth";
+import { sessionSignature, useAuthStore } from "@/stores/auth";
 import type { AdminMenuItem } from "@/components/system/useMenu";
 import request from "@/utils/request";
 
@@ -152,5 +153,37 @@ describe("auth user snapshot", () => {
     expect(auth.userLoadedAt).toBe(Date.now());
     await auth.refreshUser();
     expect(request.get).not.toHaveBeenCalled();
+  });
+});
+
+describe("session signature", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    setActivePinia(createPinia());
+    setAuthSession("token-sign", { id: "user-1", permissions: ["order:read"] });
+  });
+
+  // The shell reloads the notification list and the system settings off this value, so a
+  // snapshot that repeats what is already drawn has to compare equal.
+  it("holds still for a refreshed snapshot that draws the same session", async () => {
+    const auth = useAuthStore();
+    const fired: string[] = [];
+    watch(
+      () => sessionSignature(auth.user.id, auth.permissions),
+      (value) => fired.push(value),
+    );
+
+    auth.updateUser({ id: "user-1", permissions: ["order:read"] });
+    await nextTick();
+    expect(fired).toEqual([]);
+
+    auth.updateUser({ id: "user-1", permissions: ["order:read", "customer:read"] });
+    auth.updateUser({ id: "user-1", permissions: ["order:read", "customer:read"] });
+    await nextTick();
+    expect(fired).toEqual(["user-1|order:read,customer:read"]);
+
+    auth.updateUser({ id: "user-2", permissions: ["order:read", "customer:read"] });
+    await nextTick();
+    expect(fired).toEqual(["user-1|order:read,customer:read", "user-2|order:read,customer:read"]);
   });
 });
