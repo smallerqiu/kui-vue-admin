@@ -50,6 +50,18 @@ export const reviewStatusOptions = choices({
   approved: "已通过",
   rejected: "已驳回",
 });
+/**
+ * A project's status in the words the server stores it under. The workbench panel tags a project
+ * with these, so it cannot print a third vocabulary for a row the projects table already labels.
+ */
+export const projectStatusOptions = choices({
+  planning: "规划中",
+  active: "进行中",
+  paused: "暂停",
+  done: "已完成",
+});
+export const projectStatusLabel = (value: string | null) =>
+  projectStatusOptions.find((option) => option.value === value)?.label ?? "未知状态";
 const name = (key = "name", label = "名称"): Field => ({
   key,
   label,
@@ -102,7 +114,7 @@ export const resources: Record<string, ResourceDefinition> = {
         label: "状态",
         kind: "select",
         initial: "planning",
-        options: choices({ planning: "规划中", active: "进行中", paused: "暂停", done: "已完成" }),
+        options: projectStatusOptions,
       },
     ],
   },

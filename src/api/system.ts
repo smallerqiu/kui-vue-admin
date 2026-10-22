@@ -25,13 +25,70 @@ export interface NotificationItem {
 export interface NotificationPage extends PageResult<NotificationItem> {
   unreadCount: number;
 }
+/**
+ * One workbench read, and every figure in it is a server aggregate over a named window: 今日 counts
+ * from 00:00 UTC, 本月 from the 1st, and each `*Change` compares against a window of the same length
+ * (昨日同时段, 上月同期). A change is null when the window behind it had no baseline -- an order count
+ * of 0 yesterday makes a percentage meaningless -- which is a different answer from 0%.
+ *
+ * The four queues and the two panels are gated on the read permission of the page they link to, so
+ * `null` and `0` say different things: `null` is this account may not open that list, `0` is it may
+ * and the list is empty. Printing a zero for the first would report a queue nobody was allowed to
+ * check. Money stays decimal text, as it is everywhere else in this API.
+ */
 export interface Dashboard {
   orders: number;
   customers: number;
   products: number;
   projects: number;
   tasks: number;
+  /** 已收款订单扣除退款后的累计净额, not today's sales. */
   revenue: string;
+  ordersToday: number;
+  ordersTodayChange: number | null;
+  revenueMonth: string;
+  revenueMonthChange: number | null;
+  ordersAwaitingShipment: number | null;
+  customersThisMonth: number;
+  customersThisMonthChange: number | null;
+  tasksOverdue: number | null;
+  approvalsPending: number | null;
+  afterSalesPending: number | null;
+  /** The four projects closing soonest, or null without `project:read`. */
+  recentProjects: DashboardProject[] | null;
+  /** The same seven daily buckets `/analytics` answers with, so the two pages cannot disagree. */
+  trend: DashboardTrendPoint[];
+  /** The six newest audit rows, or null without `system:log:read`. */
+  activities: DashboardActivity[] | null;
+}
+export interface DashboardTrendPoint {
+  /** UTC day the bucket covers: `YYYY-MM-DD`. */
+  bucket: string;
+  orders: number;
+  revenue: string;
+}
+/**
+ * A project as the panel prints it. `teamName` is the department behind `departmentId` resolved once
+ * for the whole page, and it is null on a project that belongs to no department -- the id would only
+ * be noise on a card.
+ */
+export interface DashboardProject {
+  id: string;
+  name: string;
+  deadline: string | null;
+  progress: number | null;
+  status: string | null;
+  teamName: string | null;
+}
+export interface DashboardActivity {
+  id: string;
+  // An account deleted after acting keeps its log row, so the name the panel can print is null.
+  actorName: string | null;
+  moduleName: string;
+  operation: string;
+  /** The audit dictionary's own ladder: `info` / `success` / `warning` / `danger`. */
+  level: string;
+  createdAt: string;
 }
 /**
  * One audit row. `moduleName`, `operation`, `module`, `level`, `levelName` and `actorName` are what
