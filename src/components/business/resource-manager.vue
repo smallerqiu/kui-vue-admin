@@ -9,7 +9,14 @@
       {{ error }}
       <Button @click="reload">重试</Button>
     </p>
-    <ListPanel :summary="`共 ${total} 条记录`">
+    <ListPanel>
+      <template #summary>
+        <!-- The row count is only known once the page arrives, so the strip waits
+             rather than reading "共 0 条记录". -->
+        <Skeleton :loading="loading" :delay="0" :title-width="30" :rows="1" animated>
+          共 {{ total }} 条记录
+        </Skeleton>
+      </template>
       <template #filters>
         <Input v-model="keyword" placeholder="按名称搜索" :maxlength="200" clearable />
       </template>
@@ -63,63 +70,64 @@
       :mask-closable="!saving"
       :esc-key="!saving"
     >
-      <p v-if="detailLoading">正在加载…</p>
       <p v-if="detailError" role="alert">
         {{ detailError }}
         <Button @click="openEditor(editing)">重试</Button>
       </p>
-      <Form v-if="!detailLoading && !detailError" layout="vertical">
-        <FormItem v-for="field in definition.fields" :key="field.key" :label="field.label">
-          <Switch
-            v-if="field.kind === 'boolean'"
-            :model-value="Boolean(form[field.key])"
-            :disabled="!editable || saving"
-            @update:model-value="form[field.key] = $event"
-          />
-          <InputNumber
-            v-else-if="field.kind === 'number'"
-            :model-value="Number(form[field.key])"
-            :min="field.min"
-            :max="field.max"
-            :precision="0"
-            :disabled="!editable || saving"
-            @update:model-value="form[field.key] = $event ?? field.initial"
-          />
-          <Select
-            v-else-if="field.kind === 'select'"
-            :model-value="selectValue(field)"
-            :options="fieldOptions(field)"
-            :multiple="field.multiple"
-            :clearable="field.nullable || field.multiple"
-            filterable
-            block
-            :disabled="!editable || saving"
-            @update:model-value="setSelection(field, $event)"
-          />
-          <TextArea
-            v-else-if="field.kind === 'textarea'"
-            :model-value="String(form[field.key] ?? '')"
-            :maxlength="field.maxLength"
-            :disabled="!editable || saving"
-            @update:model-value="form[field.key] = $event"
-          />
-          <Input
-            v-else
-            :type="
-              field.kind === 'date' || field.kind === 'time' || field.kind === 'password'
-                ? field.kind
-                : 'text'
-            "
-            :model-value="form[field.key]"
-            :maxlength="field.maxLength"
-            :disabled="!editable || saving"
-            @update:model-value="form[field.key] = $event"
-          />
-        </FormItem>
-        <p v-if="definition.review && editing">
-          审核状态：{{ reviewLabel }}；审核备注：{{ detail?.reviewNote || "无" }}
-        </p>
-      </Form>
+      <Skeleton v-else :loading="detailLoading" :delay="0" :title-width="0" :rows="6" animated>
+        <Form layout="vertical">
+          <FormItem v-for="field in definition.fields" :key="field.key" :label="field.label">
+            <Switch
+              v-if="field.kind === 'boolean'"
+              :model-value="Boolean(form[field.key])"
+              :disabled="!editable || saving"
+              @update:model-value="form[field.key] = $event"
+            />
+            <InputNumber
+              v-else-if="field.kind === 'number'"
+              :model-value="Number(form[field.key])"
+              :min="field.min"
+              :max="field.max"
+              :precision="0"
+              :disabled="!editable || saving"
+              @update:model-value="form[field.key] = $event ?? field.initial"
+            />
+            <Select
+              v-else-if="field.kind === 'select'"
+              :model-value="selectValue(field)"
+              :options="fieldOptions(field)"
+              :multiple="field.multiple"
+              :clearable="field.nullable || field.multiple"
+              filterable
+              block
+              :disabled="!editable || saving"
+              @update:model-value="setSelection(field, $event)"
+            />
+            <TextArea
+              v-else-if="field.kind === 'textarea'"
+              :model-value="String(form[field.key] ?? '')"
+              :maxlength="field.maxLength"
+              :disabled="!editable || saving"
+              @update:model-value="form[field.key] = $event"
+            />
+            <Input
+              v-else
+              :type="
+                field.kind === 'date' || field.kind === 'time' || field.kind === 'password'
+                  ? field.kind
+                  : 'text'
+              "
+              :model-value="form[field.key]"
+              :maxlength="field.maxLength"
+              :disabled="!editable || saving"
+              @update:model-value="form[field.key] = $event"
+            />
+          </FormItem>
+          <p v-if="definition.review && editing">
+            审核状态：{{ reviewLabel }}；审核备注：{{ detail?.reviewNote || "无" }}
+          </p>
+        </Form>
+      </Skeleton>
       <template #footer>
         <Button :disabled="saving" @click="editorOpen = false">关闭</Button>
         <Button

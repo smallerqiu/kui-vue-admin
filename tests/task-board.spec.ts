@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TaskBoard from "@/components/business/task-board.vue";
 import request from "@/utils/request";
 import { message } from "kui-vue";
+import { skeletonStub } from "./skeleton-stub";
 
 vi.mock("@/utils/request", () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
@@ -113,6 +114,7 @@ function mount() {
     } as never,
   );
   app.component("Kanban", kanbanStub as never);
+  app.component("Skeleton", skeletonStub as never);
   app.mount(root);
   disposers.push(() => {
     app.unmount();
@@ -139,6 +141,31 @@ describe("task board page", () => {
   });
   afterEach(() => {
     disposers.splice(0).forEach((dispose) => dispose());
+  });
+
+  it("holds the panel with a waiting board while the first read is in flight", async () => {
+    let arrive!: (value: unknown) => void;
+    get.mockImplementation(
+      (() =>
+        new Promise((resolve) => {
+          arrive = resolve;
+        })) as never,
+    );
+    const root = mount();
+    await flush();
+
+    // The filters, the panel and one waiting frame stand in for the columns;
+    // the summary stays unnumbered because nothing has been counted yet.
+    expect(root.querySelectorAll(".skeleton-line").length).toBe(1);
+    expect(root.querySelectorAll("[data-column]").length).toBe(0);
+    expect(root.textContent).not.toContain("共 ");
+    expect(root.textContent).not.toContain("正在加载");
+
+    arrive({ items: [task("1", "todo")], total: 1, page: 1, pageSize: 100 });
+    await flush();
+    expect(root.querySelectorAll(".skeleton-line").length).toBe(0);
+    expect(root.querySelectorAll("[data-column]").length).toBeGreaterThan(0);
+    expect(root.textContent).toContain("共 1 条任务");
   });
 
   it("groups the loaded tasks under their status columns", async () => {

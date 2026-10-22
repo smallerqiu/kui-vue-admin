@@ -40,24 +40,27 @@
             <template #extra>
               <Tag theme="fill">{{ selectedDate }}</Tag>
             </template>
-            <p v-if="loading" role="status">正在加载日程…</p>
-            <div v-else-if="dayEvents.length" class="agenda-list">
-              <button v-for="event in dayEvents" :key="event.id" type="button" @click="openRecord(event)">
-                <span :style="{ background: calendarCategories[event.category].color }"></span>
-                <div>
-                  <strong>{{ event.title }}</strong>
-                  <small>
-                    <Icon :type="Clock" />
-                    {{ formatTime(event.time) }} · {{ calendarCategories[event.category].label }}
-                  </small>
-                  <small>
-                    <Icon :type="event.online ? Video : MapPin" />
-                    {{ event.location || "未填写地点" }}
-                  </small>
-                </div>
-              </button>
-            </div>
-            <Empty v-else description="当天暂无日程" />
+            <!-- While the month is in flight the day panel cannot answer "有没有日程",
+                 so it waits instead of claiming 当天暂无日程. -->
+            <Skeleton :loading="loading" :delay="0" :title-width="40" :rows="3" animated>
+              <div v-if="dayEvents.length" class="agenda-list">
+                <button v-for="event in dayEvents" :key="event.id" type="button" @click="openRecord(event)">
+                  <span :style="{ background: calendarCategories[event.category].color }"></span>
+                  <div>
+                    <strong>{{ event.title }}</strong>
+                    <small>
+                      <Icon :type="Clock" />
+                      {{ formatTime(event.time) }} · {{ calendarCategories[event.category].label }}
+                    </small>
+                    <small>
+                      <Icon :type="event.online ? Video : MapPin" />
+                      {{ event.location || "未填写地点" }}
+                    </small>
+                  </div>
+                </button>
+              </div>
+              <Empty v-else description="当天暂无日程" />
+            </Skeleton>
             <Button v-if="canWrite" block theme="plain" :icon="Plus" @click="openCreate(selectedDate)">
               添加日程
             </Button>
@@ -68,7 +71,7 @@
             <div v-for="item in calendarCategoryOptions" :key="item.value">
               <span :style="{ background: calendarCategories[item.value].color }"></span>
               {{ item.label }}
-              <em>{{ events.filter((event) => event.category === item.value).length }}</em>
+              <em v-if="!loading">{{ events.filter((event) => event.category === item.value).length }}</em>
             </div>
           </Card>
         </GridItem>

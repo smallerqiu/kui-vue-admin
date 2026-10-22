@@ -1,7 +1,9 @@
 <template>
   <section class="notices">
     <Space>
-      <span>{{ store.unreadCount }} 条未读</span>
+      <Skeleton :loading="store.loading" :delay="0" :title-width="25" :rows="1" animated>
+        <span>{{ store.unreadCount }} 条未读</span>
+      </Skeleton>
       <Button :disabled="store.saving || store.loading" @click="store.load()">刷新</Button>
       <Button
         :loading="store.saving"
@@ -12,32 +14,35 @@
       </Button>
     </Space>
     <p v-if="store.error" role="alert">{{ store.error }}</p>
-    <p v-else-if="store.loading">正在加载通知…</p>
-    <Empty v-else-if="!store.items.length" description="暂无通知" />
-    <article v-for="item in displayed" :key="item.id">
-      <strong>{{ item.title }}</strong>
-      <Tag v-if="!item.readAt">未读</Tag>
-      <p>{{ item.content }}</p>
-      <small>{{ formatDateTime(item.createdAt) }} UTC</small>
-      <Space>
-        <Button
-          v-if="!item.readAt"
-          size="small"
-          :disabled="store.saving"
-          @click="store.markRead(item.id)"
-        >
-          标为已读
-        </Button>
-        <Button
-          v-if="notificationPath(item.link)"
-          size="small"
-          :disabled="store.saving"
-          @click="open(item)"
-        >
-          查看
-        </Button>
-      </Space>
-    </article>
+    <Skeleton :loading="store.loading" :delay="0" :title-width="45" :rows="3" animated>
+      <template v-if="!store.error">
+        <Empty v-if="!store.items.length" description="暂无通知" />
+        <article v-for="item in displayed" :key="item.id">
+          <strong>{{ item.title }}</strong>
+          <Tag v-if="!item.readAt">未读</Tag>
+          <p>{{ item.content }}</p>
+          <small>{{ formatDateTime(item.createdAt) }} UTC</small>
+          <Space>
+            <Button
+              v-if="!item.readAt"
+              size="small"
+              :disabled="store.saving"
+              @click="store.markRead(item.id)"
+            >
+              标为已读
+            </Button>
+            <Button
+              v-if="notificationPath(item.link)"
+              size="small"
+              :disabled="store.saving"
+              @click="open(item)"
+            >
+              查看
+            </Button>
+          </Space>
+        </article>
+      </template>
+    </Skeleton>
     <Page
       v-if="!compact"
       :page="store.page"

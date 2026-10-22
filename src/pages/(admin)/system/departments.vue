@@ -17,13 +17,18 @@
       description="新增、改名和删除只对超级管理员开放，其余账号在这里核对名称，到用户管理里分配归属。"
     />
 
-    <p v-if="loading" role="status">正在加载部门…</p>
-    <p v-else-if="error" role="alert">
+    <p v-if="error" role="alert">
       {{ error }}
       <Button @click="reload">重试</Button>
     </p>
 
-    <ListPanel v-else :summary="`共 ${shown.length} 个部门`">
+    <ListPanel v-else>
+      <template #summary>
+        <!-- Nothing has been counted yet, so the strip waits instead of reading "共 0 个部门". -->
+        <Skeleton :loading="!data" :delay="0" :title-width="30" :rows="1" animated>
+          共 {{ shown.length }} 个部门
+        </Skeleton>
+      </template>
       <template #filters>
         <Input v-model="keyword" placeholder="按名称搜索" :maxlength="120" clearable />
       </template>

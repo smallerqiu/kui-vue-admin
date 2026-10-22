@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Departments from "@/pages/(admin)/system/departments.vue";
 import { message } from "kui-vue";
 import request from "@/utils/request";
+import { skeletonStub } from "./skeleton-stub";
 
 vi.mock("@/utils/request", () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
@@ -46,7 +47,11 @@ const tableStub = {
     return () =>
       h(
         "div",
-        { class: "table", "data-rows": String(props.data.length) },
+        {
+          class: "table",
+          "data-rows": String(props.data.length),
+          "data-loading": String(Boolean(props.loading)),
+        },
         props.data.map((record: any) =>
           h("div", { class: "row", "data-id": record[props.rowKey] }, [
             h("span", { class: "name" }, String(record.name)),
@@ -134,12 +139,13 @@ function mount() {
     props: ["summary"],
     setup: (props: any, { slots }: { slots: Record<string, () => unknown> }) => () =>
       h("div", { class: "list-panel" }, [
-        h("span", { class: "summary" }, String(props.summary ?? "")),
+        h("span", { class: "summary" }, [slots.summary?.() ?? String(props.summary ?? "")]),
         slots.filters?.(),
         slots.actions?.(),
         slots.default?.(),
       ]),
   } as never);
+  app.component("Skeleton", skeletonStub as never);
   app.component("Modal", modalStub as never);
   app.component("Space", slotBox("space") as never);
   app.component("Table", tableStub as never);
@@ -163,6 +169,31 @@ describe("department page", () => {
   });
   afterEach(() => {
     disposers.splice(0).forEach((dispose) => dispose());
+  });
+
+  it("keeps the panel and lets the table wait while the directory is in flight", async () => {
+    let arrive!: (rows: unknown) => void;
+    get.mockImplementation(
+      (() =>
+        new Promise((resolve) => {
+          arrive = resolve;
+        })) as never,
+    );
+    const root = mount();
+    await flush();
+
+    expect(root.querySelector(".list-panel")).not.toBeNull();
+    expect(root.querySelector(".table")!.getAttribute("data-loading")).toBe("true");
+    // Only the count waits: a strip reading "共 0 个部门" would be a number nobody counted.
+    expect(root.querySelectorAll(".skeleton-line").length).toBe(1);
+    expect(root.querySelector(".summary")!.textContent).not.toContain("0");
+    expect(root.textContent).not.toContain("正在加载");
+
+    arrive(rows());
+    await flush();
+    expect(root.querySelectorAll(".skeleton-line").length).toBe(0);
+    expect(root.textContent).toContain("共 2 个部门");
+    expect(root.querySelector(".table")!.getAttribute("data-loading")).toBe("false");
   });
 
   it("lists the directory the server returned", async () => {

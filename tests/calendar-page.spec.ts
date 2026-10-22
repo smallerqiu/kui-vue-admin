@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Calendar from "@/pages/(admin)/calendar.vue";
 import { message } from "kui-vue";
 import request from "@/utils/request";
+import { skeletonStub } from "./skeleton-stub";
 
 vi.mock("@/utils/request", () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
@@ -179,6 +180,7 @@ function mount() {
     } as never,
   );
   app.component("Input", inputStub as never);
+  app.component("Skeleton", skeletonStub as never);
   app.mount(root);
   disposers.push(() => {
     app.unmount();
@@ -199,6 +201,29 @@ describe("calendar month view", () => {
   });
   afterEach(() => {
     disposers.splice(0).forEach((dispose) => dispose());
+  });
+
+  it("holds the day panel and prints no counts while the month is in flight", async () => {
+    let arrive!: (rows: unknown) => void;
+    get.mockImplementation(
+      (() =>
+        new Promise((resolve) => {
+          arrive = resolve;
+        })) as never,
+    );
+    const root = mount();
+    await flush();
+
+    // The agenda waits rather than claiming 当天暂无日程, and no category counts a set nobody read.
+    expect(root.querySelectorAll(".skeleton-line").length).toBe(1);
+    expect(root.textContent).not.toContain("当天暂无日程");
+    expect(root.querySelectorAll(".legend-card em").length).toBe(0);
+
+    arrive(monthRows());
+    await flush();
+    expect(root.querySelectorAll(".skeleton-line").length).toBe(0);
+    expect(root.querySelectorAll(".legend-card em").length).toBeGreaterThan(0);
+    expect(root.textContent).toContain("日程 1");
   });
 
   it("reads the displayed month as a date window", async () => {

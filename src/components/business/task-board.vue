@@ -33,46 +33,47 @@
       {{ error }}
       <Button @click="reload">重试</Button>
     </p>
-    <p v-else-if="loading" role="status">正在加载任务…</p>
-    <Empty v-else-if="!visible.length" description="没有符合条件的任务" />
-    <Kanban
-      v-else
-      :columns="columns"
-      :data="visible"
-      row-key="id"
-      status-key="status"
-      :draggable="canMove && !movingId"
-      :min-column-width="264"
-      @move="onMove"
-    >
-      <template #columnTitle="{ column, items }">
-        <Flex align="center" :size="8" class="board-column-title">
-          <span class="board-column-dot" :style="{ background: column.color }"></span>
-          <strong>{{ column.title }}</strong>
-          <em>{{ items.length }}</em>
-        </Flex>
-      </template>
-      <template #item="{ item }">
-        <article class="board-card" :class="{ 'board-card-overdue': isOverdue(item) }">
-          <Flex justify="space-between" align="center" :size="8">
-            <Tag :color="priorityOf(item).color" theme="fill">{{ priorityOf(item).label }}</Tag>
-            <small v-if="isOverdue(item)" class="board-overdue">已逾期</small>
+    <Skeleton :loading="loading" :delay="0" :title-width="30" :rows="4" animated>
+      <Empty v-if="!visible.length" description="没有符合条件的任务" />
+      <Kanban
+        v-else
+        :columns="columns"
+        :data="visible"
+        row-key="id"
+        status-key="status"
+        :draggable="canMove && !movingId"
+        :min-column-width="264"
+        @move="onMove"
+      >
+        <template #columnTitle="{ column, items }">
+          <Flex align="center" :size="8" class="board-column-title">
+            <span class="board-column-dot" :style="{ background: column.color }"></span>
+            <strong>{{ column.title }}</strong>
+            <em>{{ items.length }}</em>
           </Flex>
-          <h3>{{ item.title }}</h3>
-          <p>{{ projectNameOf(item) }}</p>
-          <Flex justify="space-between" align="center" :size="8" class="board-card-footer">
-            <span>
-              <Icon :type="Calendar" />
-              {{ item.deadline }}
-            </span>
-            <small v-if="item.id === movingId">保存中…</small>
-          </Flex>
-        </article>
-      </template>
-      <template #empty>
-        <p class="board-column-empty">拖到此处</p>
-      </template>
-    </Kanban>
+        </template>
+        <template #item="{ item }">
+          <article class="board-card" :class="{ 'board-card-overdue': isOverdue(item) }">
+            <Flex justify="space-between" align="center" :size="8">
+              <Tag :color="priorityOf(item).color" theme="fill">{{ priorityOf(item).label }}</Tag>
+              <small v-if="isOverdue(item)" class="board-overdue">已逾期</small>
+            </Flex>
+            <h3>{{ item.title }}</h3>
+            <p>{{ projectNameOf(item) }}</p>
+            <Flex justify="space-between" align="center" :size="8" class="board-card-footer">
+              <span>
+                <Icon :type="Calendar" />
+                {{ item.deadline }}
+              </span>
+              <small v-if="item.id === movingId">保存中…</small>
+            </Flex>
+          </article>
+        </template>
+        <template #empty>
+          <p class="board-column-empty">拖到此处</p>
+        </template>
+      </Kanban>
+    </Skeleton>
     <p v-if="!canMove" class="board-tip">当前账号没有 task:write 权限，看板只读。</p>
   </ListPanel>
 </template>

@@ -29,124 +29,127 @@
       {{ error }}
       <Button @click="reload">重试</Button>
     </p>
-    <p v-if="loading">正在加载…</p>
-    <Card v-if="data" bordered>
-      <Tabs v-model="activeTab">
-        <TabPanel key="basic" title="基础设置">
-          <section class="setting-section">
-            <div class="section-heading">
-              <h2>组织信息</h2>
-              <p>用于后台标题、通知和对外展示。</p>
-            </div>
-            <Form :model="settings" layout="vertical" class="setting-form">
-              <Grid :cols="{ xs: 1, sm: 2 }" :x-gap="16">
-                <GridItem>
-                  <FormItem label="组织名称">
-                    <Input
-                      :disabled="saving || !canWrite"
-                      v-model="settings.organizationName"
-                      clearable
-                    />
-                  </FormItem>
-                </GridItem>
-                <GridItem>
-                  <FormItem label="系统简称">
-                    <Input :disabled="saving || !canWrite" v-model="settings.shortName" clearable />
-                  </FormItem>
-                </GridItem>
-                <GridItem>
-                  <FormItem label="访问域名">
-                    <Input :disabled="saving || !canWrite" v-model="settings.domain" clearable />
-                  </FormItem>
-                </GridItem>
-                <GridItem>
-                  <FormItem label="默认时区">
-                    <Select
-                      :disabled="saving || !canWrite"
-                      v-model="settings.timezone"
-                      block
-                      :options="timezoneOptions"
-                    />
-                  </FormItem>
-                </GridItem>
-                <GridItem>
-                  <FormItem label="默认语言">
-                    <Select
-                      :disabled="saving || !canWrite"
-                      v-model="settings.locale"
-                      block
-                      :options="localeOptions"
-                    />
-                  </FormItem>
-                </GridItem>
-                <GridItem>
-                  <FormItem label="品牌主色">
-                    <ColorPicker
-                      :disabled="saving || !canWrite"
-                      v-model="settings.primaryColor"
-                      show-text
-                      :presets="colorPresets"
-                    />
-                  </FormItem>
-                </GridItem>
-                <GridItem>
-                  <FormItem label="导航布局">
-                    <Select
-                      :disabled="saving || !canWrite"
-                      v-model="settings.layoutMode"
-                      block
-                      :options="layoutOptions"
-                    />
-                  </FormItem>
-                </GridItem>
-              </Grid>
-            </Form>
-          </section>
-        </TabPanel>
-        <TabPanel key="security" title="安全策略">
-          <section class="setting-section">
-            <div class="section-heading">
-              <h2>登录与会话</h2>
-              <p>统一控制企业成员的账号安全策略。</p>
-            </div>
-            <div class="setting-list">
-              <div>
-                <div>
-                  <strong>会话有效期</strong>
-                  <p>无操作超过该时间后需要重新登录。</p>
-                </div>
-                <InputNumber
-                  :disabled="saving || !canWrite"
-                  v-model="settings.sessionTimeout"
-                  :min="5"
-                  :max="10080"
-                  suffix="分钟"
-                />
+    <Card v-else bordered>
+      <!-- The read lands into these fields, so an empty form shown first would swallow
+           whatever the operator typed before it arrived. -->
+      <Skeleton :loading="!data" :delay="0" :title-width="0" :rows="6" animated>
+        <Tabs v-model="activeTab">
+          <TabPanel key="basic" title="基础设置">
+            <section class="setting-section">
+              <div class="section-heading">
+                <h2>组织信息</h2>
+                <p>用于后台标题、通知和对外展示。</p>
               </div>
-              <div>
-                <div>
-                  <strong>允许多设备登录</strong>
-                  <p>关闭后，新设备登录会使旧会话失效。</p>
-                </div>
-                <Switch :disabled="saving || !canWrite" v-model="settings.allowMultiLogin" />
+              <Form :model="settings" layout="vertical" class="setting-form">
+                <Grid :cols="{ xs: 1, sm: 2 }" :x-gap="16">
+                  <GridItem>
+                    <FormItem label="组织名称">
+                      <Input
+                        :disabled="saving || !canWrite"
+                        v-model="settings.organizationName"
+                        clearable
+                      />
+                    </FormItem>
+                  </GridItem>
+                  <GridItem>
+                    <FormItem label="系统简称">
+                      <Input :disabled="saving || !canWrite" v-model="settings.shortName" clearable />
+                    </FormItem>
+                  </GridItem>
+                  <GridItem>
+                    <FormItem label="访问域名">
+                      <Input :disabled="saving || !canWrite" v-model="settings.domain" clearable />
+                    </FormItem>
+                  </GridItem>
+                  <GridItem>
+                    <FormItem label="默认时区">
+                      <Select
+                        :disabled="saving || !canWrite"
+                        v-model="settings.timezone"
+                        block
+                        :options="timezoneOptions"
+                      />
+                    </FormItem>
+                  </GridItem>
+                  <GridItem>
+                    <FormItem label="默认语言">
+                      <Select
+                        :disabled="saving || !canWrite"
+                        v-model="settings.locale"
+                        block
+                        :options="localeOptions"
+                      />
+                    </FormItem>
+                  </GridItem>
+                  <GridItem>
+                    <FormItem label="品牌主色">
+                      <ColorPicker
+                        :disabled="saving || !canWrite"
+                        v-model="settings.primaryColor"
+                        show-text
+                        :presets="colorPresets"
+                      />
+                    </FormItem>
+                  </GridItem>
+                  <GridItem>
+                    <FormItem label="导航布局">
+                      <Select
+                        :disabled="saving || !canWrite"
+                        v-model="settings.layoutMode"
+                        block
+                        :options="layoutOptions"
+                      />
+                    </FormItem>
+                  </GridItem>
+                </Grid>
+              </Form>
+            </section>
+          </TabPanel>
+          <TabPanel key="security" title="安全策略">
+            <section class="setting-section">
+              <div class="section-heading">
+                <h2>登录与会话</h2>
+                <p>统一控制企业成员的账号安全策略。</p>
               </div>
-              <div>
+              <div class="setting-list">
                 <div>
-                  <strong>密码有效期</strong>
-                  <p>到期后要求成员修改登录密码。</p>
+                  <div>
+                    <strong>会话有效期</strong>
+                    <p>无操作超过该时间后需要重新登录。</p>
+                  </div>
+                  <InputNumber
+                    :disabled="saving || !canWrite"
+                    v-model="settings.sessionTimeout"
+                    :min="5"
+                    :max="10080"
+                    suffix="分钟"
+                  />
                 </div>
-                <InputNumber
-                  :disabled="saving || !canWrite"
-                  v-model="settings.passwordExpiry"
-                  :min="0"
-                  :max="3650"
-                  suffix="天"
-                />
+                <div>
+                  <div>
+                    <strong>允许多设备登录</strong>
+                    <p>关闭后，新设备登录会使旧会话失效。</p>
+                  </div>
+                  <Switch :disabled="saving || !canWrite" v-model="settings.allowMultiLogin" />
+                </div>
+                <div>
+                  <div>
+                    <strong>密码有效期</strong>
+                    <p>到期后要求成员修改登录密码。</p>
+                  </div>
+                  <InputNumber
+                    :disabled="saving || !canWrite"
+                    v-model="settings.passwordExpiry"
+                    :min="0"
+                    :max="3650"
+                    suffix="天"
+                  />
+                </div>
               </div>
-            </div>
-          </section>
-        </TabPanel>
-      </Tabs>
+            </section>
+          </TabPanel>
+        </Tabs>
+      </Skeleton>
     </Card>
   </div>
 </template>
