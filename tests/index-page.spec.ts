@@ -2,6 +2,7 @@ import { createApp, defineComponent, h, nextTick, reactive } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import DashboardPage from "@/pages/(admin)/index.vue";
 import { systemApi, type Dashboard } from "@/api/system";
+import { skeletonStub } from "./skeleton-stub";
 
 vi.mock("@/api/system", () => ({ systemApi: { dashboard: vi.fn() } }));
 // The page reaches for the shared project vocabulary rather than a copy of its own, and that module
@@ -146,30 +147,6 @@ const featureCardStub = {
   setup: (props: { title: string }, { slots }: { slots: Record<string, () => unknown> }) =>
     () => h("button", { class: "entry", "data-entry": props.title }, slots.default?.()),
 };
-/**
- * Kui's Skeleton reads its default slot on every render to find out whether there is content, and
- * only then decides between the placeholder and that content -- so a body that dereferences a payload
- * which has not arrived yet still throws here, exactly as it would in the browser. `delay: 0` makes
- * the placeholder the whole body while the read is in flight.
- */
-const skeletonStub = {
-  props: {
-    loading: Boolean,
-    delay: Number,
-    rows: Number,
-    titleWidth: Number,
-    avatar: [Boolean, Object],
-    animated: Boolean,
-  },
-  setup: (props: { loading?: boolean }, { slots }: { slots: Record<string, () => unknown> }) => () => {
-    const child = slots.default?.();
-    return h(
-      "div",
-      { class: "skeleton", "aria-busy": props.loading ? "true" : undefined },
-      child?.length && !props.loading ? child : [h("span", { class: "skeleton-line" })],
-    );
-  },
-};
 
 const disposers: Array<() => void> = [];
 
@@ -234,7 +211,7 @@ describe("workbench figures", () => {
 
     // The body is never swapped for a sentence: the four card positions, the panels, the shortcut box
     // and the totals are all framed, each holding a placeholder where its figures will go.
-    expect(root.querySelectorAll(".stat-shell")).toHaveLength(4);
+    expect(root.querySelectorAll(".stat-skeleton")).toHaveLength(4);
     for (const title of ["近 7 天收款趋势", "项目进度", "近期活动", "快捷入口", "数据总览"])
       expect(panel(root, title).querySelector(".skeleton-line")).toBeTruthy();
     expect(root.querySelectorAll(".skeleton-line")).toHaveLength(9);
@@ -254,7 +231,7 @@ describe("workbench figures", () => {
     arrive(structuredClone(figures));
     await flush();
     expect(root.querySelectorAll(".skeleton-line")).toHaveLength(0);
-    expect(root.querySelectorAll(".stat-shell")).toHaveLength(0);
+    expect(root.querySelectorAll(".stat-skeleton")).toHaveLength(0);
     expect(chart.dataset.loading).toBe("false");
     expect(card(root, "今日订单")).toBeTruthy();
     expect(panel(root, "近 7 天收款趋势").textContent).toContain("¥ 3,798.00");

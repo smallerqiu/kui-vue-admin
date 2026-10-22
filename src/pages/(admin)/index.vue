@@ -26,7 +26,7 @@
              body with a line of text made the page arrive twice: once as a sentence, then as a
              layout that popped in over it. -->
         <GridItem v-for="position in pendingStats" :key="position">
-          <Skeleton class="stat-shell" loading :delay="0" :title-width="45" :rows="2" animated />
+          <Skeleton class="stat-skeleton" loading :delay="0" :title-width="45" :rows="2" animated />
         </GridItem>
       </Grid>
 
@@ -421,16 +421,6 @@ const entries = computed(() =>
 .card-fill {
   height: 100%;
   box-sizing: border-box;
-}
-/* The same surface a bordered StatCard draws, so a pending figure occupies the box it is about to
-   fill rather than a bare patch of page. */
-.stat-shell {
-  height: 100%;
-  box-sizing: border-box;
-  padding: 16px;
-  border: 1px solid var(--kui-color-border);
-  border-radius: var(--kui-border-radius-card);
-  background-color: var(--kui-color-bg-component);
 }
 .dashboard-content {
   margin-top: 16px;

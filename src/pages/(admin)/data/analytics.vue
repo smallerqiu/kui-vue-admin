@@ -11,20 +11,33 @@
       {{ error }}
       <Button @click="reload">重试</Button>
     </p>
-    <p v-else-if="loading">正在加载经营数据…</p>
 
-    <template v-if="data">
+    <template v-else>
       <Grid :cols="{ xs: 1, sm: 2, xl: 4 }" :x-gap="16" :y-gap="16">
         <GridItem v-for="card in cards" :key="card.title">
           <StatCard :title="card.title" :items="[card.item]" bordered reverse />
         </GridItem>
+        <!-- The four positions are held open until the report answers: the page used to arrive as a
+             line of text and then as a layout that popped in over it. -->
+        <GridItem v-for="position in pendingCards" :key="position">
+          <Skeleton class="stat-skeleton" loading :delay="0" :title-width="45" :rows="2" animated />
+        </GridItem>
       </Grid>
 
-      <p v-if="empty" class="analytics-note">所选周期内没有订单，下面各图保持为空。</p>
-      <p v-else class="analytics-note">
-        金额是已收款订单扣除退款后的净额，统计范围遵循当前账号的数据权限；对比周期为
-        {{ windowLabel }}。
-      </p>
+      <Skeleton
+        class="analytics-note"
+        :loading="!data"
+        :delay="0"
+        :title-width="80"
+        :rows="1"
+        animated
+      >
+        <p v-if="empty">所选周期内没有订单，下面各图保持为空。</p>
+        <p v-else>
+          金额是已收款订单扣除退款后的净额，统计范围遵循当前账号的数据权限；对比周期为
+          {{ windowLabel }}。
+        </p>
+      </Skeleton>
 
       <Grid class="analytics-content" :cols="{ xs: 1, lg: 12 }" :x-gap="16" :y-gap="16">
         <GridItem :span="{ xs: 1, lg: 8 }">
@@ -32,34 +45,44 @@
             <template #extra>
               <Tag theme="fill">{{ periodLabel }}</Tag>
             </template>
-            <TrendChart :data="revenueTrend" name="收入" suffix=" 万" color="#7b61ff" />
+            <!-- Each chart draws its own waiting state inside the box it already occupies, so an
+                 empty plot is never mistaken for a period that earned nothing. -->
+            <TrendChart
+              :data="revenueTrend"
+              name="收入"
+              suffix=" 万"
+              color="#7b61ff"
+              :loading="!data"
+            />
           </Card>
         </GridItem>
         <GridItem :span="{ xs: 1, lg: 4 }">
           <Card title="订单渠道" bordered class="panel-card">
-            <DonutChart :data="channels" unit=" 单" />
+            <DonutChart :data="channels" unit=" 单" :loading="!data" />
           </Card>
         </GridItem>
 
         <GridItem :span="{ xs: 1, lg: 7 }">
           <Card title="订单履约漏斗" bordered class="panel-card">
-            <div class="funnel-list">
-              <div v-for="(stage, index) in funnel" :key="stage.name" class="funnel-item">
-                <Flex justify="space-between">
-                  <span>{{ stage.label }}</span>
-                  <strong>{{ stage.value.toLocaleString() }}</strong>
-                </Flex>
-                <div class="funnel-track">
-                  <span :style="{ width: `${stage.percent}%`, background: stage.color }"></span>
+            <Skeleton :loading="!data" :delay="0" :title-width="0" :rows="4" animated>
+              <div class="funnel-list">
+                <div v-for="(stage, index) in funnel" :key="stage.name" class="funnel-item">
+                  <Flex justify="space-between">
+                    <span>{{ stage.label }}</span>
+                    <strong>{{ stage.value.toLocaleString() }}</strong>
+                  </Flex>
+                  <div class="funnel-track">
+                    <span :style="{ width: `${stage.percent}%`, background: stage.color }"></span>
+                  </div>
+                  <small v-if="index < funnel.length - 1">转化率 {{ stage.rate }}</small>
                 </div>
-                <small v-if="index < funnel.length - 1">转化率 {{ stage.rate }}</small>
               </div>
-            </div>
+            </Skeleton>
           </Card>
         </GridItem>
         <GridItem :span="{ xs: 1, lg: 5 }">
           <Card title="支付方式" bordered class="panel-card">
-            <DonutChart :data="paymentMethods" unit=" 单" />
+            <DonutChart :data="paymentMethods" unit=" 单" :loading="!data" />
           </Card>
         </GridItem>
       </Grid>
@@ -85,13 +108,15 @@ const rangeOptions: Array<{ label: string; value: AnalyticsRange }> = [
   { label: "本年度", value: "year" },
 ];
 const range = ref<AnalyticsRange>("30d");
-const { data, loading, error, reload } = useRemoteData(() => loadAnalyticsReport(range.value));
+const { data, error, reload } = useRemoteData(() => loadAnalyticsReport(range.value));
 watch(range, () => void reload());
 
 const periodLabel = computed(
   () => rangeOptions.find((item) => item.value === range.value)?.label ?? "",
 );
 const empty = computed(() => !data.value?.trend.some((point) => point.orders > 0));
+/** The four card positions while the report is in flight, so the grid does not arrive with it. */
+const pendingCards = computed(() => (data.value ? [] : [1, 2, 3, 4]));
 /** Buckets are UTC; the labels only drop the century to keep the axis readable. */
 const bucketLabel = (value: string) =>
   data.value?.bucket === "month" ? `${Number(value.slice(5, 7))} 月` : `${value.slice(5, 7)}/${value.slice(8, 10)}`;
@@ -248,6 +273,9 @@ function exportCsv() {
   margin: 12px 0 0;
   color: var(--kui-color-text-description);
   font-size: 12px;
+  p {
+    margin: 0;
+  }
 }
 .panel-card {
   height: 100%;

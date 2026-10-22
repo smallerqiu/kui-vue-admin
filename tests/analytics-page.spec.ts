@@ -3,23 +3,34 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Analytics from "@/pages/(admin)/data/analytics.vue";
 import { analyticsToCsv, loadAnalyticsReport } from "@/api/reports";
 import type { AnalyticsReport } from "@/api/reports";
+import { skeletonStub } from "./skeleton-stub";
 
 vi.mock("@/api/reports", () => ({
   loadAnalyticsReport: vi.fn(),
   analyticsToCsv: vi.fn(() => "周期,订单量,收入"),
 }));
 // The charts draw into a canvas jsdom cannot back, so they become data sinks
-// here: what these tests care about is what the page hands them.
+// here: what these tests care about is what the page hands them, and whether it tells them to wait.
 vi.mock("@/components/charts/TrendChart.vue", () => ({
   default: {
-    props: ["data", "name", "suffix", "color"],
-    setup: (props: { data: unknown }) => () => h("div", { "data-trend": JSON.stringify(props.data) }),
+    props: ["data", "name", "suffix", "color", "loading"],
+    setup: (props: { data: unknown; loading: boolean }) =>
+      () =>
+        h("div", {
+          "data-trend": JSON.stringify(props.data),
+          "data-loading": String(props.loading),
+        }),
   },
 }));
 vi.mock("@/components/charts/DonutChart.vue", () => ({
   default: {
-    props: ["data", "unit"],
-    setup: (props: { data: unknown }) => () => h("div", { "data-donut": JSON.stringify(props.data) }),
+    props: ["data", "unit", "loading"],
+    setup: (props: { data: unknown; loading: boolean }) =>
+      () =>
+        h("div", {
+          "data-donut": JSON.stringify(props.data),
+          "data-loading": String(props.loading),
+        }),
   },
 }));
 vi.mock("kui-vue", () => ({
@@ -77,6 +88,7 @@ function mount(root: HTMLElement) {
         () => h("button", slots.default?.()),
     },
   );
+  app.component("Skeleton", skeletonStub as never);
   app.mount(root);
   disposers.push(() => app.unmount());
 }
@@ -151,6 +163,37 @@ describe("analytics page", () => {
     // A refund rate that doubled is bad news, not a green arrow.
     expect(cards[3].item).toMatchObject({ value: 4, trend: "+100.0%", trendStatus: "danger" });
     expect(root.textContent).toContain("2026-08-21 至 2026-09-19（UTC）");
+  });
+
+  it("holds the layout while the first report is in flight", async () => {
+    let arrive!: (value: AnalyticsReport) => void;
+    vi.mocked(loadAnalyticsReport).mockReturnValue(
+      new Promise<AnalyticsReport>((resolve) => {
+        arrive = resolve;
+      }),
+    );
+    mount(root);
+    await nextTick();
+
+    // Four card positions, the comparison note and the funnel are on the page before a single figure
+    // is known, and the page prints nothing that looks like one: no money sign, no 万, no window.
+    expect(root.querySelectorAll(".stat-skeleton")).toHaveLength(4);
+    expect(root.querySelectorAll(".skeleton-line")).toHaveLength(6);
+    expect(root.querySelectorAll("[data-stat]")).toHaveLength(0);
+    expect(root.querySelector(".funnel-item")).toBeNull();
+    expect(root.textContent).not.toContain("¥");
+    expect(root.textContent).not.toContain("对比周期");
+    // The three charts report their own wait inside the boxes they already occupy.
+    expect(root.querySelectorAll("[data-loading='true']")).toHaveLength(3);
+    expect(JSON.parse(root.querySelector("[data-trend]")!.getAttribute("data-trend")!)).toEqual([]);
+
+    arrive(report());
+    await flush();
+    expect(root.querySelectorAll(".stat-skeleton")).toHaveLength(0);
+    expect(root.querySelectorAll(".skeleton-line")).toHaveLength(0);
+    expect(stats()).toHaveLength(4);
+    expect(root.querySelectorAll("[data-loading='true']")).toHaveLength(0);
+    expect(root.querySelectorAll(".funnel-item")).toHaveLength(4);
   });
 
   it("says so when a metric has no value or no baseline instead of inventing one", async () => {

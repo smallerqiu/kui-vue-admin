@@ -44,6 +44,18 @@ textarea {
   padding: 8px 6px 20px;
 }
 
+/* A card position held open while its figures are still in flight. It draws the same surface a
+   bordered StatCard does, so a number that has not been read yet sits in the box it is about to
+   fill instead of pushing the layout in after it. */
+.stat-skeleton {
+  height: 100%;
+  box-sizing: border-box;
+  padding: 16px;
+  border: 1px solid var(--kui-color-border);
+  border-radius: var(--kui-card-radius, var(--kui-border-radius-card));
+  background-color: var(--kui-color-bg-component);
+}
+
 a {
   color: var(--kui-color-primary);
   text-decoration: none;

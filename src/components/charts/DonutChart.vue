@@ -1,7 +1,15 @@
-<template><VChart class="donut-chart" :option="option" autoresize /></template>
+<template>
+  <VChart
+    class="donut-chart"
+    :option="option"
+    :loading="loading"
+    :loading-options="loadingOptions"
+    autoresize
+  />
+</template>
 
 <script setup lang="ts">
-import { useThemeStore } from "@/stores/theme";
+import { useChartLoading } from "./use-chart-loading";
 import { PieChart, type PieSeriesOption } from "echarts/charts";
 import {
   LegendComponent,
@@ -19,13 +27,16 @@ interface DonutItem {
   value: number;
   color?: string;
 }
-const props = withDefaults(defineProps<{ data: DonutItem[]; unit?: string }>(), { unit: "%" });
-const themeStore = useThemeStore();
+const props = withDefaults(
+  defineProps<{ data: DonutItem[]; unit?: string; loading?: boolean }>(),
+  { unit: "%", loading: false },
+);
+const { isDark, loadingOptions } = useChartLoading(() => "#54a9ff");
 use([PieChart, LegendComponent, TooltipComponent, CanvasRenderer]);
 type ChartOption = ComposeOption<PieSeriesOption | LegendComponentOption | TooltipComponentOption>;
 
 const option = computed<ChartOption>(() => {
-  const dark = themeStore.theme === "dark";
+  const dark = isDark.value;
   return {
     color: props.data.map((item) => item.color).filter(Boolean) as string[],
     tooltip: {

@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import { useThemeStore } from "@/stores/theme";
+import { useChartLoading } from "./use-chart-loading";
 import { LineChart } from "echarts/charts";
 import {
   GridComponent,
@@ -35,27 +35,15 @@ const props = withDefaults(
     name?: string;
     suffix?: string;
     color?: string;
-    /**
-     * ECharts has a waiting state of its own, so a chart whose buckets have not arrived yet keeps its
-     * box and says so inside it, instead of the card around it swapping for a line of text.
-     */
     loading?: boolean;
   }>(),
   { name: "访问量", suffix: "k", color: "#54a9ff", loading: false },
 );
-const themeStore = useThemeStore();
-const isDark = computed(() => themeStore.theme === "dark");
+const { isDark, loadingOptions } = useChartLoading(() => props.color);
 
 use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
 type ChartOption = ComposeOption<LineSeriesOption | GridComponentOption | TooltipComponentOption>;
-
-const loadingOptions = computed(() => ({
-  text: "正在取数…",
-  color: props.color,
-  textColor: isDark.value ? "#bfbfbf" : "#8c8c8c",
-  maskColor: isDark.value ? "rgba(31, 31, 31, 0.72)" : "rgba(255, 255, 255, 0.72)",
-}));
 
 const option = computed<ChartOption>(() => {
   const dark = isDark.value;
