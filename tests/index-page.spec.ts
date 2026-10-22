@@ -13,12 +13,16 @@ vi.mock("kui-vue", () => ({
   message: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() },
 }));
 // Charts draw into a canvas jsdom cannot back, so this one becomes a data sink: what these tests
-// care about is which figures the page hands it.
+// care about is which figures the page hands it, and whether it tells the chart to wait.
 vi.mock("@/components/charts/TrendChart.vue", () => ({
   default: {
-    props: ["data", "name", "suffix"],
-    setup: (props: { data: unknown; name: string }) => () =>
-      h("div", { "data-trend": JSON.stringify(props.data), "data-name": props.name }),
+    props: ["data", "name", "suffix", "loading"],
+    setup: (props: { data: unknown; name: string; loading: boolean }) => () =>
+      h("div", {
+        "data-trend": JSON.stringify(props.data),
+        "data-name": props.name,
+        "data-loading": String(props.loading),
+      }),
   },
 }));
 
@@ -142,6 +146,30 @@ const featureCardStub = {
   setup: (props: { title: string }, { slots }: { slots: Record<string, () => unknown> }) =>
     () => h("button", { class: "entry", "data-entry": props.title }, slots.default?.()),
 };
+/**
+ * Kui's Skeleton reads its default slot on every render to find out whether there is content, and
+ * only then decides between the placeholder and that content -- so a body that dereferences a payload
+ * which has not arrived yet still throws here, exactly as it would in the browser. `delay: 0` makes
+ * the placeholder the whole body while the read is in flight.
+ */
+const skeletonStub = {
+  props: {
+    loading: Boolean,
+    delay: Number,
+    rows: Number,
+    titleWidth: Number,
+    avatar: [Boolean, Object],
+    animated: Boolean,
+  },
+  setup: (props: { loading?: boolean }, { slots }: { slots: Record<string, () => unknown> }) => () => {
+    const child = slots.default?.();
+    return h(
+      "div",
+      { class: "skeleton", "aria-busy": props.loading ? "true" : undefined },
+      child?.length && !props.loading ? child : [h("span", { class: "skeleton-line" })],
+    );
+  },
+};
 
 const disposers: Array<() => void> = [];
 
@@ -166,6 +194,7 @@ function mount() {
   app.component("Tag", tagStub as never);
   app.component("Progress", progressStub as never);
   app.component("FeatureCard", featureCardStub as never);
+  app.component("Skeleton", skeletonStub as never);
   app.mount(root);
   disposers.push(() => {
     app.unmount();
@@ -192,6 +221,44 @@ describe("workbench figures", () => {
     vi.mocked(systemApi.dashboard).mockResolvedValue(structuredClone(figures));
   });
   afterEach(() => disposers.splice(0).forEach((dispose) => dispose()));
+
+  it("holds the layout while the first read is in flight", async () => {
+    let arrive!: (value: Dashboard) => void;
+    vi.mocked(systemApi.dashboard).mockReturnValue(
+      new Promise<Dashboard>((resolve) => {
+        arrive = resolve;
+      }),
+    );
+    const root = mount();
+    await nextTick();
+
+    // The body is never swapped for a sentence: the four card positions, the panels, the shortcut box
+    // and the totals are all framed, each holding a placeholder where its figures will go.
+    expect(root.querySelectorAll(".stat-shell")).toHaveLength(4);
+    for (const title of ["近 7 天收款趋势", "项目进度", "近期活动", "快捷入口", "数据总览"])
+      expect(panel(root, title).querySelector(".skeleton-line")).toBeTruthy();
+    expect(root.querySelectorAll(".skeleton-line")).toHaveLength(9);
+    // Nothing on the page yet reads like a figure the server answered -- least of all a zero it never
+    // paid -- and no panel claims a permission the read has not had the chance to answer.
+    expect(root.querySelectorAll(".stat")).toHaveLength(0);
+    expect(root.textContent).not.toContain("¥");
+    expect(root.textContent).not.toContain("无法读取");
+    expect(root.textContent).not.toContain("正在加载");
+    // The line is the one piece here that reports its own wait, and the shortcuts need no read at
+    // all: they come from the account's permissions, so they are clickable from the first frame.
+    const chart = panel(root, "近 7 天收款趋势").querySelector("[data-trend]")!;
+    expect(JSON.parse(chart.dataset.trend!)).toEqual([]);
+    expect(chart.dataset.loading).toBe("true");
+    expect(root.querySelectorAll(".entry")).toHaveLength(6);
+
+    arrive(structuredClone(figures));
+    await flush();
+    expect(root.querySelectorAll(".skeleton-line")).toHaveLength(0);
+    expect(root.querySelectorAll(".stat-shell")).toHaveLength(0);
+    expect(chart.dataset.loading).toBe("false");
+    expect(card(root, "今日订单")).toBeTruthy();
+    expect(panel(root, "近 7 天收款趋势").textContent).toContain("¥ 3,798.00");
+  });
 
   it("hands each window its card, and the money its unit", async () => {
     const root = mount();

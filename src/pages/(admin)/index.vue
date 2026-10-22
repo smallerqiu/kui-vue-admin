@@ -16,12 +16,17 @@
       {{ error }}
       <Button @click="reload">重试</Button>
     </p>
-    <p v-else-if="loading">正在加载业务汇总…</p>
 
-    <template v-if="data">
+    <template v-else>
       <Grid :cols="{ xs: 1, sm: 2, xl: 4 }" :x-gap="16" :y-gap="16">
         <GridItem v-for="card in cards" :key="card.title">
           <StatCard class="card-fill" :title="card.title" :items="[card.item]" bordered reverse />
+        </GridItem>
+        <!-- The four positions are held open by skeletons until the read answers. Replacing the whole
+             body with a line of text made the page arrive twice: once as a sentence, then as a
+             layout that popped in over it. -->
+        <GridItem v-for="position in pendingStats" :key="position">
+          <Skeleton class="stat-shell" loading :delay="0" :title-width="45" :rows="2" animated />
         </GridItem>
       </Grid>
 
@@ -29,17 +34,22 @@
         <GridItem :span="{ xs: 1, lg: 8 }">
           <Card title="近 7 天收款趋势" bordered class="card-fill">
             <template #extra><Tag theme="fill">日切按 UTC</Tag></template>
-            <div class="trend-summary">
-              <div>
-                <span>七日收款</span>
-                <strong>¥ {{ formatMoney(trendRevenue) }}</strong>
+            <Skeleton :loading="!data" :delay="0" :title-width="30" :rows="1" animated>
+              <div class="trend-summary">
+                <div>
+                  <span>七日收款</span>
+                  <strong>¥ {{ formatMoney(trendRevenue) }}</strong>
+                </div>
+                <div>
+                  <span>七日订单</span>
+                  <strong>{{ trendOrders }}</strong>
+                </div>
               </div>
-              <div>
-                <span>七日订单</span>
-                <strong>{{ trendOrders }}</strong>
-              </div>
-            </div>
-            <TrendChart :data="revenueTrend" name="收款" suffix=" 元" />
+            </Skeleton>
+            <!-- The line is the one component here that can report its own wait: it keeps its 250px
+                 box and draws ECharts' waiting state inside it, so an empty plot means the buckets are
+                 on their way rather than that the week earned nothing. -->
+            <TrendChart :data="revenueTrend" name="收款" suffix=" 元" :loading="!data" />
           </Card>
         </GridItem>
 
@@ -55,20 +65,25 @@
                 全部项目
               </Button>
             </template>
-            <p v-if="!projectRows" class="panel-empty">当前账号无法读取项目</p>
-            <p v-else-if="!projectRows.length" class="panel-empty">暂无在跟进的项目。</p>
-            <div v-else class="project-list">
-              <div v-for="project in projectRows" :key="project.id" class="project-item">
-                <Flex justify="space-between" align="center" wrap size="small">
-                  <strong>{{ project.name }}</strong>
-                  <Tag size="small" :color="statusColor(project.status)">
-                    {{ projectStatusLabel(project.status) }}
-                  </Tag>
-                </Flex>
-                <p>{{ projectLine(project) }}</p>
-                <Progress :percent="project.progress ?? 0" :show-info="false" size="small" />
+            <!-- Gated on the read rather than on `loading`: until the aggregate answers, the page does
+                 not know whether this account may open 项目 either, so a 无法读取 line would be a claim
+                 about a permission nobody has been asked about yet. -->
+            <Skeleton :loading="!data" :delay="0" :title-width="50" :rows="3" animated>
+              <p v-if="!projectRows" class="panel-empty">当前账号无法读取项目</p>
+              <p v-else-if="!projectRows.length" class="panel-empty">暂无在跟进的项目。</p>
+              <div v-else class="project-list">
+                <div v-for="project in projectRows" :key="project.id" class="project-item">
+                  <Flex justify="space-between" align="center" wrap size="small">
+                    <strong>{{ project.name }}</strong>
+                    <Tag size="small" :color="statusColor(project.status)">
+                      {{ projectStatusLabel(project.status) }}
+                    </Tag>
+                  </Flex>
+                  <p>{{ projectLine(project) }}</p>
+                  <Progress :percent="project.progress ?? 0" :show-info="false" size="small" />
+                </div>
               </div>
-            </div>
+            </Skeleton>
           </Card>
         </GridItem>
 
@@ -84,24 +99,26 @@
                 查看全部
               </Button>
             </template>
-            <p v-if="!activityRows" class="panel-empty">当前账号无法读取操作日志</p>
-            <p v-else-if="!activityRows.length" class="panel-empty">最近没有操作记录。</p>
-            <div v-else class="activity-list">
-              <div v-for="activity in activityRows" :key="activity.id" class="activity-item">
-                <Avatar :size="34">{{ (activity.actorName || "—").slice(0, 1) }}</Avatar>
-                <div class="activity-content">
-                  <p>
-                    <strong>{{ activity.actorName || "已注销账号" }}</strong>
-                    {{ activity.operation }}
-                  </p>
-                  <span>
-                    <Icon :type="Clock" />
-                    {{ formatDateTime(activity.createdAt) }}
-                  </span>
+            <Skeleton avatar :loading="!data" :delay="0" :title-width="40" :rows="4" animated>
+              <p v-if="!activityRows" class="panel-empty">当前账号无法读取操作日志</p>
+              <p v-else-if="!activityRows.length" class="panel-empty">最近没有操作记录。</p>
+              <div v-else class="activity-list">
+                <div v-for="activity in activityRows" :key="activity.id" class="activity-item">
+                  <Avatar :size="34">{{ (activity.actorName || "—").slice(0, 1) }}</Avatar>
+                  <div class="activity-content">
+                    <p>
+                      <strong>{{ activity.actorName || "已注销账号" }}</strong>
+                      {{ activity.operation }}
+                    </p>
+                    <span>
+                      <Icon :type="Clock" />
+                      {{ formatDateTime(activity.createdAt) }}
+                    </span>
+                  </div>
+                  <Tag size="small" theme="plain">{{ activity.moduleName }}</Tag>
                 </div>
-                <Tag size="small" theme="plain">{{ activity.moduleName }}</Tag>
               </div>
-            </div>
+            </Skeleton>
           </Card>
         </GridItem>
 
@@ -121,21 +138,25 @@
                 @click="router.push(entry.path)"
               />
             </div>
-            <div class="notice-box">
-              <Icon :type="Bell" />
-              <div class="notice-body">
-                <strong>需要关注</strong>
-                <div v-for="queue in queues" :key="queue.label" class="notice-row">
-                  <span>{{ queue.label }}</span>
-                  <!-- A queue this account may not read stays in the list: a row that said 0 would
-                     report an empty queue nobody was allowed to look at. -->
-                  <span v-if="queue.value === null" class="notice-closed">无读取权限</span>
-                  <Button v-else size="small" theme="plain" @click="router.push(queue.path)">
-                    {{ queue.value }} 项
-                  </Button>
+            <!-- The shortcuts come from the account's permissions, so they are on the page from the
+                 first frame; only the four queues below them wait on the read. -->
+            <Skeleton :loading="!data" :delay="0" :title-width="25" :rows="4" animated>
+              <div class="notice-box">
+                <Icon :type="Bell" />
+                <div class="notice-body">
+                  <strong>需要关注</strong>
+                  <div v-for="queue in queues" :key="queue.label" class="notice-row">
+                    <span>{{ queue.label }}</span>
+                    <!-- A queue this account may not read stays in the list: a row that said 0 would
+                       report an empty queue nobody was allowed to look at. -->
+                    <span v-if="queue.value === null" class="notice-closed">无读取权限</span>
+                    <Button v-else size="small" theme="plain" @click="router.push(queue.path)">
+                      {{ queue.value }} 项
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
+            </Skeleton>
           </Card>
         </GridItem>
       </Grid>
@@ -145,14 +166,20 @@
              server sends here, and the counts stay the digits it answered. `toLocaleString()` on a
              count would follow the operator's OS locale, which is the shape of a number changing
              with the machine it is read on. -->
-        <Descriptions :column="3" size="small">
-          <DescriptionsItem label="订单总数">{{ data.orders }}</DescriptionsItem>
-          <DescriptionsItem label="累计净收款金额">¥ {{ formatMoney(data.revenue) }}</DescriptionsItem>
-          <DescriptionsItem label="客户总数">{{ data.customers }}</DescriptionsItem>
-          <DescriptionsItem label="商品总数">{{ data.products }}</DescriptionsItem>
-          <DescriptionsItem label="项目总数">{{ data.projects }}</DescriptionsItem>
-          <DescriptionsItem label="任务总数">{{ data.tasks }}</DescriptionsItem>
-        </Descriptions>
+        <Skeleton :loading="!data" :delay="0" :title-width="0" :rows="2" animated>
+          <template v-if="data">
+            <Descriptions :column="3" size="small">
+              <DescriptionsItem label="订单总数">{{ data.orders }}</DescriptionsItem>
+              <DescriptionsItem label="累计净收款金额">
+                ¥ {{ formatMoney(data.revenue) }}
+              </DescriptionsItem>
+              <DescriptionsItem label="客户总数">{{ data.customers }}</DescriptionsItem>
+              <DescriptionsItem label="商品总数">{{ data.products }}</DescriptionsItem>
+              <DescriptionsItem label="项目总数">{{ data.projects }}</DescriptionsItem>
+              <DescriptionsItem label="任务总数">{{ data.tasks }}</DescriptionsItem>
+            </Descriptions>
+          </template>
+        </Skeleton>
       </Card>
 
       <p class="dashboard-note">
@@ -281,6 +308,12 @@ const cards = computed(() => {
 });
 
 /**
+ * The four card positions while the figures are in flight. They hold the row's shape so the page
+ * arrives as numbers rather than as a layout that grows from a line of text.
+ */
+const pendingStats = computed(() => (data.value ? [] : [1, 2, 3, 4]));
+
+/**
  * The seven buckets the server sent for the running week, added as decimals: the total above the
  * line is the sum of the same seven points the line draws, so the two figures cannot disagree with
  * each other or with 经营分析. An empty week sums to 0.00, which is what the buckets answered.
@@ -388,6 +421,16 @@ const entries = computed(() =>
 .card-fill {
   height: 100%;
   box-sizing: border-box;
+}
+/* The same surface a bordered StatCard draws, so a pending figure occupies the box it is about to
+   fill rather than a bare patch of page. */
+.stat-shell {
+  height: 100%;
+  box-sizing: border-box;
+  padding: 16px;
+  border: 1px solid var(--kui-color-border);
+  border-radius: var(--kui-border-radius-card);
+  background-color: var(--kui-color-bg-component);
 }
 .dashboard-content {
   margin-top: 16px;
