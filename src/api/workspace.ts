@@ -151,6 +151,8 @@ export const resources: Record<string, ResourceDefinition> = {
         options: taskPriorityOptions,
       },
     ],
+    // 负责人 is the id the server stamped at creation; the list shows the person behind it.
+    derived: [derived("ownerName", "负责人")],
   },
   calendar: {
     path: "calendar",

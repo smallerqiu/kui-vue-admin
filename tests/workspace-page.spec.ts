@@ -230,6 +230,36 @@ describe("workspace page workflows", () => {
     expect(root.textContent).toContain("Kui 组件库 (KUI)");
     expect(root.textContent).not.toContain("p1");
   });
+  it("names the person a task is filed for instead of the id stamped on the row", async () => {
+    vi.mocked(request.get).mockImplementation(async (path: string) =>
+      path === "/tasks"
+        ? {
+            items: [
+              {
+                id: "t1",
+                title: "整理反馈",
+                projectId: "p1",
+                deadline: "2026-11-05",
+                status: "todo",
+                priority: "medium",
+                ownerId: "u9",
+                ownerName: "林晓",
+              },
+            ],
+            total: 1,
+            page: 1,
+            pageSize: 20,
+          }
+        : { items: [{ id: "p1", name: "客户反馈", code: "FB" }], total: 1, page: 1, pageSize: 100 },
+    );
+    const root = mount(resources.tasks!);
+    await flush();
+    // Nobody created the task through the form, so 负责人 reaches the table through no editable
+    // field -- the server's name is the only thing an operator can read there.
+    expect(root.textContent).toContain("林晓");
+    expect(root.textContent).not.toContain("u9");
+    expect(root.textContent).not.toContain("—");
+  });
   it("keeps the seconds the server always sends out of the time column", async () => {
     vi.mocked(request.get).mockImplementation(async (path: string) =>
       path === "/calendar"
