@@ -3,43 +3,50 @@
     <PageHeader :title="customer?.name || '客户详情'" :description="customer?.industry">
       <template #actions><Button :icon="ArrowLeft" @click="router.back()">返回</Button></template>
     </PageHeader>
-    <p v-if="loading" role="status">正在加载客户资料…</p>
-    <p v-else-if="error" role="alert">{{ error }} <Button @click="load">重试</Button></p>
-    <Grid v-else-if="customer" :cols="{ xs: 1, lg: 12 }" :x-gap="16" :y-gap="16">
+    <p v-if="error" role="alert">{{ error }} <Button @click="load">重试</Button></p>
+    <Grid v-else :cols="{ xs: 1, lg: 12 }" :x-gap="16" :y-gap="16">
       <GridItem :span="{ xs: 1, lg: 4 }">
         <Card bordered>
-          <div class="company-profile">
-            <span style="background: var(--kui-color-primary)"><Icon :type="Building2" /></span>
-            <h2>{{ customer.name }}</h2>
-            <Space>
-              <Tag>{{ levels.find(item => item.value === customer?.level)?.label }}</Tag>
-              <Tag>{{ statuses.find(item => item.value === customer?.status)?.label }}</Tag>
-            </Space>
-          </div>
-          <Divider />
-          <div class="company-meta">
-            <p>编号：{{ customer.id }}</p>
-            <p>联系人：{{ customer.contact }}</p>
-            <p>电话：{{ customer.phone || '未填写' }}</p>
-            <p>邮箱：{{ customer.email || '未填写' }}</p>
-            <p>城市：{{ customer.city || '未填写' }}</p>
-            <p>创建时间：{{ formatDateTime(customer.createdAt) }}</p>
-          </div>
+          <Skeleton avatar :loading="!customer" :delay="0" :title-width="50" :rows="6" animated>
+            <template v-if="customer">
+              <div class="company-profile">
+                <span style="background: var(--kui-color-primary)"><Icon :type="Building2" /></span>
+                <h2>{{ customer.name }}</h2>
+                <Space>
+                  <Tag>{{ levels.find(item => item.value === customer?.level)?.label }}</Tag>
+                  <Tag>{{ statuses.find(item => item.value === customer?.status)?.label }}</Tag>
+                </Space>
+              </div>
+              <Divider />
+              <div class="company-meta">
+                <p>编号：{{ customer.id }}</p>
+                <p>联系人：{{ customer.contact }}</p>
+                <p>电话：{{ customer.phone || '未填写' }}</p>
+                <p>邮箱：{{ customer.email || '未填写' }}</p>
+                <p>城市：{{ customer.city || '未填写' }}</p>
+                <p>创建时间：{{ formatDateTime(customer.createdAt) }}</p>
+              </div>
+            </template>
+          </Skeleton>
         </Card>
       </GridItem>
       <GridItem :span="{ xs: 1, lg: 8 }">
         <Card title="客户资料" bordered>
-          <Form :model="form" layout="vertical">
-            <FormItem label="企业名称"><Input v-model="form.name" /></FormItem>
-            <FormItem label="所属行业"><Input v-model="form.industry" /></FormItem>
-            <FormItem label="客户等级"><Select v-model="form.level" :options="levels" /></FormItem>
-            <FormItem label="跟进状态"><Select v-model="form.status" :options="statuses" /></FormItem>
-            <FormItem label="联系人"><Input v-model="form.contact" /></FormItem>
-            <FormItem label="联系电话"><Input v-model="form.phone" /></FormItem>
-            <FormItem label="联系邮箱"><Input v-model="form.email" /></FormItem>
-            <FormItem label="城市"><Input v-model="form.city" /></FormItem>
-            <Button v-if="canEdit" type="primary" :loading="saving" @click="save">保存资料</Button>
-          </Form>
+          <!-- The read prefills the form, so an empty form shown first would swallow keystrokes
+               typed before it lands; the skeleton keeps the field count visible instead. -->
+          <Skeleton :loading="!customer" :delay="0" :title-width="0" :rows="8" animated>
+            <Form :model="form" layout="vertical">
+              <FormItem label="企业名称"><Input v-model="form.name" /></FormItem>
+              <FormItem label="所属行业"><Input v-model="form.industry" /></FormItem>
+              <FormItem label="客户等级"><Select v-model="form.level" :options="levels" /></FormItem>
+              <FormItem label="跟进状态"><Select v-model="form.status" :options="statuses" /></FormItem>
+              <FormItem label="联系人"><Input v-model="form.contact" /></FormItem>
+              <FormItem label="联系电话"><Input v-model="form.phone" /></FormItem>
+              <FormItem label="联系邮箱"><Input v-model="form.email" /></FormItem>
+              <FormItem label="城市"><Input v-model="form.city" /></FormItem>
+              <Button v-if="canEdit" type="primary" :loading="saving" @click="save">保存资料</Button>
+            </Form>
+          </Skeleton>
         </Card>
       </GridItem>
     </Grid>
@@ -63,7 +70,6 @@ const router = useRouter();
 const auth = useAuthStore();
 const canEdit = computed(() => hasPermission("customer:write", auth.user?.permissions || []));
 const customer = ref<Customer>();
-const loading = ref(false);
 const saving = ref(false);
 const error = ref("");
 const form = reactive<CustomerInput>({
@@ -86,7 +92,6 @@ async function load() {
   const current = ++generation;
   customer.value = undefined;
   error.value = "";
-  loading.value = true;
   try {
     const result = await catalogApi.customer(id);
     if (current !== generation) return;
@@ -95,7 +100,7 @@ async function load() {
   } catch (reason) {
     if (current === generation)
       error.value = reason instanceof Error ? reason.message : "客户资料加载失败";
-  } finally { if (current === generation) loading.value = false; }
+  }
 }
 async function save() {
   if (saving.value || !customer.value || !canEdit.value) return;

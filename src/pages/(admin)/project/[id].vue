@@ -6,83 +6,90 @@
       </template>
     </PageHeader>
 
-    <p v-if="loading" role="status">正在加载项目成员…</p>
-    <p v-else-if="error" role="alert">
+    <p v-if="error" role="alert">
       {{ error }}
       <Button @click="load">重试</Button>
     </p>
 
-    <Grid v-else-if="roster" :cols="{ xs: 1, lg: 12 }" :x-gap="16" :y-gap="16">
+    <Grid v-else :cols="{ xs: 1, lg: 12 }" :x-gap="16" :y-gap="16">
       <GridItem :span="{ xs: 1, lg: 4 }">
         <Card bordered title="项目概况">
-          <div class="project-identity">
-            <span class="project-icon"><Icon :type="FolderKanban" /></span>
-            <h2>{{ projectName || "未命名项目" }}</h2>
-            <p>{{ projectCode }}</p>
-          </div>
-          <Divider />
-          <div class="project-facts">
-            <p><small>负责人</small><strong>{{ personText(roster.owner) }}</strong></p>
-            <p><small>状态</small><strong>{{ statusLabel }}</strong></p>
-            <p><small>截止日期</small><strong>{{ projectDeadline || "待确认" }}</strong></p>
-            <p><small>成员数</small><strong>{{ roster.members.length }} 人</strong></p>
-          </div>
+          <Skeleton avatar :loading="!roster" :delay="0" :title-width="50" :rows="4" animated>
+            <template v-if="roster">
+              <div class="project-identity">
+                <span class="project-icon"><Icon :type="FolderKanban" /></span>
+                <h2>{{ projectName || "未命名项目" }}</h2>
+                <p>{{ projectCode }}</p>
+              </div>
+              <Divider />
+              <div class="project-facts">
+                <p><small>负责人</small><strong>{{ personText(roster.owner) }}</strong></p>
+                <p><small>状态</small><strong>{{ statusLabel }}</strong></p>
+                <p><small>截止日期</small><strong>{{ projectDeadline || "待确认" }}</strong></p>
+                <p><small>成员数</small><strong>{{ roster.members.length }} 人</strong></p>
+              </div>
+            </template>
+          </Skeleton>
         </Card>
       </GridItem>
 
       <GridItem :span="{ xs: 1, lg: 8 }">
         <Card bordered title="项目成员">
-          <Alert
-            v-if="directoryUnavailable"
-            type="warning"
-            show-icon
-            title="无法读取用户目录"
-            description="缺少 system:user:read 权限或目录请求失败：可以移除已在名单里的人，但无法搜索新成员。需要添加时请联系具备该权限的账号。"
-          />
-          <Form layout="vertical" class="member-form">
-            <FormItem label="成员">
-              <Select
-                v-model="draft"
-                :options="memberOptions"
-                multiple
-                clearable
-                filterable
-                block
-                :disabled="!canEdit || saving"
-                placeholder="选择项目成员"
-              />
-            </FormItem>
-          </Form>
-          <div v-if="roster.members.length" class="member-list">
-            <div v-for="member in roster.members" :key="member.userId" class="member-row">
-              <Flex align="center" :size="10">
-                <Avatar :style="{ background: avatarColor(member.fullName) }">
-                  {{ member.fullName.slice(0, 1) }}
-                </Avatar>
-                <div class="member-names">
-                  <strong>{{ member.fullName }}</strong>
-                  <small>{{ member.account }}{{ member.email ? ` · ${member.email}` : "" }}</small>
-                </div>
-              </Flex>
-              <Tag v-if="member.userId === roster.owner?.userId" theme="fill">负责人</Tag>
+          <!-- The picker starts empty and the roster lands into it, so showing it early
+               would silently replace whatever was typed in the meantime. -->
+          <Skeleton :loading="!roster" :delay="0" :title-width="0" :rows="5" animated>
+            <Alert
+              v-if="directoryUnavailable"
+              type="warning"
+              show-icon
+              title="无法读取用户目录"
+              description="缺少 system:user:read 权限或目录请求失败：可以移除已在名单里的人，但无法搜索新成员。需要添加时请联系具备该权限的账号。"
+            />
+            <Form layout="vertical" class="member-form">
+              <FormItem label="成员">
+                <Select
+                  v-model="draft"
+                  :options="memberOptions"
+                  multiple
+                  clearable
+                  filterable
+                  block
+                  :disabled="!canEdit || saving"
+                  placeholder="选择项目成员"
+                />
+              </FormItem>
+            </Form>
+            <div v-if="roster?.members.length" class="member-list">
+              <div v-for="member in roster.members" :key="member.userId" class="member-row">
+                <Flex align="center" :size="10">
+                  <Avatar :style="{ background: avatarColor(member.fullName) }">
+                    {{ member.fullName.slice(0, 1) }}
+                  </Avatar>
+                  <div class="member-names">
+                    <strong>{{ member.fullName }}</strong>
+                    <small>{{ member.account }}{{ member.email ? ` · ${member.email}` : "" }}</small>
+                  </div>
+                </Flex>
+                <Tag v-if="member.userId === roster.owner?.userId" theme="fill">负责人</Tag>
+              </div>
             </div>
-          </div>
-          <Empty v-else description="这个项目还没有成员" />
+            <Empty v-else description="这个项目还没有成员" />
 
-          <Flex justify="space-between" align="center" :size="12" class="member-actions">
-            <span class="member-hint">{{ hint }}</span>
-            <Space>
-              <Button :disabled="saving || !dirty" @click="resetDraft">放弃修改</Button>
-              <Button
-                type="primary"
-                :loading="saving"
-                :disabled="!canEdit || !dirty"
-                @click="save"
-              >
-                保存成员
-              </Button>
-            </Space>
-          </Flex>
+            <Flex justify="space-between" align="center" :size="12" class="member-actions">
+              <span class="member-hint">{{ hint }}</span>
+              <Space>
+                <Button :disabled="saving || !dirty" @click="resetDraft">放弃修改</Button>
+                <Button
+                  type="primary"
+                  :loading="saving"
+                  :disabled="!canEdit || !dirty"
+                  @click="save"
+                >
+                  保存成员
+                </Button>
+              </Space>
+            </Flex>
+          </Skeleton>
         </Card>
       </GridItem>
     </Grid>
@@ -117,7 +124,6 @@ const roster = ref<ProjectRoster>();
 const project = ref<BusinessRecord>();
 const people = ref<PersonOption[]>([]);
 const directoryUnavailable = ref(false);
-const loading = ref(false);
 const saving = ref(false);
 const error = ref("");
 const draft = ref<string[]>([]);
@@ -170,7 +176,6 @@ async function load() {
   const current = ++generation;
   roster.value = undefined;
   error.value = "";
-  loading.value = true;
   try {
     const [rows, detail] = await Promise.all([
       loadProjectRoster(record),
@@ -183,8 +188,6 @@ async function load() {
   } catch (reason) {
     if (current === generation)
       error.value = reason instanceof Error ? reason.message : "项目成员加载失败";
-  } finally {
-    if (current === generation) loading.value = false;
   }
 }
 

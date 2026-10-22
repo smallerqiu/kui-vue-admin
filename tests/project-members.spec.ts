@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Members from "@/pages/(admin)/project/[id].vue";
 import request from "@/utils/request";
 import { message } from "kui-vue";
+import { skeletonStub } from "./skeleton-stub";
 
 vi.mock("@/utils/request", () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
@@ -75,6 +76,7 @@ function mount() {
     "Avatar",
   ])
     app.component(name, passthrough(["title"]));
+  app.component("Skeleton", skeletonStub as never);
   app.component(
     "Alert",
     passthrough(["title", "description"]) as never,
@@ -152,6 +154,34 @@ describe("project membership page", () => {
   });
   afterEach(() => disposers.splice(0).forEach((dispose) => dispose()));
 
+  it("holds both panels while the roster is in flight", async () => {
+    let arrive!: (rows: unknown) => void;
+    get.mockImplementation(((path: string) => {
+      if (path === "/projects/p1/members")
+        return new Promise((resolve) => {
+          arrive = resolve;
+        });
+      if (path === "/projects/p1") return Promise.resolve(project);
+      return Promise.resolve({ items: [], total: 0, page: 1, pageSize: 100 });
+    }) as never);
+    const root = mount();
+    await flush();
+
+    expect(root.querySelectorAll(".skeleton").length).toBe(2);
+    expect(root.querySelectorAll(".skeleton-line").length).toBe(2);
+    // A frame must not read as a reading: no names, no headcount, no empty-project claim.
+    expect(root.textContent).not.toContain("成员a");
+    expect(root.textContent).not.toContain("未指定");
+    expect(root.textContent).not.toContain("2 人");
+    expect(root.textContent).not.toContain("这个项目还没有成员");
+
+    arrive(roster());
+    await flush();
+    expect(root.querySelectorAll(".skeleton-line").length).toBe(0);
+    expect(root.textContent).toContain("2 人");
+    expect(root.textContent).toContain("成员a");
+  });
+
   it("lists the roster, the owner and the pending change", async () => {
     const root = mount();
     await flush();
@@ -220,5 +250,7 @@ describe("project membership page", () => {
     expect(root.textContent).toContain("Record not found");
     expect(buttons(root, "重试").length).toBe(1);
     expect(root.textContent).not.toContain("这个项目还没有成员");
+    // A refused read shows its sentence, not a frame still pretending to wait.
+    expect(root.querySelectorAll(".skeleton-line").length).toBe(0);
   });
 });

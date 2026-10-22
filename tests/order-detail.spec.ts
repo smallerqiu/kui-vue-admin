@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import OrderDetail from "@/pages/(admin)/order/[id].vue";
 import { commerceApi, hasFreight, type OrderRecord } from "@/api/commerce";
 import { message } from "kui-vue";
+import { skeletonStub } from "./skeleton-stub";
 
 const route = reactive({ params: { id: "one" }, path: "/order/one" });
 vi.mock("vue-router", () => ({ useRoute: () => route, useRouter: () => ({ back: vi.fn() }) }));
@@ -97,6 +98,7 @@ function mount() {
     "Select",
   ])
     app.component(name, box);
+  app.component("Skeleton", skeletonStub as never);
   app.component(
     "Button",
     defineComponent({
@@ -143,12 +145,37 @@ describe("order detail integration", () => {
     route.path = "/order/one";
   });
   afterEach(() => disposers.splice(0).forEach((dispose) => dispose()));
+  it("keeps the page shape while the first read is in flight", async () => {
+    let arrive!: (value: OrderRecord) => void;
+    vi.mocked(commerceApi.detail).mockReturnValueOnce(
+      new Promise((done) => {
+        arrive = done;
+      }),
+    );
+    const root = mount();
+    await flush();
+    // The frame is the loaded layout: a status band over three panels and two.
+    expect(root.querySelectorAll(".skeleton").length).toBe(6);
+    expect(root.querySelectorAll(".skeleton-line").length).toBe(6);
+    // Nothing on the frame reads as a result: no amount, no customer, no status.
+    expect(root.textContent).not.toContain("¥");
+    expect(root.textContent).not.toContain("Real customer");
+    expect(root.textContent).not.toContain("待付款");
+
+    arrive(order("one"));
+    await flush();
+    expect(root.querySelectorAll(".skeleton-line").length).toBe(0);
+    expect(root.textContent).toContain("¥ 10.10");
+    expect(root.textContent).toContain("Real customer");
+  });
   it("shows missing-order errors, not the first order", async () => {
     vi.mocked(commerceApi.detail).mockRejectedValueOnce(new Error("Order not found"));
     const root = mount();
     await flush();
     expect(root.textContent).toContain("Order not found");
     expect(root.textContent).not.toContain("Real customer");
+    // A refused read shows its sentence, not a frame still pretending to wait.
+    expect(root.querySelectorAll(".skeleton-line").length).toBe(0);
   });
   it("ignores a delayed response after the route changes", async () => {
     let resolve!: (value: OrderRecord) => void;

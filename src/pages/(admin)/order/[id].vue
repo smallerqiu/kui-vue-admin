@@ -390,9 +390,38 @@
     </Modal>
   </div>
   <div v-else class="order-detail-page">
-    <p role="status">{{ loading ? "正在加载订单…" : error }}</p>
-    <Button @click="load">重试</Button>
-    <Button @click="router.back()">返回</Button>
+    <PageHeader title="订单详情" description="查看订单状态、客户信息和操作记录。">
+      <template #actions>
+        <Button :icon="ArrowLeft" @click="router.back()">返回</Button>
+      </template>
+    </PageHeader>
+    <p v-if="error" role="alert">
+      {{ error }}
+      <Button @click="load">重试</Button>
+    </p>
+    <!-- Same shape as the loaded page: a status band over three panels and two.
+         No title or amount is written here, so a frame cannot be mistaken for a reading. -->
+    <template v-else>
+      <Card bordered class="status-card">
+        <Skeleton loading :delay="0" :title-width="35" :rows="2" animated />
+      </Card>
+      <Grid :cols="{ xs: 1, lg: 12 }" :x-gap="16" :y-gap="16" class="detail-grid">
+        <GridItem :span="{ xs: 1, lg: 8 }">
+          <Space vertical block :size="16">
+            <Card v-for="panel in pendingMainPanels" :key="panel" bordered>
+              <Skeleton loading :delay="0" :title-width="40" :rows="4" animated />
+            </Card>
+          </Space>
+        </GridItem>
+        <GridItem :span="{ xs: 1, lg: 4 }">
+          <Space vertical block :size="16">
+            <Card v-for="panel in pendingSidePanels" :key="panel" bordered>
+              <Skeleton avatar loading :delay="0" :title-width="40" :rows="4" animated />
+            </Card>
+          </Space>
+        </GridItem>
+      </Grid>
+    </template>
   </div>
 </template>
 
@@ -427,9 +456,11 @@ const router = useRouter();
 const auth = useAuthStore();
 const allowed = (permission: string) => hasPermission(permission, auth.user?.permissions || []);
 const order = ref<OrderRecord>();
-const loading = ref(false);
 const error = ref("");
 const saving = ref(false);
+/** One frame per panel the loaded page draws: three in the wide column, two in the narrow one. */
+const pendingMainPanels = [1, 2, 3];
+const pendingSidePanels = [1, 2];
 let generation = 0;
 let active = true;
 async function load() {
@@ -438,7 +469,6 @@ async function load() {
   const current = ++generation;
   order.value = undefined;
   error.value = "";
-  loading.value = true;
   for (const open of dialogs) open.value = false;
   try {
     const result = await commerceApi.detail(id);
@@ -446,8 +476,6 @@ async function load() {
   } catch (reason) {
     if (current === generation)
       error.value = reason instanceof Error ? reason.message : "订单加载失败";
-  } finally {
-    if (current === generation) loading.value = false;
   }
 }
 const statusMap: Record<
