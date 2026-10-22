@@ -4,6 +4,7 @@ import Logs from "@/pages/(admin)/system/logs.vue";
 import { auditLogApi, auditLogsToCsv } from "@/api/system";
 import { message } from "kui-vue";
 import request from "@/utils/request";
+import { skeletonStub } from "./skeleton-stub";
 
 vi.mock("@/utils/request", () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
@@ -185,6 +186,7 @@ function mount() {
   }
   app.component("Table", tableStub as never);
   app.component("Select", selectStub as never);
+  app.component("Skeleton", skeletonStub as never);
   app.mount(root);
   disposers.push(() => {
     app.unmount();
@@ -225,6 +227,44 @@ describe("audit log page", () => {
   afterEach(() => {
     disposers.splice(0).forEach((dispose) => dispose());
     vi.unstubAllGlobals();
+  });
+
+  it("holds the panel and waits to count while the first page is in flight", async () => {
+    let arrive!: (value: unknown) => void;
+    get.mockImplementation(
+      (() =>
+        new Promise((resolve) => {
+          arrive = resolve;
+        })) as never,
+    );
+    const root = mount();
+    await flush();
+
+    // One frame, and nothing else: the table waits in its own loading state, while a strip reading
+    // "共 0 条日志" would be a number nobody has counted yet.
+    expect(root.querySelectorAll(".skeleton-line")).toHaveLength(1);
+    expect(root.textContent).not.toContain("条日志");
+    expect(root.querySelector(".table")).not.toBeNull();
+    // The pager states no count of its own: the strip is the one place this page says how many there
+    // are, and a second total would read "Total 0 items" before anything has been counted.
+    expect(root.querySelector(".page")!.getAttribute("show-total")).toBe("false");
+
+    arrive(page([log(), log({ id: "l2" })]));
+    await flush();
+    expect(root.querySelectorAll(".skeleton-line")).toHaveLength(0);
+    expect(root.textContent).toContain("共 2 条日志");
+  });
+
+  it("counts no logs when the page is refused", async () => {
+    get.mockRejectedValue(new Error("请求失败：503") as never);
+    const root = mount();
+    await flush();
+
+    // The server's own words are the only claim a refused read leaves this page: no frame goes on
+    // pretending the count is on its way, and no zero stands in for it.
+    expect(root.textContent).toContain("请求失败：503");
+    expect(root.querySelectorAll(".skeleton-line")).toHaveLength(0);
+    expect(root.textContent).not.toContain("条日志");
   });
 
   it("reads a row as a person, a module and a sentence instead of a code and an id", async () => {

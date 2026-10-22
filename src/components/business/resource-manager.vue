@@ -11,9 +11,10 @@
     </p>
     <ListPanel>
       <template #summary>
-        <!-- The row count is only known once the page arrives, so the strip waits
-             rather than reading "共 0 条记录". -->
-        <Skeleton :loading="loading" :delay="0" :title-width="30" :rows="1" animated>
+        <!-- The row count is only known once the page arrives, so the strip waits rather than
+             reading "共 0 条记录" -- and a refused read leaves the server's sentence above as the
+             only thing this page may claim. -->
+        <Skeleton v-if="!error" :loading="loading" :delay="0" :title-width="0" :rows="1" style="min-width: 100px" animated>
           共 {{ total }} 条记录
         </Skeleton>
       </template>
@@ -60,7 +61,9 @@
           </Space>
         </template>
       </Table>
-      <Page v-model:page="page" :page-size="pageSize" :total="total" :disabled="loading" />
+      <!-- The strip above the table is where this page states its count, so the pager does not
+           repeat it: while the first page is in flight its own total reads "Total 0 items". -->
+      <Page v-model:page="page" :page-size="pageSize" :total="total" :show-total="false" :disabled="loading" />
     </ListPanel>
     <Drawer
       v-model="editorOpen"

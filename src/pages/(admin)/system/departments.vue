@@ -25,7 +25,7 @@
     <ListPanel v-else>
       <template #summary>
         <!-- Nothing has been counted yet, so the strip waits instead of reading "共 0 个部门". -->
-        <Skeleton :loading="!data" :delay="0" :title-width="30" :rows="1" animated>
+        <Skeleton :loading="!data" :delay="0" :title-width="0" :rows="1" style="min-width: 100px" animated>
           共 {{ shown.length }} 个部门
         </Skeleton>
       </template>

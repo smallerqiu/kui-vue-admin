@@ -9,12 +9,27 @@
       <GridItem v-for="card in cards" :key="card.title">
         <StatCard :title="card.title" :items="[card.item]" bordered reverse />
       </GridItem>
+      <!-- The four cards are one aggregate read, so until it lands the row is drawn as four empty
+           frames: a card that has not been asked yet must not read as somebody counting zero. -->
+      <GridItem v-for="slot in pendingCards" :key="`order-stat-pending-${slot}`">
+        <Card bordered class="order-stat-pending">
+          <Skeleton loading :delay="0" :title-width="35" :rows="2" animated />
+        </Card>
+      </GridItem>
     </Grid>
     <p v-if="error" role="alert">
       {{ error }}
       <Button @click="reload">重试</Button>
     </p>
-    <ListPanel :summary="`${total} 条订单`">
+    <ListPanel>
+      <template #summary>
+        <!-- Nothing has been counted while the list is in flight, and a refused read leaves the
+             server's sentence above as the only thing this page may claim: the strip waits for an
+             answer instead of reading "0 条订单" for a number nobody counted. -->
+        <Skeleton v-if="!error" :loading="loading" :delay="0" :title-width="0" :rows="1" style="min-width: 100px" animated>
+          {{ total }} 条订单
+        </Skeleton>
+      </template>
       <template #filters>
         <Input
           v-model="keyword"
@@ -109,7 +124,9 @@
           </Space>
         </template>
       </Table>
-      <Page v-model:page="page" :page-size="pageSize" :total="total" :disabled="loading" />
+      <!-- The strip above the table is where this page states its count, so the pager does not
+           repeat it: while the first page is in flight its own total reads "Total 0 items". -->
+      <Page v-model:page="page" :page-size="pageSize" :total="total" :show-total="false" :disabled="loading" />
     </ListPanel>
   </div>
 </template>
@@ -167,15 +184,21 @@ const {
   reload,
 } = useResourcePage<OrderRecord>("/orders", currentQuery);
 const summary = ref<OrderSummary>();
+// A refused read has to stop the frames too: a skeleton that keeps pretending to wait would say
+// the number is on its way when the server already answered "no".
+const summaryFailed = ref(false);
 const loadSummary = async () => {
+  summaryFailed.value = false;
   try {
     summary.value = await commerceApi.summary();
   } catch (reason) {
     // No numbers rather than invented ones: the cards stay off the page and the server's own words
     // say why.
+    summaryFailed.value = true;
     reportFailure(reason, "订单统计加载失败");
   }
 };
+const pendingCards = computed(() => (summary.value || summaryFailed.value ? 0 : 4));
 const facets = ref<OrderFacets>();
 // The 支付方式 and 订单来源 choices are the values the orders this account can read actually carry.
 // Neither column is an enum this app owns -- whoever recorded a payment typed the word -- so a list

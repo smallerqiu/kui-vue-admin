@@ -6,7 +6,15 @@
       </template>
     </PageHeader>
     <p v-if="error" role="alert">{{ error }} <Button @click="reload">重试</Button></p>
-    <ListPanel :summary="`${total} 件商品`" :selected-count="selectedKeys.length">
+    <ListPanel :selected-count="selectedKeys.length">
+      <template #summary>
+        <!-- Nothing has been counted while the list is in flight, and a refused read leaves the
+             server's sentence above as the only thing this page may claim: the strip waits for an
+             answer instead of reading "0 件商品" for a number nobody counted. -->
+        <Skeleton v-if="!error" :loading="loading" :delay="0" :title-width="0" :rows="1" style="min-width: 100px" animated>
+          {{ total }} 件商品
+        </Skeleton>
+      </template>
       <template #filters>
         <Input
           v-model="keyword"
@@ -73,7 +81,9 @@
           <Button v-if="canEdit" size="small" theme="plain" :icon="Pencil" @click="openEdit(record)">编辑</Button>
         </template>
       </Table>
-      <Page v-model:page="page" :page-size="pageSize" :total="total" :disabled="loading" />
+      <!-- The strip above the table is where this page states its count, so the pager does not
+           repeat it: while the first page is in flight its own total reads "Total 0 items". -->
+      <Page v-model:page="page" :page-size="pageSize" :total="total" :show-total="false" :disabled="loading" />
     </ListPanel>
 
     <Drawer

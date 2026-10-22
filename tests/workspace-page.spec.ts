@@ -4,6 +4,7 @@ import ResourceManager from "@/components/business/resource-manager.vue";
 import { resources, type ResourceDefinition } from "@/api/workspace";
 import request from "@/utils/request";
 import { message } from "kui-vue";
+import { skeletonStub } from "./skeleton-stub";
 
 const auth = reactive({ permissions: ["*"], user: { id: "actor" } });
 vi.mock("@/stores/auth", () => ({ useAuthStore: () => auth }));
@@ -49,6 +50,10 @@ function mount(definition: ResourceDefinition = resources.projects!) {
     "Switch",
   ])
     app.component(name, box);
+  // Kui's Skeleton is registered rather than left unresolved: the drawer holds its place with a
+  // frame while the detail read is in flight, and an unresolved component would silently drop that
+  // branch from every render here.
+  app.component("Skeleton", skeletonStub as never);
   app.component(
     "Button",
     defineComponent({

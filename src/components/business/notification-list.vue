@@ -43,11 +43,14 @@
         </article>
       </template>
     </Skeleton>
+    <!-- Here the pager is the only place the page count is stated, so it waits for the answer rather
+         than reading "Total 0 items" while the first page is still on its way. -->
     <Page
       v-if="!compact"
       :page="store.page"
       :page-size="20"
       :total="store.total"
+      :show-total="!store.loading"
       :disabled="store.loading || store.saving"
       @update:page="store.load($event)"
     />

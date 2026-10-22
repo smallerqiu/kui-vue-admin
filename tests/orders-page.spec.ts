@@ -4,6 +4,7 @@ import Orders from "@/pages/(admin)/commerce/orders.vue";
 import { message } from "kui-vue";
 import request from "@/utils/request";
 import { reportFailure } from "@/utils/report-failure";
+import { skeletonStub } from "./skeleton-stub";
 
 vi.mock("@/utils/request", () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
@@ -170,12 +171,25 @@ const settle = async () => {
   await flush();
 };
 
+// Reads the way a page leaves them pending: nothing answers until the test hands the value over, so
+// every request stays in flight while the frames are counted, and a card or a dropdown that read the
+// payload of a response which has not arrived would throw here exactly as it would in the browser.
+function hold() {
+  const arrive = new Map<string, (value: unknown) => void>();
+  get.mockImplementation(((url: string) =>
+    new Promise((resolve) => {
+      arrive.set(url, resolve);
+    })) as never);
+  return arrive;
+}
+
 function mount() {
   const root = document.createElement("div");
   document.body.appendChild(root);
   const app = createApp(Orders);
   for (const name of [
     "Button",
+    "Card",
     "DatePicker",
     "Grid",
     "GridItem",
@@ -192,6 +206,7 @@ function mount() {
   app.component("Select", selectStub as never);
   app.component("Table", tableStub as never);
   app.component("StatCard", statCardStub as never);
+  app.component("Skeleton", skeletonStub as never);
   app.mount(root);
   disposers.push(() => {
     app.unmount();
@@ -313,6 +328,54 @@ describe("order page", () => {
     expect(get.mock.calls.filter(([url]) => url === "/orders")).toHaveLength(2);
   });
 
+  it("holds the card row and the counter as frames while the first reads are in flight", async () => {
+    const arrive = hold();
+    const root = mount();
+    await flush();
+
+    // Four frames hold the card row's place -- a row that only appears once the aggregate lands
+    // shoves the table down the page -- and the fifth holds the counter's, because nothing has been
+    // counted yet and "0 条订单" would be a number nobody counted.
+    expect(root.querySelectorAll(".skeleton-line")).toHaveLength(5);
+    expect(root.querySelectorAll(".order-stat-pending")).toHaveLength(4);
+    expect(root.querySelectorAll(".stat")).toHaveLength(0);
+    expect(root.textContent).not.toContain("条订单");
+    // The pager states no count of its own: the strip is the one place this page says how many there
+    // are, and a second total would read "Total 0 items" before anything has been counted.
+    expect(root.querySelector(".page")!.getAttribute("show-total")).toBe("false");
+
+    arrive.get("/orders")!({
+      items: [order(), order({ id: "b".repeat(32), status: "paid" })],
+      total: 2,
+      page: 1,
+      pageSize: 20,
+    });
+    arrive.get("/orders/summary")!(summary);
+    arrive.get("/orders/facets")!(facets);
+    await flush();
+    expect(root.querySelectorAll(".skeleton-line")).toHaveLength(0);
+    expect(root.querySelectorAll(".order-stat-pending")).toHaveLength(0);
+    expect(root.querySelectorAll(".stat")).toHaveLength(4);
+    expect(root.textContent).toContain("2 条订单");
+  });
+
+  it("counts no orders when the list itself is refused", async () => {
+    get.mockImplementation(((url: string) =>
+      url === "/orders"
+        ? Promise.reject(new Error("请求失败：502"))
+        : Promise.resolve(url === "/orders/summary" ? summary : facets)) as never);
+    const root = mount();
+    await flush();
+
+    // The server's own words are the only claim a refused read leaves this page: no frame goes on
+    // pretending the count is on its way, and no zero stands in for it.
+    expect(root.textContent).toContain("请求失败：502");
+    expect(root.querySelectorAll(".skeleton-line")).toHaveLength(0);
+    expect(root.textContent).not.toContain("条订单");
+    // The cards answer from their own read, so they keep their numbers.
+    expect(root.querySelectorAll(".stat")).toHaveLength(4);
+  });
+
   it("shows no cards rather than invented ones when the summary fails", async () => {
     get.mockImplementation(((url: string) =>
       url === "/orders/summary"
@@ -322,6 +385,9 @@ describe("order page", () => {
     await flush();
 
     expect(root.querySelectorAll(".stat")).toHaveLength(0);
+    // A refused aggregate has to stop the frames too: a skeleton that keeps waiting would promise a
+    // number the server already said no to.
+    expect(root.querySelectorAll(".skeleton-line")).toHaveLength(0);
     expect(report).toHaveBeenCalledWith(expect.any(Error), "订单统计加载失败");
     // The list is its own request: a missing card row cannot be allowed to hide the orders.
     expect(cell(root, "paidAmount")).toContain("¥ 12,345.00");

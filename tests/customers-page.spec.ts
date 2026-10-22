@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Customers from "@/pages/(admin)/crm/customers.vue";
 import request from "@/utils/request";
 import { reportFailure } from "@/utils/report-failure";
+import { skeletonStub } from "./skeleton-stub";
 
 vi.mock("@/utils/request", () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
@@ -184,6 +185,18 @@ const flush = async () => {
   }
 };
 
+// Reads the way a page leaves them pending: nothing answers until the test hands the value over, so
+// every request stays in flight while the frames are counted and a card reading the payload of a
+// response that has not arrived yet would throw here exactly as it would in the browser.
+function hold() {
+  const arrive = new Map<string, (value: unknown) => void>();
+  get.mockImplementation(((path: string) =>
+    new Promise((resolve) => {
+      arrive.set(path, resolve);
+    })) as never);
+  return arrive;
+}
+
 function mount() {
   const root = document.createElement("div");
   document.body.appendChild(root);
@@ -191,6 +204,7 @@ function mount() {
   for (const name of [
     "Badge",
     "Button",
+    "Card",
     "Drawer",
     "Form",
     "Grid",
@@ -209,6 +223,7 @@ function mount() {
   app.component("FormItem", formItemStub as never);
   app.component("Table", tableStub as never);
   app.component("StatCard", statCardStub as never);
+  app.component("Skeleton", skeletonStub as never);
   app.mount(root);
   disposers.push(() => {
     app.unmount();
@@ -316,6 +331,51 @@ describe("customer page", () => {
     expect(card(root, "客户年价值").querySelector("strong")!.textContent).toBe("¥0万");
   });
 
+  it("holds the card row and the counter as frames while the first reads are in flight", async () => {
+    const arrive = hold();
+    const root = mount();
+    await flush();
+
+    // Four frames keep the card row's place -- a row that only appears once the aggregate lands
+    // shoves the table down the page -- and the fifth keeps the counter's, because nothing has been
+    // counted yet and "0 家客户" would be a number nobody counted.
+    expect(root.querySelectorAll(".skeleton-line")).toHaveLength(5);
+    expect(root.querySelectorAll(".customer-stat-pending")).toHaveLength(4);
+    expect(root.querySelectorAll(".stat")).toHaveLength(0);
+    expect(root.textContent).not.toContain("家客户");
+    // The pager states no count of its own: the strip is the one place this page says how many there
+    // are, and a second total would read "Total 0 items" before anything has been counted.
+    expect(root.querySelector(".page")!.getAttribute("show-total")).toBe("false");
+    // The strip is a shrink-to-fit box, so a percentage-width bar inside it measures nothing: the
+    // frame has to bring its own width, or it holds no place at all.
+    expect(root.querySelector(".listpanel .skeleton")!.getAttribute("style")).toContain("min-width");
+
+    arrive.get("/customers")!({ ...list });
+    arrive.get("/customers/summary")!({ ...aggregate });
+    await flush();
+    expect(root.querySelectorAll(".skeleton-line")).toHaveLength(0);
+    expect(root.querySelectorAll(".customer-stat-pending")).toHaveLength(0);
+    expect(root.querySelectorAll(".stat")).toHaveLength(4);
+    expect(root.textContent).toContain("2 家客户");
+  });
+
+  it("counts no customers when the list itself is refused", async () => {
+    get.mockImplementation(((path: string) =>
+      path === "/customers"
+        ? Promise.reject(new Error("请求失败：502"))
+        : Promise.resolve({ ...aggregate })) as never);
+    const root = mount();
+    await flush();
+
+    // The server's own words are the only claim a refused read leaves this page: no frame goes on
+    // pretending the count is on its way, and no zero stands in for it.
+    expect(root.textContent).toContain("请求失败：502");
+    expect(root.querySelectorAll(".skeleton-line")).toHaveLength(0);
+    expect(root.textContent).not.toContain("家客户");
+    // The cards answer from their own read, so they keep their numbers.
+    expect(root.querySelectorAll(".stat")).toHaveLength(4);
+  });
+
   it("leaves the cards off the page and says why when the aggregate read fails", async () => {
     get.mockImplementation(((path: string) =>
       path === "/customers/summary"
@@ -325,6 +385,9 @@ describe("customer page", () => {
     await flush();
 
     expect(root.querySelectorAll(".stat")).toHaveLength(0);
+    // A refused aggregate has to stop the frames too: a skeleton that keeps waiting would promise a
+    // number the server already said no to.
+    expect(root.querySelectorAll(".skeleton-line")).toHaveLength(0);
     expect(report).toHaveBeenCalledOnce();
     expect(report.mock.calls[0][1]).toBe("客户统计加载失败");
     // The list is its own read: a missing aggregate cannot take the table down with it.

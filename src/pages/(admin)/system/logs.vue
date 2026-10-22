@@ -9,7 +9,15 @@
       {{ error }}
       <Button @click="reload">重试</Button>
     </p>
-    <ListPanel :summary="`共 ${total} 条日志`">
+    <ListPanel>
+      <template #summary>
+        <!-- Nothing has been counted while the log is in flight, and a refused read leaves the
+             server's sentence above as the only thing this page may claim: the strip waits for an
+             answer instead of reading a count nobody made. -->
+        <Skeleton v-if="!error" :loading="loading" :delay="0" :title-width="0" :rows="1" style="min-width: 100px" animated>
+          共 {{ total }} 条日志
+        </Skeleton>
+      </template>
       <template #filters>
         <Input
           v-model="keyword"
@@ -59,7 +67,9 @@
           <Button size="small" theme="plain" :icon="Eye" @click="showDetail(record)">详情</Button>
         </template>
       </Table>
-      <Page v-model:page="page" :page-size="pageSize" :total="total" :disabled="loading" />
+      <!-- The strip above the table is where this page states its count, so the pager does not
+           repeat it: while the first page is in flight its own total reads "Total 0 items". -->
+      <Page v-model:page="page" :page-size="pageSize" :total="total" :show-total="false" :disabled="loading" />
     </ListPanel>
 
     <Drawer v-model="detailOpen" title="日志详情" :width="560" :footer="false">
