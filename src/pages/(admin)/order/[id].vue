@@ -556,7 +556,18 @@ const stepItems = computed(() => [
     title: "登记收款",
     description: order.value?.paymentAt ? formatDateTime(order.value.paymentAt) : undefined,
   },
-  { title: "商品出库" },
+  // The server returns shipments ordered by `created_at asc`, so the first one is the box that left
+  // the warehouse first -- the moment goods went out. A second or third shipment does not move the
+  // step back, because the step records when shipping began, not how many parcels there were.
+  {
+    title: "商品出库",
+    description: order.value?.shipments.length
+      ? formatDateTime(order.value.shipments[0].createdAt)
+      : undefined,
+  },
+  // No date here on purpose: the order row has no receipt column, so nothing on the server says when
+  // the customer signed for the goods. `updatedAt` moves on any edit (a discount, a remark), which
+  // would print an unrelated timestamp as if it were the delivery date.
   { title: "确认收货" },
 ]);
 const itemCount = computed(

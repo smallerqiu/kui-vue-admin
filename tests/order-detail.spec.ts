@@ -68,6 +68,32 @@ const flush = async () => {
   await Promise.resolve();
   await nextTick();
 };
+// Kui's `Steps` takes its items through a prop, so a stub that ignored props would hide every date on
+// the row. Each item renders as its own pair of nodes: the two other timestamps on this page
+// (订单信息 and 发货记录) print the same strings, so a test has to read the description out of the
+// step it belongs to rather than out of the page.
+const stepsStub = defineComponent({
+  props: ["current", "status", "items"],
+  setup:
+    (props) =>
+    () =>
+      h(
+        "div",
+        { class: "steps", "data-current": String(props.current ?? 0) },
+        ((props.items ?? []) as { title: string; description?: string }[]).map((item) =>
+          h("div", { class: "step" }, [
+            h("span", { class: "step-title" }, item.title),
+            h("span", { class: "step-description" }, item.description ?? ""),
+          ]),
+        ),
+      ),
+});
+function stepDescription(root: HTMLElement, title: string) {
+  const step = [...root.querySelectorAll(".step")].find(
+    (el) => el.querySelector(".step-title")?.textContent === title,
+  );
+  return step?.querySelector(".step-description")?.textContent ?? null;
+}
 function mount() {
   const app = createApp(OrderDetail);
   const container = document.createElement("div");
@@ -85,7 +111,6 @@ function mount() {
     "Space",
     "Icon",
     "Tag",
-    "Steps",
     "Image",
     "Descriptions",
     "DescriptionsItem",
@@ -98,6 +123,7 @@ function mount() {
     "Select",
   ])
     app.component(name, box);
+  app.component("Steps", stepsStub as never);
   app.component("Skeleton", skeletonStub as never);
   app.component(
     "Button",
@@ -256,6 +282,46 @@ describe("order detail integration", () => {
     expect(commerceApi.action).toHaveBeenCalledWith("one", "adjust", { discount: "2345.67" });
     expect(message.warning).not.toHaveBeenCalled();
     expect(message.success).toHaveBeenCalledWith("操作已保存");
+  });
+  it("puts the first box's departure on 商品出库", async () => {
+    // Two shipments because the page has to pick one, and one box is not a date: the row names the
+    // moment goods went out, which is the earliest shipment the server lists.
+    const shipped: OrderRecord = {
+      ...order("one"),
+      status: "shipped",
+      paymentAt: "2026-09-28T09:00:00",
+      shipments: [
+        {
+          id: "s1",
+          company: "顺丰速运",
+          trackingNo: "SF1",
+          createdAt: "2026-09-29T10:00:00",
+          items: [],
+        },
+        {
+          id: "s2",
+          company: "顺丰速运",
+          trackingNo: "SF2",
+          createdAt: "2026-09-30T08:30:00",
+          items: [],
+        },
+      ],
+    };
+    vi.mocked(commerceApi.detail).mockResolvedValueOnce(shipped);
+    const root = mount();
+    await flush();
+    expect(stepDescription(root, "商品出库")).toBe("2026-09-29 10:00");
+    // Nothing on the order says when the customer signed for the goods, so the last step stays empty
+    // rather than borrowing a timestamp that any edit would move.
+    expect(stepDescription(root, "确认收货")).toBe("");
+  });
+  it("leaves 商品出库 without a date until a box ships", async () => {
+    // The default fixture ships nothing: an empty array is truthy, so reading the first element
+    // without asking would throw here instead of leaving the row blank.
+    vi.mocked(commerceApi.detail).mockResolvedValueOnce(order("one"));
+    const root = mount();
+    await flush();
+    expect(stepDescription(root, "商品出库")).toBe("");
   });
   it("writes 免运费 for the order that pays no freight", async () => {
     // The freight the server sends is the string "0.00", which is truthy: the label already says
