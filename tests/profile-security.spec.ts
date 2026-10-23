@@ -400,18 +400,18 @@ describe("profile contact rows", () => {
   });
 });
 
-describe("profile row with nothing behind it", () => {
-  /** A row that has no endpoint and no field to jump to has to say that rather than move the page. */
-  it("leaves the panel where it is for two-factor and names the missing server behaviour", async () => {
+describe("profile security list", () => {
+  /** A row whose button says 待接入 is a promise the server does not keep, so none is offered. */
+  it("lists only the three things this account can actually do", async () => {
     const root = mount();
     await flush();
 
     await openSecurity(root);
-    clickRowButton(root, "两步验证", "开启");
-    await flush();
 
-    expect(message.info).toHaveBeenCalledWith("两步验证功能待接入服务端");
-    expect(activeTabOf(root)).toBe("security");
-    expect(root.querySelector(".modal")).toBeNull();
+    const titles = Array.from(root.querySelectorAll<HTMLElement>(".feature-card")).map((card) =>
+      card.getAttribute("data-title"),
+    );
+    expect(titles).toEqual(["登录密码", "安全邮箱", "绑定手机"]);
+    expect(message.info).not.toHaveBeenCalled();
   });
 });

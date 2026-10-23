@@ -163,7 +163,7 @@ import { PageHeader } from "kui-vue";
 import { useAuthStore } from "@/stores/auth";
 import { useThemeStore } from "@/stores/theme";
 import { usePreferenceStore } from "@/stores/preferences";
-import { KeyRound, MailCheck, ShieldCheck, Smartphone } from "kui-icons";
+import { KeyRound, MailCheck, Smartphone } from "kui-icons";
 import { message, type IconType } from "kui-vue";
 import { computed, nextTick, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
@@ -200,7 +200,7 @@ const basicForm = reactive({
   bio: String(authStore.user.bio || ""),
 });
 const securityItems: Array<{
-  key: "password" | "email" | "phone" | "two-factor";
+  key: "password" | "email" | "phone";
   title: string;
   description: string;
   action: string;
@@ -227,13 +227,6 @@ const securityItems: Array<{
     action: "更换",
     icon: Smartphone,
   },
-  {
-    key: "two-factor",
-    title: "两步验证",
-    description: "提升账号登录安全性",
-    action: "开启",
-    icon: ShieldCheck,
-  },
 ];
 const passwordOpen = ref(false);
 const changing = ref(false);
@@ -250,11 +243,6 @@ const openSecurityEditor = async (item: (typeof securityItems)[number]) => {
   if (item.key === "password") {
     passwordError.value = "";
     passwordOpen.value = true;
-    return;
-  }
-  if (item.key === "two-factor") {
-    // Nothing behind this one on the server: no endpoint to call and no field to jump to.
-    message.info(`${item.title}功能待接入服务端`);
     return;
   }
   // Email and phone are saved by the basic-information form through `PUT /auth/me`, and there is
