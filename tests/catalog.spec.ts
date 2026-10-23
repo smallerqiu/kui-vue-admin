@@ -61,4 +61,23 @@ describe("catalog API contracts", () => {
     vi.mocked(request.get).mockRejectedValueOnce(new Error("候选接口暂不可用"));
     await expect(catalogApi.productFacets()).rejects.toThrow("候选接口暂不可用");
   });
+  it("asks the customer list for the picker rather than keeping a copy of it", async () => {
+    // One page, searched the way `/customers` really searches (名称、联系人、城市), because a picker
+    // built from a cached directory could not name a customer a colleague added a minute ago.
+    vi.mocked(request.get).mockResolvedValueOnce({ items: [], total: 0, page: 1, pageSize: 20 });
+    await catalogApi.searchCustomers("武汉");
+    expect(request.get).toHaveBeenCalledWith("/customers", { keyword: "武汉", pageSize: 20 });
+  });
+  it("offers the goods picker only what is still on sale", async () => {
+    // 上架/下架 is a column the products page writes and `POST /orders` answers 404 for a product
+    // nobody is selling, so the filter has to go to the server instead of trimming a page locally.
+    vi.mocked(request.get).mockResolvedValueOnce({ items: [], total: 0, page: 1, pageSize: 20 });
+    await catalogApi.searchProducts("R-1");
+    expect(request.get).toHaveBeenCalledWith("/products", {
+      keyword: "R-1",
+      enabled: true,
+      pageSize: 20,
+    });
+  });
 });
+

@@ -88,6 +88,23 @@ export const catalogApi = {
   setProductEnabled: (id: string, enabled: boolean) =>
     request.post<Product>(`/products/${encodeURIComponent(id)}/availability`, { enabled }),
   customer: (id: string) => request.get<Customer>(`/customers/${encodeURIComponent(id)}`),
+  /**
+   * One page of customers for the picker in 新建订单. The list endpoint searches 名称, 联系人 and
+   * 城市 -- not 电话 or 邮箱, so a box typed with a phone number legitimately comes back empty --
+   * which means the picker asks the same question the customer page asks rather than keeping a
+   * directory of its own: a picker built from a cached copy could not name a customer a colleague
+   * added five minutes ago, and the order has to carry an id this account can really read.
+   */
+  searchCustomers: (keyword: string) =>
+    request.get<PageResult<Customer>>("/customers", { keyword, pageSize: 20 }),
+  /**
+   * On-sale products for the 商品明细 rows. `enabled: true` is sent to the server rather than
+   * filtering the page locally because 上架/下架 is a column the products page writes, and `POST
+   * /orders` answers 404 for a product nobody is selling -- offering it here would be offering a
+   * line that cannot be filed.
+   */
+  searchProducts: (keyword: string) =>
+    request.get<PageResult<Product>>("/products", { keyword, enabled: true, pageSize: 20 }),
   saveCustomer: (value: CustomerInput, id?: string) => id
     ? request.put<Customer>(`/customers/${encodeURIComponent(id)}`, customerInput(value))
     : request.post<Customer>("/customers", customerInput(value)),

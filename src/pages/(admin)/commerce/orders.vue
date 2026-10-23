@@ -2,6 +2,10 @@
   <div class="pro-list-page">
     <PageHeader title="订单管理" description="查询和跟踪全部交易订单。">
       <template #actions>
+        <!-- The list can already answer 后台 orders: this is the entry that puts one there. Drawn only
+             for an account `POST /orders` will accept, because a hidden refusal is worse than a
+             button that says what it does. -->
+        <Button v-if="canCreate" type="primary" :icon="Plus" @click="openCreate">新建订单</Button>
         <Button :icon="Download" :loading="exporting" @click="exportOrders">导出订单</Button>
       </template>
     </PageHeader>
@@ -128,26 +132,142 @@
            repeat it: while the first page is in flight its own total reads "Total 0 items". -->
       <Page v-model:page="page" :page-size="pageSize" :total="total" :show-total="false" :disabled="loading" />
     </ListPanel>
+
+    <Drawer
+      v-model="drawerOpen"
+      title="新建订单"
+      :width="560"
+      :closable="!saving"
+      :mask-closable="!saving"
+      :esc-key="!saving"
+    >
+      <template #footer>
+        <Button :disabled="saving" @click="drawerOpen = false">取消</Button>
+        <Button type="primary" :loading="saving" @click="createOrder">保存</Button>
+      </template>
+      <Form layout="vertical">
+        <!-- The buyer is a row this account can read, and the only thing an order's 买家 can be built
+             from: `POST /orders` answers 404 for a customer id outside the viewer's data scope. The
+             box searches rather than lists because the table is not kept here -- a copy of it could
+             never name a customer a colleague added five minutes ago. -->
+        <FormItem label="客户">
+          <Select
+            v-model="draft.customerId"
+            block
+            clearable
+            placeholder="搜索客户、联系人或城市"
+            :options="customerOptions"
+            :loading="customerLoading"
+            :disabled="saving"
+            empty-text="没有匹配的客户"
+            @search="searchCustomers"
+          />
+        </FormItem>
+        <!-- 联系人 and 联系电话 arrive with the customer but stay editable: one 客户 row can be billed
+             to two different people, and the order column stores whoever this box says. -->
+        <Grid :cols="2" :x-gap="12">
+          <GridItem>
+            <FormItem label="联系人"><Input v-model="draft.contact" :disabled="saving" /></FormItem>
+          </GridItem>
+          <GridItem>
+            <FormItem label="联系电话"><Input v-model="draft.phone" :disabled="saving" /></FormItem>
+          </GridItem>
+        </Grid>
+        <FormItem label="收货地址">
+          <TextArea v-model="draft.address" :rows="2" :disabled="saving" />
+        </FormItem>
+        <FormItem label="商品明细">
+          <div class="draft-lines">
+            <div v-for="(line, index) in lines" :key="index" class="draft-line">
+              <div class="draft-line-goods">
+                <Select
+                  v-model="line.productId"
+                  block
+                  clearable
+                  placeholder="搜索商品名称或 SKU"
+                  :options="productOptions(line)"
+                  :loading="line.loading"
+                  :disabled="saving"
+                  empty-text="没有在售的商品"
+                  @search="searchProduct(line, $event)"
+                />
+                <!-- The two figures the server decides with, shown for the row this box just read:
+                     库存 is what a refusal is about (409 answers 不足库存 after the whole draft was
+                     typed), and 标价 is what the preview below is adding up. -->
+                <small v-if="lineMeta(line)" class="draft-line-meta">{{ lineMeta(line) }}</small>
+              </div>
+              <InputNumber v-model="line.quantity" :min="1" :disabled="saving" suffix="件" />
+              <Button
+                theme="plain"
+                :disabled="saving || lines.length < 2"
+                @click="removeLine(index)"
+              >
+                删除
+              </Button>
+            </div>
+            <Button theme="plain" :icon="Plus" :disabled="saving" @click="addLine">
+              添加一件商品
+            </Button>
+          </div>
+        </FormItem>
+        <Grid :cols="2" :x-gap="12">
+          <GridItem>
+            <!-- Both boxes start empty and an empty one is not a zero someone typed: the column's own
+                 default is what the server writes, so `保存` sends "0.00" rather than a blank. -->
+            <FormItem label="运费"><Input v-model="draft.freight" placeholder="0.00" :disabled="saving" /></FormItem>
+          </GridItem>
+          <GridItem>
+            <FormItem label="优惠"><Input v-model="draft.discount" placeholder="0.00" :disabled="saving" /></FormItem>
+          </GridItem>
+        </Grid>
+        <FormItem label="客户备注"><TextArea v-model="draft.note" :rows="2" :disabled="saving" /></FormItem>
+        <dl class="draft-estimate">
+          <div>
+            <dt>商品金额（预估）</dt>
+            <dd>{{ previewMoney(estimate?.goods) }}</dd>
+          </div>
+          <div>
+            <dt>实付金额（预估）</dt>
+            <dd>{{ previewMoney(estimate?.paid) }}</dd>
+          </div>
+        </dl>
+        <!-- What the server decides without asking this drawer, said before the save rather than
+             discovered in the list after it: the price comes off the product row under a lock, the
+             stock goes down by these quantities, and a console order starts at 待付款 with no payment
+             recorded and 订单来源 admin. -->
+        <p class="draft-fine-print">
+          价格与库存按保存时商品行结算；保存后订单为 待付款、来源 admin，收款方式与发货在详情页登记。
+        </p>
+      </Form>
+    </Drawer>
   </div>
 </template>
 
 <script setup lang="ts">
 import {
   commerceApi,
+  isMoneyText,
+  orderEstimate,
+  orderFieldLimits,
+  orderInput,
   orderStatusOptions,
   orderStatusLabel,
   ordersToCsv,
+  pickedProduct,
+  type DraftLine,
   type OrderFacets,
   type OrderQuery,
   type OrderRecord,
   type OrderSummary,
 } from "@/api/commerce";
+import { catalogApi, type Customer, type Product } from "@/api/catalog";
 import { useResourcePage } from "@/composables/use-resource-page";
 import { useAuthStore } from "@/stores/auth";
 import { hasPermission } from "@/routers/permissions";
-import { Download, Eye, Search } from "kui-icons";
+import { Download, Eye, Plus, Search } from "kui-icons";
 import { message, modal, PageHeader, type Column, type StatNumberItem } from "kui-vue";
-import { computed, onMounted, ref } from "vue";
+import Big from "big.js";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import dayjs from "dayjs";
 import { reportFailure } from "@/utils/report-failure";
@@ -157,6 +277,7 @@ import { formatDateTime, formatMoney, joinParts, shortId } from "@/utils/common"
 const router = useRouter();
 const auth = useAuthStore();
 const canClose = computed(() => hasPermission("order:close", auth.user?.permissions || []));
+const canCreate = computed(() => hasPermission("order:write", auth.user?.permissions || []));
 const keyword = ref("");
 const status = ref<string>();
 const paymentMethod = ref<string>();
@@ -282,6 +403,187 @@ const closePendingOrder = (record: OrderRecord) =>
       }
     },
   });
+// A drawer is opened on a blank sheet, not on the last one: a draft that kept the previous 客户 and
+// its lines would file a second order in somebody else's name if the operator forgot to look up.
+const emptyDraft = () => ({
+  customerId: "",
+  contact: "",
+  phone: "",
+  address: "",
+  freight: "",
+  discount: "",
+  note: "",
+});
+const newLine = (): DraftLine => ({ productId: "", quantity: 1, rows: [], loading: false });
+// What each capped box is called on the screen, so a refusal names the box rather than the column.
+const fieldLabel: Record<keyof typeof orderFieldLimits, string> = {
+  contact: "联系人",
+  phone: "联系电话",
+  address: "收货地址",
+  note: "客户备注",
+};
+const drawerOpen = ref(false);
+const saving = ref(false);
+const draft = reactive(emptyDraft());
+const lines = ref<DraftLine[]>([newLine()]);
+const customerRows = ref<Customer[]>([]);
+const customerLoading = ref(false);
+// The keyword each picker last asked for. Both boxes debounce typing themselves, so two requests can
+// still come back in the other order, and the late one would replace the rows the fresh one just
+// fetched -- with a customer the operator has since typed out of the box.
+let customerAsk: string | null = null;
+const productAsk = new WeakMap<DraftLine, string>();
+
+// `filterable` is deliberately not set on either picker. That prop filters the option list the box
+// already holds, and these boxes hold one page of a server search: a customer found because their
+// 城市 matches would disappear from a dropdown whose label repeats only their name, which is a row
+// the server returned and the page then hid.
+const searchCustomers = async (event?: Event) => {
+  const term = event ? (event.target as HTMLInputElement).value.trim() : "";
+  customerAsk = term;
+  customerLoading.value = true;
+  try {
+    const page = await catalogApi.searchCustomers(term);
+    if (customerAsk !== term) return;
+    customerRows.value = page.items;
+  } catch (reason) {
+    if (customerAsk !== term) return;
+    // The refusal is the server's sentence, and the box stays empty because nothing was found is a
+    // different answer from nothing could be asked.
+    customerRows.value = [];
+    reportFailure(reason, "客户搜索失败");
+  } finally {
+    if (customerAsk === term) customerLoading.value = false;
+  }
+};
+const customerOptions = computed(() =>
+  customerRows.value.map((row) => ({
+    label: joinParts(row.name, row.city) || row.id,
+    value: row.id,
+  })),
+);
+// The two boxes the customer row can answer are filled only while they are still empty, and never
+// overwritten: the order's 联系人 is a column of its own, so a second pick must not undo the name the
+// operator has already typed for this delivery.
+watch(
+  () => draft.customerId,
+  (id) => {
+    const row = customerRows.value.find((customer) => customer.id === id);
+    if (!row) return;
+    if (!draft.contact.trim()) draft.contact = row.contact;
+    if (!draft.phone.trim()) draft.phone = row.phone;
+  },
+);
+
+const searchProduct = async (line: DraftLine, event?: Event) => {
+  const term = event ? (event.target as HTMLInputElement).value.trim() : "";
+  productAsk.set(line, term);
+  line.loading = true;
+  try {
+    const page = await catalogApi.searchProducts(term);
+    if (productAsk.get(line) !== term) return;
+    line.rows = page.items;
+  } catch (reason) {
+    if (productAsk.get(line) !== term) return;
+    line.rows = [];
+    reportFailure(reason, "商品搜索失败");
+  } finally {
+    if (productAsk.get(line) === term) line.loading = false;
+  }
+};
+// Which products the row may name comes from its own last search: the label stays short because the
+// box keeps showing it after the choice, and the two figures worth reading are printed under it.
+const productOptions = (line: DraftLine) =>
+  line.rows.map((row: Product) => ({
+    label: joinParts(row.name, row.specs, row.sku) || row.id,
+    value: row.id,
+  }));
+const lineMeta = (line: DraftLine) => {
+  const product = pickedProduct(line);
+  return product ? `¥${formatMoney(product.price)} · 库存 ${product.stock} 件` : "";
+};
+const lineProducts = computed(() =>
+  lines.value
+    .map((line) => ({ product: pickedProduct(line), quantity: line.quantity }))
+    .filter((line): line is { product: Product; quantity: number } => line.product !== null),
+);
+// An empty box is 0.00 and a box holding `12,` is nothing anybody said, so the preview says so too
+// rather than adding up a number the operator never typed.
+const estimate = computed(() => {
+  const freight = draft.freight.trim() || "0.00";
+  const discount = draft.discount.trim() || "0.00";
+  if (!isMoneyText(freight) || !isMoneyText(discount)) return null;
+  return orderEstimate(lines.value, freight, discount);
+});
+const previewMoney = (value?: string) => (value ? `¥${formatMoney(value)}` : "金额格式有误");
+const openCreate = () => {
+  Object.assign(draft, emptyDraft());
+  lines.value = [newLine()];
+  customerRows.value = [];
+  customerAsk = null;
+  drawerOpen.value = true;
+  // Both pickers open on the first twenty rows the server offers rather than on an empty dropdown,
+  // because "no data" before anybody has asked is a sentence the page has no right to say.
+  void searchCustomers();
+  void searchProduct(lines.value[0]);
+};
+const addLine = () => {
+  lines.value.push(newLine());
+  // The array's own entry, not the object just made: Vue wraps what a `ref` holds in a reactive
+  // proxy, and a search answered against the raw object would fill the rows without the box ever
+  // being told they arrived.
+  void searchProduct(lines.value[lines.value.length - 1]);
+};
+const removeLine = (index: number) => {
+  lines.value = lines.value.filter((_, position) => position !== index);
+};
+const createOrder = async () => {
+  if (saving.value) return;
+  // Checked here because a body this drawer can build is a body the server refuses with "Invalid
+  // request" plus a list of field names -- the one sentence that tells an operator nothing about the
+  // box they should have filled in.
+  if (!draft.customerId.trim()) return message.warning("请选择客户");
+  if (!draft.contact.trim() || !draft.phone.trim() || !draft.address.trim())
+    return message.warning("请填写联系人、联系电话和收货地址");
+  if (lines.value.some((line) => !line.productId)) return message.warning("请为每一行选择商品");
+  if (lines.value.some((line) => !pickedProduct(line)))
+    return message.warning("所选商品已不在结果里，请重新搜索");
+  if (lines.value.some((line) => !Number.isInteger(line.quantity) || line.quantity < 1))
+    return message.warning("商品数量须为正整数");
+  const ids = lines.value.map((line) => line.productId);
+  if (new Set(ids).size !== ids.length)
+    return message.warning("同一个商品只能出现在一行，请把数量合并");
+  // The four boxes the create schema caps by length, named here because a request past one of them
+  // answers "Invalid request" with a list of field names -- a sentence about the form rather than the
+  // one box that has to be shortened. `maxlength` on the controls would be worse: pasted text would
+  // simply stop existing.
+  const over = (Object.keys(orderFieldLimits) as Array<keyof typeof orderFieldLimits>).find(
+    (key) => draft[key].trim().length > orderFieldLimits[key],
+  );
+  if (over) return message.warning(`${fieldLabel[over]}不能超过 ${orderFieldLimits[over]} 字`);
+  for (const key of ["freight", "discount"] as const)
+    if (draft[key].trim() && !isMoneyText(draft[key]))
+      return message.warning("运费与优惠须为非负金额，最多两位小数");
+  const { goods } = orderEstimate(lines.value, "0.00", "0.00");
+  const charge = new Big(goods).plus(draft.freight.trim() || "0.00");
+  if (draft.discount.trim() && new Big(draft.discount.trim()).gt(charge))
+    return message.warning("优惠不能超过商品金额加运费");
+  saving.value = true;
+  try {
+    const order = await commerceApi.create(orderInput({ ...draft, lines: lineProducts.value }));
+    drawerOpen.value = false;
+    // The server's own arithmetic, not the preview above: the price came off the product row it
+    // locked, and if the catalogue moved while this drawer was open, the list shows the new number.
+    message.success(`订单已创建，实付 ¥${formatMoney(order.paidAmount)}`);
+    await Promise.all([reload(), loadSummary()]);
+  } catch (reason) {
+    // Stock and refusals belong to the server, so the drawer keeps everything typed: the operator
+    // needs to see what they asked for in order to change the line the answer names.
+    reportFailure(reason, "下单失败");
+  } finally {
+    saving.value = false;
+  }
+};
 const exportOrders = async () => {
   if (exporting.value) return;
   exporting.value = true;
@@ -372,6 +674,53 @@ const exportOrders = async () => {
 .amount-cell strong {
   color: var(--kui-color-text-title);
   font-size: 15px;
+}
+.draft-lines {
+  display: grid;
+  gap: 8px;
+}
+.draft-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px auto;
+  gap: 8px;
+  align-items: start;
+}
+.draft-line-goods {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+.draft-line-meta {
+  color: var(--kui-color-text-description);
+  font-size: 12px;
+}
+.draft-estimate {
+  display: flex;
+  gap: 24px;
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--kui-control-radius, var(--kui-shape-round, var(--kui-border-radius)));
+  background: var(--kui-color-bg-layout);
+}
+.draft-estimate div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.draft-estimate dt {
+  color: var(--kui-color-text-description);
+  font-size: 12px;
+}
+.draft-estimate dd {
+  color: var(--kui-color-text-title);
+  font-weight: 600;
+  margin: 0;
+}
+.draft-fine-print {
+  margin: 10px 0 0;
+  color: var(--kui-color-text-description);
+  font-size: 12px;
 }
 </style>
 

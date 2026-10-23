@@ -1,7 +1,7 @@
 import Big from "big.js";
 import request from "@/utils/request";
 import { toCsv } from "@/utils/csv";
-import type { PageResult } from "./catalog";
+import type { PageResult, Product } from "./catalog";
 
 export type OrderStatus =
   "pending" | "paid" | "partial_shipped" | "shipped" | "completed" | "closed" | "refunded";
@@ -77,6 +77,88 @@ export interface OrderActions {
   ship: { company: string; trackingNo: string; quantities: Record<string, number> };
   payment: { method: string };
 }
+/**
+ * One row of the 新建订单 drawer.  The row keeps the product records its own last search answered,
+ * because the screen shows 标价, 规格 and 库存 beside the quantity box and the picker lists exactly
+ * those rows; none of the three is sent.  `POST /orders` re-reads every product under a row lock and
+ * prices the order from what it finds there, so a catalogue edited between the pick and the save
+ * cannot be paid at the old number.
+ */
+export interface DraftLine {
+  productId: string;
+  quantity: number;
+  rows: Product[];
+  loading: boolean;
+}
+/** The product a row picked, read out of the rows that row's search returned; null while it is empty. */
+export const pickedProduct = (line: DraftLine): Product | null =>
+  line.rows.find((row) => row.id === line.productId) ?? null;
+/** Exactly the columns `POST /orders` accepts -- 状态, 订单来源 and 支付方式 are not among them. */
+export interface OrderInput {
+  customerId: string;
+  contact: string;
+  phone: string;
+  address: string;
+  items: Array<{ productId: string; quantity: number }>;
+  freight: string;
+  discount: string;
+  note: string;
+}
+/** The money cells of the 新建订单 drawer accept nothing the `Money` column cannot hold. */
+export const isMoneyText = (value: string) => /^\d{1,12}(\.\d{1,2})?$/.test(value.trim());
+/**
+ * How long each text box of the 新建订单 drawer may be filled, taken from the create schema's own
+ * `max_length`.  A box past its limit is refused with "Invalid request" and a list of field names,
+ * which is a sentence about a form rather than the one box the operator has to shorten -- and
+ * `maxlength` on the control is worse still, because pasted text would vanish without saying so.
+ */
+export const orderFieldLimits = {
+  contact: 120,
+  phone: 32,
+  address: 1000,
+  note: 10000,
+} as const;
+/**
+ * The body 新建订单 posts, written out rather than spread from the draft so a price or a stock count
+ * read for the screen cannot ride along into a column the server owns.  The API forbids unknown keys,
+ * and a validation failure answers "Invalid request" with a list of fields nobody can read on screen,
+ * so the shape is assembled key by key here and the page checks its own boxes before sending.
+ */
+export const orderInput = (value: {
+  customerId: string;
+  contact: string;
+  phone: string;
+  address: string;
+  lines: Array<{ product: Product; quantity: number }>;
+  freight: string;
+  discount: string;
+  note: string;
+}): OrderInput => ({
+  customerId: value.customerId.trim(),
+  contact: value.contact.trim(),
+  phone: value.phone.trim(),
+  address: value.address.trim(),
+  items: value.lines.map((line) => ({ productId: line.product.id, quantity: line.quantity })),
+  freight: value.freight.trim() || "0.00",
+  discount: value.discount.trim() || "0.00",
+  note: value.note.trim(),
+});
+/**
+ * What the drawer adds up while the operator is still typing: the same arithmetic the server runs --
+ * Σ 标价 × 件数, then + 运费 − 优惠 -- over the product rows this account just read.  It is a preview,
+ * not a receipt: money is decimal text on this API, so the sum is taken in `Big` rather than in
+ * floats, and the created order is read back from the server's own answer afterwards.
+ */
+export const orderEstimate = (lines: DraftLine[], freight: string, discount: string) => {
+  const goods = lines.reduce((total, line) => {
+    const product = pickedProduct(line);
+    return product ? total.plus(new Big(product.price).times(line.quantity)) : total;
+  }, new Big(0));
+  return {
+    goods: goods.toFixed(2),
+    paid: goods.plus(freight || 0).minus(discount || 0).toFixed(2),
+  };
+};
 export const orderStatusOptions = [
   { value: "pending", label: "待付款" },
   { value: "paid", label: "待发货" },
@@ -178,6 +260,12 @@ export const commerceApi = {
     return { rows: kept, truncated: kept.length < total };
   },
   detail: (id: string) => request.get<OrderRecord>(`/orders/${encodeURIComponent(id)}`),
+  /**
+   * Files a new order.  The answer is the created row -- with the totals the server worked out from
+   * the product records it locked, the `pending` status and the `admin` 订单来源 the column starts a
+   * console order with -- so the page reads its money back rather than keeping its own preview.
+   */
+  create: (data: OrderInput) => request.post<OrderRecord>("/orders", data),
   action: <K extends keyof OrderActions>(id: string, action: K, data: OrderActions[K]) =>
     request.post<OrderRecord>(`/orders/${encodeURIComponent(id)}/${action}`, data ?? {}),
   afterSale: (data: AfterSaleInput) => request.post<{ id: string }>("/after-sales", data),
