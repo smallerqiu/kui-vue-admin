@@ -167,7 +167,9 @@ describe("project membership page", () => {
     const root = mount();
     await flush();
 
-    expect(root.querySelectorAll(".skeleton").length).toBe(2);
+    // Three cards are on the page now, but the plan one is not a frame: this account has no
+    // milestone:read, so it already stands there with its own answer instead of waiting.
+    expect(root.querySelectorAll(".skeleton").length).toBe(3);
     expect(root.querySelectorAll(".skeleton-line").length).toBe(2);
     // A frame must not read as a reading: no names, no headcount, no empty-project claim.
     expect(root.textContent).not.toContain("成员a");

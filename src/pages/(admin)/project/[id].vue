@@ -1,6 +1,9 @@
 <template>
   <div class="project-member-page">
-    <PageHeader :title="roster ? projectName || '项目成员' : '项目成员'" description="维护项目成员；负责人由项目资料决定，不在这里修改。">
+    <PageHeader
+      :title="roster ? projectName || '项目成员' : '项目成员'"
+      description="维护项目成员与项目里程碑；负责人由项目资料决定，不在这里修改。"
+    >
       <template #actions>
         <Button :icon="ArrowLeft" @click="router.back()">返回</Button>
       </template>
@@ -92,19 +95,153 @@
           </Skeleton>
         </Card>
       </GridItem>
+
+      <GridItem :span="{ xs: 1, lg: 12 }">
+        <Card bordered title="项目里程碑">
+          <!-- A plan the account cannot read is a different answer from a project that has
+               no plan yet, so the two states get two sentences and never one another's. -->
+          <Skeleton :loading="planPending" :delay="0" :title-width="0" :rows="4" animated>
+            <Alert
+              v-if="!canReadPlan"
+              type="warning"
+              show-icon
+              title="无法读取项目计划"
+              description="当前账号没有 milestone:read 权限，这里显示不了这个项目的里程碑。需要看计划请联系具备该权限的账号。"
+            />
+            <div v-else-if="planError" class="plan-refused">
+              <span>{{ planError }}</span>
+              <Button size="small" @click="retryPlan">重试</Button>
+            </div>
+            <template v-else-if="plan">
+              <Alert
+                v-if="plan.truncated"
+                type="warning"
+                show-icon
+                title="计划没有读完"
+                :description="`一次只读到前 ${MAX_PLAN_MILESTONES} 条，这个项目共有 ${plan.total} 条里程碑。`"
+              />
+              <div v-if="canWritePlan" class="plan-form">
+                <Input
+                  v-model="draftTitle"
+                  :disabled="savingPlan"
+                  placeholder="里程碑标题，例如 需求范围确认"
+                />
+                <DatePicker
+                  v-model="draftDue"
+                  value-type="string"
+                  :disabled="savingPlan"
+                  placeholder="到期日"
+                />
+                <Space>
+                  <Button v-if="editing" theme="plain" :disabled="savingPlan" @click="stopEditing">
+                    取消编辑
+                  </Button>
+                  <Button
+                    type="primary"
+                    :loading="savingPlan"
+                    :disabled="!draftValid"
+                    @click="submitDraft"
+                  >
+                    {{ editing ? "保存里程碑" : "新增里程碑" }}
+                  </Button>
+                </Space>
+              </div>
+              <p v-else class="plan-hint">没有 milestone:write 权限，计划只读。</p>
+
+              <!-- The server returns this list in due-date order; the page shows it as it came. -->
+              <TimeLine v-if="plan.milestones.length" class="plan-list">
+                <TimeLineItem
+                  v-for="row in plan.milestones"
+                  :key="row.id"
+                  :time="row.dueDate"
+                  :icon="row.status === 'done' ? CircleCheck : Clock"
+                  :color="markColor(row)"
+                >
+                  <div class="plan-row">
+                    <strong>{{ row.title }}</strong>
+                    <span class="plan-state">
+                      <Tag size="small" :color="row.status === 'done' ? 'green' : 'blue'">
+                        {{ row.status === "done" ? "已完成" : "未完成" }}
+                      </Tag>
+                      <Tag v-if="overdue(row)" size="small" color="red">已过期</Tag>
+                    </span>
+                    <span v-if="canWritePlan || canDeletePlan" class="plan-ops">
+                      <Button
+                        v-if="canWritePlan"
+                        size="small"
+                        theme="plain"
+                        :disabled="savingPlan"
+                        @click="flip(row)"
+                      >
+                        {{ row.status === "done" ? "标记未完成" : "标记完成" }}
+                      </Button>
+                      <Button
+                        v-if="canWritePlan"
+                        size="small"
+                        theme="plain"
+                        :disabled="savingPlan"
+                        @click="startEditing(row)"
+                      >
+                        编辑
+                      </Button>
+                      <Button
+                        v-if="canDeletePlan"
+                        size="small"
+                        theme="plain"
+                        :disabled="savingPlan"
+                        @click="deletingId = row.id"
+                      >
+                        删除
+                      </Button>
+                    </span>
+                  </div>
+                  <small v-if="editing === row.id" class="plan-editing-hint">
+                    上方表单里改的就是这一条，保存会整行提交。
+                  </small>
+                </TimeLineItem>
+              </TimeLine>
+              <Empty v-else description="这个项目还没有排过里程碑" />
+            </template>
+          </Skeleton>
+        </Card>
+      </GridItem>
     </Grid>
+
+    <Modal
+      :model-value="!!deletingId"
+      title="删除里程碑"
+      :show-close="!savingPlan"
+      :mask-closable="!savingPlan"
+      :esc-key="!savingPlan"
+      @update:model-value="!$event && (deletingId = '')"
+    >
+      <p>确定删除「{{ deletingTitle }}」？这条计划会从项目里移除，无法撤销。</p>
+      <template #footer>
+        <Button :disabled="savingPlan" @click="deletingId = ''">取消</Button>
+        <Button type="danger" :loading="savingPlan" @click="removeMilestone">确认删除</Button>
+      </template>
+    </Modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ArrowLeft, FolderKanban } from "kui-icons";
+import { ArrowLeft, CircleCheck, Clock, FolderKanban } from "kui-icons";
 import { PageHeader, message } from "kui-vue";
 import { computed, onDeactivated, onScopeDispose, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
+  MAX_PLAN_MILESTONES,
+  isMilestoneOverdue,
   loadAssignablePeople,
+  loadProjectMilestones,
   loadProjectRoster,
+  localCalendarDay,
+  milestoneDraft,
   saveProjectMembers,
+  collaborationApi,
+  type MilestoneDraft,
+  type MilestonePlan,
+  type MilestoneRecord,
   type PersonOption,
   type ProjectPerson,
   type ProjectRoster,
@@ -119,6 +256,13 @@ const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
 const canEdit = computed(() => hasPermission("project:write", auth.permissions));
+/**
+ * The plan has three codes of its own. A read the account was not given is reported as
+ * unreadable, which is a different answer from a project that has no plan yet.
+ */
+const canReadPlan = computed(() => hasPermission("milestone:read", auth.permissions));
+const canWritePlan = computed(() => hasPermission("milestone:write", auth.permissions));
+const canDeletePlan = computed(() => hasPermission("milestone:delete", auth.permissions));
 
 const roster = ref<ProjectRoster>();
 const project = ref<BusinessRecord>();
@@ -127,6 +271,16 @@ const directoryUnavailable = ref(false);
 const saving = ref(false);
 const error = ref("");
 const draft = ref<string[]>([]);
+
+const plan = ref<MilestonePlan>();
+const planError = ref("");
+const savingPlan = ref(false);
+const draftTitle = ref("");
+const draftDue = ref<string | null>(null);
+const editing = ref("");
+const deletingId = ref("");
+/** Overdue is judged against the reader's own calendar day, retaken with every read. */
+const today = ref(localCalendarDay());
 
 const id = () => String(route.params.id || "");
 const personLabel = (row: ProjectPerson) => `${row.fullName} (${row.account})`;
@@ -168,6 +322,19 @@ function resetDraft() {
   draft.value = [...saved.value];
 }
 
+const planPending = computed(() => canReadPlan.value && !plan.value && !planError.value);
+const draftValid = computed(() => !!draftTitle.value.trim() && !!draftDue.value);
+const deletingTitle = computed(
+  () => plan.value?.milestones.find((row) => row.id === deletingId.value)?.title || "这条里程碑",
+);
+const overdue = (row: MilestoneRecord) => isMilestoneOverdue(row, today.value);
+const markColor = (row: MilestoneRecord) =>
+  row.status === "done"
+    ? "var(--kui-color-success)"
+    : overdue(row)
+      ? "var(--kui-color-danger)"
+      : "var(--kui-color-text-placeholder)";
+
 let generation = 0;
 let active = true;
 async function load() {
@@ -176,6 +343,9 @@ async function load() {
   const current = ++generation;
   roster.value = undefined;
   error.value = "";
+  stopEditing();
+  deletingId.value = "";
+  void loadPlan(record, current);
   try {
     const [rows, detail] = await Promise.all([
       loadProjectRoster(record),
@@ -219,6 +389,108 @@ async function save() {
     reportFailure(reason, "项目成员保存失败");
   } finally {
     saving.value = false;
+  }
+}
+
+/**
+ * The plan keeps its own failure state: a refused read must not take the roster panel down
+ * with it, and a frame still spinning after an error reads as still waiting.
+ */
+async function loadPlan(record: string, current: number) {
+  if (!canReadPlan.value) return;
+  plan.value = undefined;
+  planError.value = "";
+  try {
+    const result = await loadProjectMilestones(record);
+    if (current !== generation) return;
+    plan.value = result;
+    today.value = localCalendarDay();
+  } catch (reason) {
+    if (current === generation)
+      planError.value = reason instanceof Error ? reason.message : "项目计划加载失败";
+  }
+}
+
+function retryPlan() {
+  if (savingPlan.value) return;
+  void loadPlan(id(), generation);
+}
+
+function stopEditing() {
+  editing.value = "";
+  draftTitle.value = "";
+  draftDue.value = null;
+}
+
+function startEditing(row: MilestoneRecord) {
+  editing.value = row.id;
+  draftTitle.value = row.title;
+  draftDue.value = row.dueDate;
+}
+
+/**
+ * A milestone write sends the whole row, because the schema has no partial update, and the
+ * panel is re-read afterwards rather than sorted by hand: the order on screen is the order
+ * the server's due-date sort named.
+ */
+async function applyPlan(body: MilestoneDraft, existingId: string) {
+  if (savingPlan.value || !canWritePlan.value) return;
+  const current = generation;
+  savingPlan.value = true;
+  try {
+    if (existingId) await collaborationApi.updateMilestone(existingId, body);
+    else await collaborationApi.createMilestone(body);
+    if (current !== generation) return;
+    message.success(existingId ? "里程碑已更新" : "里程碑已添加");
+    stopEditing();
+    await loadPlan(id(), current);
+  } catch (reason) {
+    // The draft stays so the writer can fix it; the server says what it refused.
+    reportFailure(reason, "里程碑保存失败");
+  } finally {
+    savingPlan.value = false;
+  }
+}
+
+function submitDraft() {
+  const due = draftDue.value;
+  const row = plan.value?.milestones.find((item) => item.id === editing.value);
+  if (!draftValid.value || !due) return;
+  void applyPlan(
+    {
+      projectId: id(),
+      title: draftTitle.value.trim(),
+      dueDate: due,
+      // Status has its own button; the form never changes it by accident.
+      status: row ? row.status : "pending",
+    },
+    editing.value,
+  );
+}
+
+function flip(row: MilestoneRecord) {
+  void applyPlan(
+    { ...milestoneDraft(row), status: row.status === "done" ? "pending" : "done" },
+    row.id,
+  );
+}
+
+async function removeMilestone() {
+  const record = deletingId.value;
+  if (savingPlan.value || !canDeletePlan.value || !record) return;
+  const current = generation;
+  savingPlan.value = true;
+  try {
+    await collaborationApi.deleteMilestone(record);
+    if (current !== generation) return;
+    deletingId.value = "";
+    if (editing.value === record) stopEditing();
+    message.success("里程碑已删除");
+    await loadPlan(id(), current);
+  } catch (reason) {
+    reportFailure(reason, "里程碑删除失败");
+  } finally {
+    savingPlan.value = false;
   }
 }
 
@@ -323,6 +595,55 @@ void loadDirectory();
   margin-top: 6px;
 }
 .member-hint {
+  color: var(--kui-color-text-description);
+  font-size: 12px;
+}
+.plan-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.plan-refused {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+  color: var(--kui-color-danger);
+}
+.plan-hint {
+  margin: 0 0 12px;
+  color: var(--kui-color-text-description);
+  font-size: 12px;
+}
+.plan-list {
+  margin-bottom: 4px;
+}
+.plan-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+.plan-row strong {
+  color: var(--kui-color-text-title);
+  font-size: 13px;
+}
+.plan-state {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.plan-ops {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.plan-editing-hint {
+  display: block;
+  margin-top: 4px;
   color: var(--kui-color-text-description);
   font-size: 12px;
 }

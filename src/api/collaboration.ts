@@ -2,8 +2,9 @@ import request from "@/utils/request";
 import type { PageResult } from "./catalog";
 
 /**
- * Mirrors `GET /api/tasks`, `GET|PUT /api/projects/{id}/members` and
- * `POST /api/tasks/{id}/status` in kui-admin-api.
+ * Mirrors `GET /api/tasks`, `GET|PUT /api/projects/{id}/members`,
+ * `POST /api/tasks/{id}/status` and `GET|POST|PUT|DELETE /api/milestones` in
+ * kui-admin-api.
  */
 
 export type TaskStatus = "todo" | "doing" | "review" | "done";
@@ -71,6 +72,37 @@ export interface TaskBoard {
   /** True when the board stopped early; the page has to say so instead of hiding it. */
   truncated: boolean;
 }
+export type MilestoneStatus = "pending" | "done";
+
+/**
+ * `project_milestones` row. `status` is a promise someone struck off by hand: the server
+ * neither derives it from `projects.progress` nor records when the promise actually came
+ * true, so the page must not imply either.
+ */
+export interface MilestoneRecord {
+  id: string;
+  projectId: string;
+  title: string;
+  /** `YYYY-MM-DD`, a calendar day with no timezone attached. */
+  dueDate: string;
+  status: MilestoneStatus;
+  ownerId: string;
+  departmentId: string | null;
+  createdAt: string;
+  [key: string]: unknown;
+}
+/** A milestone write is a whole-row write; the server has no partial update for it. */
+export interface MilestoneDraft {
+  projectId: string;
+  title: string;
+  dueDate: string;
+  status: MilestoneStatus;
+}
+export interface MilestonePlan {
+  milestones: MilestoneRecord[];
+  total: number;
+  truncated: boolean;
+}
 export interface PersonOption {
   label: string;
   value: string;
@@ -83,6 +115,13 @@ export interface PersonOption {
  */
 export const MAX_BOARD_TASKS = 500;
 
+/**
+ * A plan is read page by page like the board, and stops at this many rows: one project
+ * rarely carries more dated promises than fit here, and past the cap the panel says it
+ * stopped rather than presenting a partial plan as the whole one.
+ */
+export const MAX_PLAN_MILESTONES = 200;
+
 export const collaborationApi = {
   tasks: (keyword: string, page: number, pageSize: number) =>
     request.get<PageResult<TaskRecord>>("/tasks", { keyword, page, pageSize }),
@@ -92,6 +131,14 @@ export const collaborationApi = {
     request.get<ProjectRoster>(`/projects/${encodeURIComponent(projectId)}/members`),
   saveMembers: (projectId: string, userIds: string[]) =>
     request.put<ProjectRoster>(`/projects/${encodeURIComponent(projectId)}/members`, { userIds }),
+  milestones: (projectId: string, page: number, pageSize: number) =>
+    request.get<PageResult<MilestoneRecord>>("/milestones", { projectId, page, pageSize }),
+  createMilestone: (draft: MilestoneDraft) =>
+    request.post<MilestoneRecord>("/milestones", draft),
+  updateMilestone: (id: string, draft: MilestoneDraft) =>
+    request.put<MilestoneRecord>(`/milestones/${encodeURIComponent(id)}`, draft),
+  deleteMilestone: (id: string) =>
+    request.delete<{ ok: boolean }>(`/milestones/${encodeURIComponent(id)}`),
   people: (page: number, pageSize: number) =>
     request.get<PageResult<{ id: string; account: string; fullName: string; enabled: boolean }>>(
       "/users",
@@ -125,6 +172,55 @@ export const loadProjectRoster = (projectId: string) => collaborationApi.roster(
 /** PUT replaces the complete set; an omitted account leaves the project. */
 export const saveProjectMembers = (projectId: string, userIds: string[]) =>
   collaborationApi.saveMembers(projectId, userIds);
+
+/**
+ * The whole plan of one project, in the order the server named it: rows come back sorted
+ * by `dueDate`, so the panel must not re-sort them into creation order.
+ */
+export async function loadProjectMilestones(projectId: string): Promise<MilestonePlan> {
+  const milestones: MilestoneRecord[] = [];
+  let total = 0;
+  for (let page = 1; ; page++) {
+    const result = await collaborationApi.milestones(projectId, page, 100);
+    total = result.total;
+    milestones.push(...result.items);
+    if (
+      !result.items.length ||
+      milestones.length >= total ||
+      milestones.length >= MAX_PLAN_MILESTONES
+    )
+      break;
+  }
+  return { milestones, total, truncated: milestones.length < total };
+}
+
+/** A milestone write sends the row back whole, because the schema has no partial update. */
+export const milestoneDraft = (row: MilestoneRecord): MilestoneDraft => ({
+  projectId: row.projectId,
+  title: row.title,
+  dueDate: row.dueDate,
+  status: row.status,
+});
+
+/**
+ * Overdue is derived at read time and never stored: a promise whose date has passed and
+ * nobody has struck off. Nothing in the row says the team is late, only that the date it
+ * named is behind the day someone is reading this on.
+ */
+export const isMilestoneOverdue = (row: MilestoneRecord, today: string) =>
+  row.status === "pending" && row.dueDate < today;
+
+/**
+ * `YYYY-MM-DD` in the reader's own calendar day. `due_date` is a DATE with no timezone,
+ * and the server stamps its UTC clock into `created_at`, so a plan is compared with the
+ * day the reader is standing in, not with a UTC boundary that can be eight hours away.
+ */
+export const localCalendarDay = (at: Date = new Date()) =>
+  [
+    at.getFullYear(),
+    String(at.getMonth() + 1).padStart(2, "0"),
+    String(at.getDate()).padStart(2, "0"),
+  ].join("-");
 
 /**
  * Project names for the board cards. It needs `project:read`, which a task-only
