@@ -29,6 +29,21 @@ const task = (id: string, status: string, extra: Record<string, unknown> = {}) =
   ...extra,
 });
 
+/** A board with its own rows: the tests that watch column order need a full column to land in. */
+function mockTasks(rows: Array<ReturnType<typeof task>>) {
+  get.mockImplementation(
+    ((path: string) =>
+      path === "/tasks"
+        ? Promise.resolve({ items: rows, total: rows.length, page: 1, pageSize: 100 })
+        : Promise.resolve({
+            items: [{ id: "p1", code: "KUI", name: "KUI Pro" }],
+            total: 1,
+            page: 1,
+            pageSize: 100,
+          })) as never,
+  );
+}
+
 /**
  * Kanban is a controlled component, so this stub reproduces the contract the page
  * depends on: it groups `data` by `statusKey` and asks the parent for a move
@@ -200,6 +215,42 @@ describe("task board page", () => {
     root.querySelector<HTMLButtonElement>('[data-item="2"] [data-move="to-doing"]')!.click();
     await flush();
     expect(root.querySelector('[data-item="2"]')!.getAttribute("data-column")).toBe("doing");
+    expect(message.success).not.toHaveBeenCalled();
+  });
+
+  // The server numbers a card at the tail of the column it lands in (`sort_order` is a per-column
+  // sequence), so the board has to move it there too -- a patch that only rewrote the status would
+  // leave the card sitting in the middle of the new column until the next 刷新.
+  it("drops the card at the bottom of the column it moved into", async () => {
+    mockTasks([task("1", "todo"), task("3", "todo"), task("2", "doing"), task("9", "done")]);
+    post.mockResolvedValue(task("1", "done") as never);
+    const root = mount();
+    await flush();
+
+    root.querySelector<HTMLButtonElement>('[data-item="1"] [data-move="to-todo"]')!.click();
+    await flush();
+
+    const column = root.querySelector('section[data-column="done"]')!;
+    expect(
+      [...column.querySelectorAll("[data-item]")].map((node) => node.getAttribute("data-item")),
+    ).toEqual(["9", "1"]);
+  });
+
+  it("restores the position as well as the status when the move is refused", async () => {
+    mockTasks([task("1", "todo"), task("3", "todo"), task("2", "doing"), task("9", "done")]);
+    post.mockRejectedValue(new Error("Task belongs to another department"));
+    const root = mount();
+    await flush();
+
+    root.querySelector<HTMLButtonElement>('[data-item="1"] [data-move="to-todo"]')!.click();
+    await flush();
+
+    const read = (key: string) =>
+      [...root.querySelectorAll(`section[data-column="${key}"] [data-item]`)].map((node) =>
+        node.getAttribute("data-item"),
+      );
+    expect(read("done")).toEqual(["9"]);
+    expect(read("todo")).toEqual(["1", "3"]);
     expect(message.success).not.toHaveBeenCalled();
   });
 

@@ -158,34 +158,48 @@ const isOverdue = (item: KanbanItemData) => {
 };
 
 const movingId = ref("");
-const write = (id: string, status: TaskStatus) => {
-  const result = board.value;
-  if (!result) return;
-  board.value = {
-    ...result,
-    tasks: result.tasks.map((task) => (task.id === id ? { ...task, status } : task)),
-  };
-};
+/**
+ * The board holds one flat array and the Kanban groups it by status, so a card that changes column
+ * has to move to the bottom of its new run of cards rather than stay where it sat. That is what the
+ * server stores too -- 换列 gives the row a fresh 序号 at the tail of the column it lands in -- and a
+ * local patch that only rewrote the status would show one board until the next 刷新 and another
+ * after it.
+ */
+function place(tasks: TaskRecord[], id: string, status: TaskStatus): TaskRecord[] {
+  const moved = tasks.find((task) => task.id === id);
+  if (!moved) return tasks;
+  const rest = tasks.filter((task) => task.id !== id);
+  let tail = -1;
+  rest.forEach((task, position) => {
+    if (task.status === status) tail = position;
+  });
+  const next = [...rest];
+  next.splice(tail + 1, 0, { ...moved, status });
+  return next;
+}
 
 /**
  * The card moves as soon as it is dropped, then the server answers with the
- * status it stored. A rejected move puts the card back — the board never keeps a
- * status the source refused to accept.
+ * status it stored. A rejected move puts the card back -- position included, since
+ * the drop also moved it -- because the board never keeps a state the source
+ * refused to accept.
  */
 async function onMove(event: KanbanMoveEvent) {
   const id = asTask(event.item).id;
   const to = event.to as TaskStatus;
   const from = asTask(event.item).status;
   if (movingId.value || !taskStatuses.includes(to) || from === to) return;
+  const before = board.value;
+  if (!before) return;
   movingId.value = id;
-  write(id, to);
+  board.value = { ...before, tasks: place(before.tasks, id, to) };
   try {
     const stored = await moveTaskStatus(id, to);
-    write(id, stored);
+    board.value = { ...before, tasks: place(before.tasks, id, stored) };
     message.success(`已移到${taskStatusLabels[stored] || stored}`);
   } catch (reason) {
     // The card is back where it started, and the server's own reason says why.
-    write(id, from);
+    board.value = before;
     reportFailure(reason, "移动失败");
   } finally {
     movingId.value = "";
