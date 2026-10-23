@@ -64,22 +64,3 @@ export const routePermissions: Record<string, string> = {
   "/system/roles": "system:role:read", "/system/menus": "system:menu:read",
   "/system/logs": "system:log:read", "/system/settings": "system:settings:read",
 };
-
-export type DataScopeContext = {
-  userId?: string;
-  departmentId?: string;
-  dataScope?: "all" | "department" | "self";
-};
-
-/** Applies the signed-in user's data scope to any business record collection. */
-export function filterByDataScope<T extends { ownerId?: string; departmentId?: string }>(
-  rows: T[],
-  context: DataScopeContext,
-) {
-  if (context.dataScope === "all") return rows;
-  if (context.dataScope === "department") {
-    if (!context.departmentId) return [];
-    return rows.filter((row) => row.departmentId === context.departmentId);
-  }
-  return context.userId ? rows.filter((row) => row.ownerId === context.userId) : [];
-}

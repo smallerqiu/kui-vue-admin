@@ -2,7 +2,7 @@
 
 > v1.0.0 · 基于 KUI Vue 的企业级中后台解决方案
 
-基于 Vue 3、TypeScript 和 KUI Vue 的中后台解决方案。项目自带应用外壳、权限体系和一整套业务页面，默认对接同仓库组的 `kui-admin-api`（Cloudoll + MySQL），也保留一个离线演示开关，可以在没有后端的情况下看页面长什么样。
+基于 Vue 3、TypeScript 和 KUI Vue 的中后台解决方案。项目自带应用外壳、权限体系和一整套业务页面，全部数据来自同仓库组的 `kui-admin-api`（Cloudoll + MySQL）——没有自带数据的离线模式，起不来后端就只能看到加载失败。
 
 ## 界面预览
 
@@ -90,15 +90,13 @@ cloudoll start -n kui-admin
 
 改组件库本身时可以在本地链接：`pnpm link ../kui-vue`。这时需要在 `vite.config.ts` 的 `resolve.dedupe` 里补上 `["vue", "vue-router", "pinia", "kui-icons"]`，并在 `tsconfig.app.json` 里把 `kui-vue` 指到本地源码，否则应用和组件库会各自加载一份 Vue 运行时。这两处属于本机开发环境，不随功能提交。
 
-## 离线演示模式
+## 没有离线数据
 
-```env
-VITE_USE_MOCK=true
-```
+页面自带的数据源已全部删除：菜单只认 `GET /navigation`，登录只认 `POST /auth/login`，经营分析、任务看板、项目成员都直接请求服务端聚合。没有开关可以切回本地数字，也没有一份"看着像真的"的样例数组留在仓库里（`tests/no-offline-source.spec.ts` 会扫全部 `src` 源码，出现 `useMock`、`VITE_USE_MOCK` 或 `@/data` 引用就红）。
 
-只有显式打开这个开关时，登录页才会预填演示账号 `admin@k-ui.cn` / `123456`，并出现手机号登录、第三方登录入口和演示提示；导航改用本地菜单，经营分析改用 `src/data/analytics-demo.ts` 对同一批演示订单做同规则计算，任务看板和项目成员（含它们选择用的项目与人员候选）改用 `src/data/demo/collaboration.ts`。这些演示模块是懒加载的独立 chunk，接口模式不会请求它们。
+因此后端是运行前置条件：`GET /api/health` 不通时，所有列表显示加载失败与重试入口，而不是编一组数字。读不到就说读不到——服务端返回 `null` 的指标显示"无法读取"，权限读不到的行不会以 0 的形式出现。
 
-其余入口不在这个开关的覆盖范围内——订单、客户、项目与任务列表、日程、工作台、系统设置、通知中心和所有走 `use-resource-page` 的列表仍然请求 `/api`，没有后端时显示加载失败，而不是编一组演示数字。接口模式下绝不回退演示数据：读不到就说读不到。
+想快速把页面填满，用后端自带的 `kui-admin seed-demo`（只允许 `KUI_ENV=local`），数据进的是同一批接口，前端不需要任何模式开关。
 
 ## 环境变量
 
@@ -110,17 +108,18 @@ VITE_USE_MOCK=true
 | `VITE_API_BASE_URL`    | `/api`                                        | 请求前缀，也可以填完整地址                 |
 | `VITE_SITE_URL`        | `https://admin.example.com`                  | 部署站点地址，当前页面未消费               |
 | `VITE_APP_VERSION`     | `1.0.0`                                      | 侧栏底部展示的 `Version x.y.z`             |
-| `VITE_USE_MOCK`        | `false`                                      | 离线演示登录与页面自带数据源的开关         |
 
 ## 权限模型
 
-路由块可以声明 `roles` 和 `permissions`，同一份配置同时用于路由守卫和菜单过滤；按钮级用权限指令：
+路由守卫按 `src/routers/permissions.ts::routePermissions` 那张"路径 → 权限码"表和账号实际持有的权限码判定；菜单取 `GET /navigation` 与本地已编译路由的交集，交集外的远程组件地址不会变成可执行路由。按钮级用权限指令：
 
 ```vue
 <Button v-permission="'order:close'">关闭订单</Button>
 ```
 
-登录用户支持 `all`、`department`、`self` 三种数据范围。`src/routers/permissions.ts::filterByDataScope` 是给离线演示数据做本地收口用的工具函数，真实页面不消费它——服务端已经按数据范围返回行集，页面显示的写入入口也跟随真实权限，最终判据始终在服务端。
+路由块里仍然可以写 `roles`，但接口模式下它不参与判定：`applyServerMenu` 会把 `meta.roles` 清空，能不能看见这一项由服务端的菜单行和权限码决定。
+
+登录用户支持 `all`、`department`、`self` 三种数据范围，收口全部在服务端完成——列表接口按当前账号的范围返回行集，浏览器不做行过滤。写入入口同样跟随服务端下发的权限，最终判据始终在服务端。
 
 ## 数据口径
 
@@ -144,7 +143,6 @@ src/composables   use-resource-page、use-remote-data、use-pane-activate
 src/components    business / charts / system 三组，外加代码与 JSON/YAML 预览
 src/utils         request（401 轮换与重放）、auth、common、csv、report-failure、share
 src/directives    v-permission
-src/data          离线演示数据源，懒加载，接口模式不会请求
 src/lang          中英文案
 tests             Vitest 单元测试与源码扫描守卫
 e2e               Playwright 用例与构建期样式校验
@@ -160,9 +158,9 @@ pnpm build      # vue-tsc -b && vite build
 pnpm test:e2e   # 自动起 127.0.0.1:7007 的开发服务，用系统 Chrome 执行
 ```
 
-单元测试目前 32 个文件、236 例，跑在 jsdom 上：页面用例挂载的是真实页面组件，Kui 控件按需要注册轻量替身，所以屏幕上的文案、发出的请求参数、确认之后的重读都在断言范围内。收口类的改动另有源码扫描守卫（`tests/format.spec.ts` 扫模板里每一行 `¥` 是否走 `formatMoney`，`tests/csv.spec.ts` 扫有没有模块绕开 `src/utils/csv.ts` 自己拼 CSV），因为多数页面没有运行时用例，光靠行为测试挡不住"某处又写回原始字符串"。
+单元测试目前 33 个文件、239 例，跑在 jsdom 上：页面用例挂载的是真实页面组件，Kui 控件按需要注册轻量替身，所以屏幕上的文案、发出的请求参数、确认之后的重读都在断言范围内。收口类的改动另有源码扫描守卫（`tests/format.spec.ts` 扫模板里每一行 `¥` 是否走 `formatMoney`，`tests/csv.spec.ts` 扫有没有模块绕开 `src/utils/csv.ts` 自己拼 CSV，`tests/no-offline-source.spec.ts` 扫有没有模块重新自带数据源或模式开关），因为多数页面没有运行时用例，光靠行为测试挡不住"某处又写回原始字符串"。
 
-E2E 里的 `e2e/app.spec.ts` 走的是离线演示登录，需要 `VITE_USE_MOCK=true` 才成立；`e2e/theme-css.spec.ts` 是构建期的样式校验，不依赖后端。`pnpm format` 需要自行安装 prettier，它没有列在依赖里。
+E2E 里的 `e2e/app.spec.ts` 需要一台真实后端和一个库里存在的账号，账号密码从 `KUI_E2E_ACCOUNT` / `KUI_E2E_PASSWORD` 读取，两个变量缺一个就跳过而不是失败；`e2e/theme-css.spec.ts` 是构建期的样式校验，不依赖后端。`pnpm format` 需要自行安装 prettier，它没有列在依赖里。
 
 ## 部署
 
@@ -174,7 +172,7 @@ pnpm build
 
 仓库提供了 [Dockerfile](./Dockerfile) 和 [Nginx 配置](./deploy/nginx.conf)，Nginx 已包含 SPA history fallback。后端默认不放跨域，生产环境请把 `/api/` 反代到实际后端服务，与前端保持同源。
 
-上线前建议：关闭 `VITE_USE_MOCK`、使用 HTTPS、由后端签发短期 access token 和可轮换 refresh token，并在服务端再次校验角色、权限与数据范围。
+上线前建议：使用 HTTPS、由后端签发短期 access token 和可轮换 refresh token，并在服务端再次校验角色、权限与数据范围。
 
 ## 在线预览与版本
 

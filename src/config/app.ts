@@ -6,7 +6,6 @@ export const appConfig = Object.freeze({
   apiBaseUrl: (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, ""),
   siteUrl: import.meta.env.VITE_SITE_URL || "https://admin.k-ui.cn",
   version: import.meta.env.VITE_APP_VERSION || "1.0.0",
-  useMock: import.meta.env.VITE_USE_MOCK === "true",
 });
 
 export const getRuntimeAppName = () => appConfig.shortName;

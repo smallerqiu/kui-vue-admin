@@ -15,7 +15,7 @@ export interface MenuSection {
   title: string;
   icon?: string;
   order?: number;
-  /** Only consulted while the demo data source gates by role; the api answers with permission codes. */
+  /** Never consulted on the API path: `applyServerMenu` clears it and the server answers with permission codes. */
   roles?: string[];
 }
 
@@ -28,7 +28,3 @@ export const menuSections: Record<string, MenuSection> = {
 
 /** The group a record names, exactly: `/crm` is a section, `/crm/customers` is a page. */
 export const sectionRecord = (path = ""): MenuSection | undefined => menuSections[path];
-
-/** The group a page belongs to, taken from its first path segment. */
-export const sectionFor = (path = ""): MenuSection | undefined =>
-  menuSections[`/${path.split("/").filter(Boolean)[0] || ""}`];

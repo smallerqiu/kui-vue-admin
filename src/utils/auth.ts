@@ -54,8 +54,8 @@ export const getRefreshToken = () =>
  * read the same expiry instead of learning it from a rejected request. A cold boot whose token had
  * aged out used to put one 401 in front of every first request of the session.
  *
- * Returns false for anything that is not a readable JWT, including the tokens the demo mode mints:
- * an expiry the client cannot see is the server's to enforce, and the 401 path still refreshes.
+ * Returns false for anything that is not a readable JWT: an expiry the client cannot see is the
+ * server's to enforce, and the 401 path still refreshes.
  */
 export const isTokenExpired = (token: string, now = Date.now()): boolean => {
   const payload = token.split(".")[1];

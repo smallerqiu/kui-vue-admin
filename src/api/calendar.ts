@@ -6,8 +6,7 @@ import type { PageResult } from "./catalog";
  *
  * The month is read as a window (`dateFrom`/`dateTo`), not as page 1 of the whole
  * table, so a busy month never hides events behind pagination and an empty month
- * costs one short request. This page has no demo data source: it talks to the API
- * only, and a failed request is reported instead of being answered with samples.
+ * costs one short request. A failed request is reported, never answered with samples.
  */
 
 export type CalendarCategory = "meeting" | "project" | "personal" | "deadline";

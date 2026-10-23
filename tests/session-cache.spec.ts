@@ -2,7 +2,6 @@ import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick, watch } from "vue";
 import { clearAuthSession, setAuthSession } from "@/utils/auth";
-import { appConfig } from "@/config/app";
 import { loadServerMenu } from "@/routers/server-menu";
 import { sessionSignature, useAuthStore } from "@/stores/auth";
 import type { AdminMenuItem } from "@/components/system/useMenu";
@@ -11,12 +10,6 @@ import request from "@/utils/request";
 vi.mock("@/utils/request", () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
 }));
-
-// A mutable copy so a test can take the mock-data branch without a second fixture file.
-vi.mock("@/config/app", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/config/app")>();
-  return { ...actual, appConfig: { ...actual.appConfig } };
-});
 
 const localMenu = [
   {
@@ -31,7 +24,6 @@ const allowedUsers = [{ path: "/system/users", sortOrder: 1, permissionCode: "sy
 
 describe("server menu session cache", () => {
   afterEach(() => {
-    appConfig.useMock = false;
     clearAuthSession();
   });
 
@@ -64,13 +56,9 @@ describe("server menu session cache", () => {
     expect(request.get).toHaveBeenCalledTimes(2);
   });
 
-  it("draws nothing before a login and the route table alone in mock mode", async () => {
+  it("draws nothing before a login", async () => {
     clearAuthSession();
     await expect(loadServerMenu(localMenu)).resolves.toEqual([]);
-    expect(request.get).not.toHaveBeenCalled();
-    setAuthSession("token-mock", { id: "user-mock" });
-    appConfig.useMock = true;
-    await expect(loadServerMenu(localMenu)).resolves.toEqual(localMenu);
     expect(request.get).not.toHaveBeenCalled();
   });
 });
@@ -86,7 +74,6 @@ describe("auth user snapshot", () => {
 
   afterEach(() => {
     vi.useRealTimers();
-    appConfig.useMock = false;
   });
 
   const settle = () => new Promise((resolve) => setTimeout(resolve, 0));

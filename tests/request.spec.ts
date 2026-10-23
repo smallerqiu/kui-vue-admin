@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("kui-vue", () => ({ message: { error: vi.fn(), show: vi.fn() } }));
-vi.mock("@/config/app", () => ({ appConfig: { useMock: false, apiBaseUrl: "/api" } }));
+vi.mock("@/config/app", () => ({ appConfig: { apiBaseUrl: "/api" } }));
 import request from "@/utils/request";
 import { message } from "kui-vue";
 import { getRefreshToken, getToken, setAuthSession, clearAuthSession } from "@/utils/auth";

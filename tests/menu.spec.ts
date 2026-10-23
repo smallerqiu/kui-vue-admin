@@ -1,6 +1,6 @@
 import { createMenuItems } from "@/components/system/useMenu";
 import fs from "node:fs";
-import { menuSections, sectionFor } from "@/routers/menu-sections";
+import { menuSections } from "@/routers/menu-sections";
 import type { RouteRecordRaw } from "vue-router";
 import { describe, expect, it } from "vitest";
 
@@ -50,11 +50,6 @@ describe("createMenuItems", () => {
     expect(menu.map((item) => item.path)).toEqual(["/dashboard", "/crm"]);
     expect(menu[1].meta).toMatchObject({ title: "客户中心", icon: "ContactRound", order: 12 });
     expect(menu[1].children?.map((child) => child.path)).toEqual(["/crm/customers"]);
-  });
-
-  it("gates a page by its group while roles still decide access", () => {
-    expect(sectionFor("/system/users")?.roles).toEqual(["admin"]);
-    expect(sectionFor("/crm/customers")?.roles).toBeUndefined();
   });
 
   // The map is the only place a group is named: a key without a directory would draw an empty

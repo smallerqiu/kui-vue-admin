@@ -3,10 +3,9 @@ import { createRouter, createWebHistory } from "vue-router";
 import { routes } from "vue-router/auto-routes";
 import { createMenuItems } from "../components/system/useMenu";
 import { loadServerMenu } from "./server-menu";
-import { appConfig, getRuntimeAppName } from "../config/app";
+import { getRuntimeAppName } from "../config/app";
 import { getAuthUser, getToken } from "../utils/auth";
-import { hasPermission, hasRole, routePermissions } from "./permissions";
-import { sectionFor } from "./menu-sections";
+import { hasPermission, routePermissions } from "./permissions";
 import { useAuthStore } from "@/stores/auth";
 import { useTabViewsStore } from "@/stores/tabs";
 //import { buildRoute } from "./utils.ts";
@@ -53,20 +52,13 @@ export const routerInitialized = () =>
 
 export const canAccessRoute = (route: { meta: Record<string, any>; path?: string }) => {
   const user = getAuthUser();
-  if (!appConfig.useMock) {
-    const path = route.path || "";
-    const code = routePermissions[path] || Object.entries(routePermissions).find(
+  const path = route.path || "";
+  const code =
+    routePermissions[path] ||
+    Object.entries(routePermissions).find(
       ([prefix]) => prefix !== "/" && prefix.endsWith("/") && path.startsWith(prefix),
     )?.[1];
-    return hasPermission(code, user.permissions || []);
-  }
-  // `meta.roles` used to come down from the section's layout record; with the sections in
-  // `menu-sections` the group has to be consulted directly, or `/system` stops being admin-only.
-  const meta: Record<string, any> = { ...sectionFor(route.path), ...route.meta };
-  return (
-    hasRole(meta.roles, user.roles || []) &&
-    hasPermission(meta.permissions, user.permissions || [])
-  );
+  return hasPermission(code, user.permissions || []);
 };
 
 router.beforeEach(async (to) => {
@@ -80,7 +72,7 @@ router.beforeEach(async (to) => {
       : true;
   }
   if (to.path === "/account/login") return "/";
-  if (!appConfig.useMock && !whiteList.includes(to.path)) {
+  if (!whiteList.includes(to.path)) {
     try {
       await useAuthStore().refreshUser();
       const tabs = useTabViewsStore();

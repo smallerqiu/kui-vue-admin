@@ -8,7 +8,6 @@ import {
 } from "@/utils/auth";
 import { defineStore } from "pinia";
 import { logoutApi, meApi } from "@/api/auth";
-import { appConfig } from "@/config/app";
 
 /**
  * How long a permission snapshot is good enough to gate a navigation, and how long to wait
@@ -53,7 +52,8 @@ export const useAuthStore = defineStore("auth", {
     },
     async logout() {
       try {
-        if (!appConfig.useMock && getToken()) await logoutApi();
+        // The server revokes the pair; without a token there is no session to revoke.
+        if (getToken()) await logoutApi();
       } finally {
         clearAuthSession();
         this.token = "";
@@ -66,7 +66,7 @@ export const useAuthStore = defineStore("auth", {
       this.user = getAuthUser();
     },
     async loadUser() {
-      if (!appConfig.useMock) this.updateUser(await meApi());
+      this.updateUser(await meApi());
     },
     /**
      * The navigation guard used to `await loadUser()` on every transition, which put a remote
@@ -78,7 +78,6 @@ export const useAuthStore = defineStore("auth", {
      * gate on -- then keep it warm in the background and never make a page wait for it again.
      */
     async refreshUser(window = USER_SNAPSHOT_WINDOW) {
-      if (appConfig.useMock) return;
       const now = Date.now();
       if (!this.userLoadedAt) {
         try {

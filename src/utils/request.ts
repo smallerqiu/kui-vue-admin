@@ -6,7 +6,6 @@ import {
   getToken,
   isTokenExpired,
   setAuthSession,
-  updateAccessToken,
 } from "./auth";
 import { appConfig } from "@/config/app";
 
@@ -173,10 +172,6 @@ const request = {
     if (this._refreshPromise) return this._refreshPromise;
     this._refreshPromise = (async () => {
       try {
-        if (appConfig.useMock) {
-          updateAccessToken(`demo-${Date.now()}`);
-          return true;
-        }
         const originalRefresh = getRefreshToken();
         const persistent = Boolean(localStorage.getItem("token"));
         const response = await fetch(`${appConfig.apiBaseUrl}/auth/refresh`, {

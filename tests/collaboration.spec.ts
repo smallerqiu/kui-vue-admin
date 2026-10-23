@@ -12,15 +12,6 @@ import {
 } from "@/api/collaboration";
 import { resources } from "@/api/workspace";
 import request from "@/utils/request";
-import {
-  demoMoveTask,
-  demoPeople,
-  demoProjects,
-  demoRoster,
-  demoSaveMembers,
-  demoTaskBoard,
-  resetDemoCollaboration,
-} from "@/data/demo/collaboration";
 
 vi.mock("@/utils/request", () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
@@ -147,67 +138,5 @@ describe("board and status labels have one source", () => {
 
   it("links the projects list to the membership page", () => {
     expect(resources.projects!.detail).toEqual({ label: "成员", basePath: "/project" });
-  });
-});
-
-describe("demo collaboration source", () => {
-  beforeEach(() => resetDemoCollaboration());
-
-  it("hands out copies so a card cannot rewrite the fixture by accident", () => {
-    const board = demoTaskBoard("");
-    const first = board.tasks[0]!;
-    first.status = "done";
-    expect(demoTaskBoard("").tasks[0]!.status).not.toBe("done");
-  });
-
-  it("moves a task between columns and keeps it there", () => {
-    const before = demoTaskBoard("");
-    const todo = before.tasks.find((task) => task.status === "todo")!;
-    expect(demoMoveTask(todo.id, "doing")).toBe("doing");
-    expect(
-      demoTaskBoard("")
-        .tasks.find((task) => task.id === todo.id)!
-        .status,
-    ).toBe("doing");
-    expect(demoTaskBoard("").total).toBe(before.total);
-  });
-
-  it("keeps the search on titles only, like the server keyword filter", () => {
-    const all = demoTaskBoard("").tasks;
-    const hit = demoTaskBoard("看板");
-    expect(hit.tasks.length).toBeGreaterThan(0);
-    expect(hit.tasks.length).toBeLessThan(all.length);
-    expect(hit.tasks.every((task) => task.title.includes("看板"))).toBe(true);
-  });
-
-  it("rejects an unknown card the way an API 404 would", () => {
-    expect(() => demoMoveTask("no-such-id", "doing")).toThrowError(/not found/i);
-  });
-
-  it("reports the owner apart from the member rows", () => {
-    const project = demoProjects[0]!;
-    const roster = demoRoster(project.id);
-    expect(roster.owner?.userId).toBe(project.ownerId);
-    expect(roster.members.length).toBe(3);
-    expect(roster.members.map((member) => member.userId)).not.toContain(project.ownerId);
-  });
-
-  it("replaces the whole member set and refuses an account nobody knows", () => {
-    const project = demoProjects[1]!;
-    const wanted = [demoPeople()[0]!.userId, demoPeople()[0]!.userId, demoPeople()[5]!.userId];
-    const roster = demoSaveMembers(project.id, wanted);
-    expect(roster.members.map((member) => member.userId)).toEqual([
-      demoPeople()[0]!.userId,
-      demoPeople()[5]!.userId,
-    ]);
-    expect(() => demoSaveMembers(project.id, ["0".repeat(32)])).toThrowError(
-      /unknown or disabled/i,
-    );
-    expect(demoRoster(project.id).members).toHaveLength(2);
-  });
-
-  it("fails on a project the roster endpoint would not know", () => {
-    expect(() => demoRoster("0".repeat(32))).toThrowError(/not found/i);
-    expect(() => demoSaveMembers("0".repeat(32), [])).toThrowError(/not found/i);
   });
 });

@@ -38,52 +38,19 @@
           :labelCol="labelCol"
           size="large"
         >
-          <Tabs v-model="current">
-            <TabPanel key="account" title="账号密码登录">
-              <FormItem prop="email">
-                <Input
-                  v-model="form.email"
-                  placeholder="请输入账号"
-                  :icon="User"
-                  clearable
-                />
-              </FormItem>
-              <FormItem prop="password">
-                <Input
-                  placeholder="请输入密码"
-                  :icon="Lock"
-                  type="password"
-                  v-model="form.password"
-                  visible-password-icon
-                  @keyup.enter="submit"
-                />
-              </FormItem>
-            </TabPanel>
-            <TabPanel v-if="appConfig.useMock" key="phone" title="手机号登录">
-              <FormItem prop="phone">
-                <Input
-                  v-model="form.phone"
-                  placeholder="手机号：13888888888"
-                  :icon="Phone"
-                  clearable
-                />
-              </FormItem>
-              <FormItem prop="code">
-                <Space compact block>
-                  <Input
-                    v-model="form.code"
-                    placeholder="验证码：123456"
-                    :icon="Sailboat"
-                    style="flex: 1"
-                    @keyup.enter="submit"
-                  />
-                  <Button :disabled="countdown > 0" @click="sendCode">
-                    {{ countdown ? `${countdown}s` : "发送验证码" }}
-                  </Button>
-                </Space>
-              </FormItem>
-            </TabPanel>
-          </Tabs>
+          <FormItem prop="email">
+            <Input v-model="form.email" placeholder="请输入账号" :icon="User" clearable />
+          </FormItem>
+          <FormItem prop="password">
+            <Input
+              placeholder="请输入密码"
+              :icon="Lock"
+              type="password"
+              v-model="form.password"
+              visible-password-icon
+              @keyup.enter="submit"
+            />
+          </FormItem>
           <FormItem>
             <Flex justify="space-between" style="width: 100%">
               <Checkbox v-model="remember" label="记住登录状态" />
@@ -101,20 +68,8 @@
             <Button block type="primary" htmlType="submit" :loading="loading">登录</Button>
           </FormItem>
         </Form>
-        <Divider v-if="appConfig.useMock">其他登录方式</Divider>
-        <Flex v-if="appConfig.useMock" align="center" justify="center">
-          <Space>
-            <div id="wechat-login-button">
-              <Button :icon="LogoWechat" @click="message.info('微信登录待接入 OAuth 服务')" />
-            </div>
-            <div id="google-login-button">
-              <Button :icon="LogoGoogle" @click="message.info('Google 登录待接入 OAuth 服务')" />
-            </div>
-          </Space>
-        </Flex>
       </div>
-      <p v-if="appConfig.useMock" class="demo-tip">演示账号：admin@k-ui.cn / 123456</p>
-      <p v-else class="demo-tip">请使用后端管理员命令创建的账号登录。</p>
+      <p class="login-tip">请使用后端管理员命令创建的账号登录。</p>
     </main>
     <Theme />
   </div>
@@ -124,9 +79,9 @@ meta:
   showInMenu: false
 </route>
 <script setup lang="ts">
-import { Lock, LogoGoogle, LogoWechat, Phone, Sailboat, User } from "kui-icons";
+import { Lock, User } from "kui-icons";
 import { message, type FormContext, type FormRule } from "kui-vue";
-import { computed, onBeforeUnmount, reactive, ref } from "vue";
+import { reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "../../stores/auth";
 import { useTabViewsStore } from "../../stores/tabs";
@@ -140,22 +95,14 @@ const router = useRouter();
 const authStore = useAuthStore();
 const tabViewsStore = useTabViewsStore();
 const refForm = ref<FormContext>();
-const current = ref("account");
 const handleForgotPassword = () => {
   message.info("Please contact the administrator.");
 };
 
-const form = reactive({
-  email: appConfig.useMock ? "admin@k-ui.cn" : "",
-  password: appConfig.useMock ? "123456" : "",
-  phone: "",
-  code: "",
-});
+const form = reactive({ email: "", password: "" });
 const loading = ref(false);
 const remember = ref(localStorage.getItem("remember_login") !== "0");
-const countdown = ref(0);
-let countdownTimer: ReturnType<typeof setInterval> | undefined;
-const accountRules: Record<string, FormRule[]> = {
+const rules: Record<string, FormRule[]> = {
   email: [
     { required: true, message: "Please enter the email" },
   ],
@@ -168,17 +115,6 @@ const accountRules: Record<string, FormRule[]> = {
     },
   ],
 };
-const phoneRules: Record<string, FormRule[]> = {
-  phone: [
-    { required: true, message: "请输入手机号" },
-    { type: "mobile", message: "请输入正确的手机号" },
-  ],
-  code: [
-    { required: true, message: "请输入验证码" },
-    { min: 6, max: 6, message: "验证码为 6 位数字" },
-  ],
-};
-const rules = computed(() => (current.value === "account" ? accountRules : phoneRules));
 const wrapperCol = ref({ span: 24 });
 const labelCol = ref({});
 
@@ -191,9 +127,7 @@ const postLogin = () => {
   if (loading.value) return;
   loading.value = true;
 
-  const account = current.value === "account" ? form.email : form.phone;
-  const password = current.value === "account" ? form.password : form.code;
-  loginApi(account, password)
+  loginApi(form.email, form.password)
     .then((result) => {
       localStorage.setItem("remember_login", remember.value ? "1" : "0");
       authStore.login(result.token, result.user, remember.value, result.refreshToken);
@@ -220,19 +154,6 @@ const submit = () => {
     }
   });
 };
-
-const sendCode = () => {
-  if (!/^1\d{10}$/.test(form.phone)) return message.warning("请先输入正确的手机号");
-  message.success("演示验证码：123456");
-  countdown.value = 60;
-  countdownTimer = setInterval(() => {
-    countdown.value -= 1;
-    if (countdown.value <= 0 && countdownTimer) clearInterval(countdownTimer);
-  }, 1000);
-};
-onBeforeUnmount(() => {
-  if (countdownTimer) clearInterval(countdownTimer);
-});
 </script>
 <style lang="less">
 .login-page {
@@ -327,16 +248,6 @@ onBeforeUnmount(() => {
   .main {
     width: 100%;
     margin: 38px auto 0;
-    .k-tabs-tabpanel {
-      padding: 5px;
-    }
-    .k-tabs-bar {
-      border: none;
-    }
-
-    .k-tabs-nav-wrap {
-      text-align: center;
-    }
 
     .k-col {
       width: 100%;
@@ -351,7 +262,7 @@ onBeforeUnmount(() => {
     }
   }
 }
-.demo-tip {
+.login-tip {
   margin: 22px 0 0;
   color: var(--kui-color-text-description);
   text-align: center;

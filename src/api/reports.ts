@@ -1,8 +1,7 @@
-import { appConfig } from "@/config/app";
 import { toCsv } from "@/utils/csv";
 import request from "@/utils/request";
 
-/** Mirrors `GET /api/analytics` in kui-admin-api; the demo builder returns the same shape. */
+/** Mirrors `GET /api/analytics` in kui-admin-api. */
 
 export type AnalyticsRange = "7d" | "30d" | "year";
 
@@ -51,25 +50,12 @@ export function isAnalyticsRange(value: unknown): value is AnalyticsRange {
   return analyticsRanges.includes(value as AnalyticsRange);
 }
 
-export const reportsApi = {
-  analytics: (range: AnalyticsRange) => request.get<AnalyticsReport>("/analytics", { range }),
-};
-
 /**
- * One page code path for both data sources: demo mode derives the report from
- * the offline orders fixture, API mode asks the server. The server also applies
- * the account's data scope, which offline mode cannot. A failed request is never
- * answered with demo figures, so the offline modules load only in demo mode and
- * stay out of the API bundle.
+ * The report is the server's arithmetic: it applies this account's data scope and
+ * compares two equal windows, neither of which the page could do from one list page.
  */
-export async function loadAnalyticsReport(range: AnalyticsRange): Promise<AnalyticsReport> {
-  if (!appConfig.useMock) return reportsApi.analytics(range);
-  const [{ buildAnalyticsReport }, { demoOrders }] = await Promise.all([
-    import("@/data/analytics-demo"),
-    import("@/data/demo/orders"),
-  ]);
-  return buildAnalyticsReport(demoOrders, range);
-}
+export const loadAnalyticsReport = (range: AnalyticsRange) =>
+  request.get<AnalyticsReport>("/analytics", { range });
 
 /** The trend table is the part users re-import elsewhere; totals stay on the page. */
 export function analyticsToCsv(report: AnalyticsReport): string {

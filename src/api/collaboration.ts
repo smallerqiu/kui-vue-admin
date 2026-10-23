@@ -1,12 +1,9 @@
-import { appConfig } from "@/config/app";
 import request from "@/utils/request";
 import type { PageResult } from "./catalog";
 
 /**
  * Mirrors `GET /api/tasks`, `GET|PUT /api/projects/{id}/members` and
- * `POST /api/tasks/{id}/status` in kui-admin-api. Demo mode rebuilds the same
- * shapes from `src/data/demo/collaboration.ts` so one page code path serves both
- * data sources; a failed API call is never answered with demo figures.
+ * `POST /api/tasks/{id}/status` in kui-admin-api.
  */
 
 export type TaskStatus = "todo" | "doing" | "review" | "done";
@@ -107,43 +104,27 @@ const personLabel = (row: { fullName: string; account: string }) =>
 
 /** Board data is the whole task set, not one page, so column counts are truthful. */
 export async function loadTaskBoard(keyword: string): Promise<TaskBoard> {
-  if (!appConfig.useMock) {
-    const tasks: TaskRecord[] = [];
-    let total = 0;
-    for (let page = 1; ; page++) {
-      const result = await collaborationApi.tasks(keyword.trim(), page, 100);
-      total = result.total;
-      tasks.push(...result.items);
-      if (!result.items.length || tasks.length >= total || tasks.length >= MAX_BOARD_TASKS) break;
-    }
-    return { tasks, total, truncated: tasks.length < total };
+  const tasks: TaskRecord[] = [];
+  let total = 0;
+  for (let page = 1; ; page++) {
+    const result = await collaborationApi.tasks(keyword.trim(), page, 100);
+    total = result.total;
+    tasks.push(...result.items);
+    if (!result.items.length || tasks.length >= total || tasks.length >= MAX_BOARD_TASKS) break;
   }
-  const { demoTaskBoard } = await import("@/data/demo/collaboration");
-  return demoTaskBoard(keyword);
+  return { tasks, total, truncated: tasks.length < total };
 }
 
 /** Resolves with the status the source actually stored, so the board reconciles. */
 export async function moveTaskStatus(id: string, status: TaskStatus): Promise<TaskStatus> {
-  if (!appConfig.useMock) return (await collaborationApi.moveTask(id, status)).status;
-  const { demoMoveTask } = await import("@/data/demo/collaboration");
-  return demoMoveTask(id, status);
+  return (await collaborationApi.moveTask(id, status)).status;
 }
 
-export async function loadProjectRoster(projectId: string): Promise<ProjectRoster> {
-  if (!appConfig.useMock) return collaborationApi.roster(projectId);
-  const { demoRoster } = await import("@/data/demo/collaboration");
-  return demoRoster(projectId);
-}
+export const loadProjectRoster = (projectId: string) => collaborationApi.roster(projectId);
 
 /** PUT replaces the complete set; an omitted account leaves the project. */
-export async function saveProjectMembers(
-  projectId: string,
-  userIds: string[],
-): Promise<ProjectRoster> {
-  if (!appConfig.useMock) return collaborationApi.saveMembers(projectId, userIds);
-  const { demoSaveMembers } = await import("@/data/demo/collaboration");
-  return demoSaveMembers(projectId, userIds);
-}
+export const saveProjectMembers = (projectId: string, userIds: string[]) =>
+  collaborationApi.saveMembers(projectId, userIds);
 
 /**
  * Project names for the board cards. It needs `project:read`, which a task-only
@@ -154,25 +135,18 @@ export async function saveProjectMembers(
  * import would make the two modules depend on each other.
  */
 export async function loadProjectOptions(): Promise<PersonOption[]> {
-  if (!appConfig.useMock) {
-    const rows: PersonOption[] = [];
-    for (let page = 1; ; page++) {
-      const result = await request.get<PageResult<{ id: string; code: string; name: string }>>(
-        "/projects",
-        { page, pageSize: 100 },
-      );
-      rows.push(
-        ...result.items.map((row) => ({ label: `${row.name} (${row.code})`, value: row.id })),
-      );
-      if (!result.items.length || rows.length >= result.total) break;
-    }
-    return rows;
+  const rows: PersonOption[] = [];
+  for (let page = 1; ; page++) {
+    const result = await request.get<PageResult<{ id: string; code: string; name: string }>>(
+      "/projects",
+      { page, pageSize: 100 },
+    );
+    rows.push(
+      ...result.items.map((row) => ({ label: `${row.name} (${row.code})`, value: row.id })),
+    );
+    if (!result.items.length || rows.length >= result.total) break;
   }
-  const { demoProjects } = await import("@/data/demo/collaboration");
-  return demoProjects.map((project) => ({
-    label: `${project.name} (${project.code})`,
-    value: project.id,
-  }));
+  return rows;
 }
 
 /**
@@ -181,26 +155,19 @@ export async function loadProjectOptions(): Promise<PersonOption[]> {
  * falls back to removing the people it can already name.
  */
 export async function loadAssignablePeople(): Promise<PersonOption[]> {
-  if (!appConfig.useMock) {
-    const rows: PersonOption[] = [];
-    // Count what the server sent, not what survived the filter, or a page of
-    // disabled accounts would make the loop ask for the same page forever.
-    let fetched = 0;
-    for (let page = 1; ; page++) {
-      const result = await collaborationApi.people(page, 100);
-      fetched += result.items.length;
-      rows.push(
-        ...result.items
-          .filter((row) => row.enabled)
-          .map((row) => ({ label: personLabel(row), value: row.id })),
-      );
-      if (!result.items.length || fetched >= result.total) break;
-    }
-    return rows;
+  const rows: PersonOption[] = [];
+  // Count what the server sent, not what survived the filter, or a page of
+  // disabled accounts would make the loop ask for the same page forever.
+  let fetched = 0;
+  for (let page = 1; ; page++) {
+    const result = await collaborationApi.people(page, 100);
+    fetched += result.items.length;
+    rows.push(
+      ...result.items
+        .filter((row) => row.enabled)
+        .map((row) => ({ label: personLabel(row), value: row.id })),
+    );
+    if (!result.items.length || fetched >= result.total) break;
   }
-  const { demoPeople } = await import("@/data/demo/collaboration");
-  return demoPeople().map((person) => ({
-    label: personLabel({ fullName: person.fullName, account: person.account }),
-    value: person.userId,
-  }));
+  return rows;
 }

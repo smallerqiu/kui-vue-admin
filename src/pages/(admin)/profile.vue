@@ -124,7 +124,6 @@ import { KeyRound, MailCheck, ShieldCheck, Smartphone } from "kui-icons";
 import { message, type IconType } from "kui-vue";
 import { computed, reactive, ref } from "vue";
 import { updateProfileApi } from "@/api/auth";
-import { appConfig } from "@/config/app";
 import { formatDateTime } from "@/utils/common";
 import { reportFailure } from "@/utils/report-failure";
 
@@ -197,7 +196,7 @@ const saveBasic = async () => {
       phone: basicForm.phone,
       bio: basicForm.bio,
     };
-    authStore.updateUser(appConfig.useMock ? payload : await updateProfileApi(payload));
+    authStore.updateUser(await updateProfileApi(payload));
     message.success("个人信息已保存");
   } catch (reason) {
     // The form stays for correction/retry; the refusal is quoted as written.

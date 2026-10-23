@@ -1,4 +1,3 @@
-import { appConfig } from "../config/app";
 import { getAuthUser, getToken } from "../utils/auth";
 import { applyServerMenu, type ServerMenu } from "./permissions";
 import request from "@/utils/request";
@@ -15,7 +14,6 @@ import type { AdminMenuItem } from "../components/system/useMenu";
 let cache: { account: string; menu: Promise<AdminMenuItem[]> } | null = null;
 
 export const loadServerMenu = (local: AdminMenuItem[]): Promise<AdminMenuItem[]> => {
-  if (appConfig.useMock) return Promise.resolve(local);
   const user = getAuthUser();
   const account = String(user.id ?? user.name ?? "");
   if (!getToken() || !account) return Promise.resolve([]);

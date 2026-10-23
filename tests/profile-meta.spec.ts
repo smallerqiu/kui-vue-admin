@@ -10,7 +10,6 @@ vi.mock("kui-vue", () => ({
   message: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() },
 }));
 vi.mock("@/api/auth", () => ({ updateProfileApi: vi.fn() }));
-vi.mock("@/config/app", () => ({ appConfig: { useMock: true } }));
 
 const user = reactive<Record<string, unknown>>({});
 vi.mock("@/stores/auth", () => ({ useAuthStore: () => ({ user, roles: [], permissions: [] }) }));
