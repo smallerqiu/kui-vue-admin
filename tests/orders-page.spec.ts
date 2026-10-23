@@ -1,9 +1,10 @@
-import { createApp, h, nextTick, reactive } from "vue";
+import { createApp, h, reactive } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Orders from "@/pages/(admin)/commerce/orders.vue";
 import { message } from "kui-vue";
 import request from "@/utils/request";
 import { reportFailure } from "@/utils/report-failure";
+import { flush, settle } from "./filter-settle";
 import { skeletonStub } from "./skeleton-stub";
 
 vi.mock("@/utils/request", () => ({
@@ -158,18 +159,6 @@ const box =
   });
 
 const disposers: Array<() => void> = [];
-const flush = async () => {
-  for (let i = 0; i < 8; i++) {
-    await Promise.resolve();
-    await nextTick();
-  }
-};
-// Picking a filter is debounced, because asking the deployed database for a page costs a round trip
-// the operator pays for on every keystroke.
-const settle = async () => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  await flush();
-};
 
 // Reads the way a page leaves them pending: nothing answers until the test hands the value over, so
 // every request stays in flight while the frames are counted, and a card or a dropdown that read the
@@ -243,6 +232,8 @@ const startDownload = () => {
 
 describe("order page", () => {
   beforeEach(() => {
+    // `settle` advances this clock.
+    vi.useFakeTimers();
     get.mockReset();
     post.mockReset();
     report.mockReset();
@@ -263,6 +254,7 @@ describe("order page", () => {
   });
   afterEach(() => {
     disposers.splice(0).forEach((dispose) => dispose());
+    vi.useRealTimers();
   });
 
   it("names the buyer and the money the way the page has always promised", async () => {

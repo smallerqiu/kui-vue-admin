@@ -1,9 +1,10 @@
-import { createApp, h, nextTick } from "vue";
+import { createApp, h } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Logs from "@/pages/(admin)/system/logs.vue";
 import { auditLogApi, auditLogsToCsv } from "@/api/system";
 import { message } from "kui-vue";
 import request from "@/utils/request";
+import { flush, settle } from "./filter-settle";
 import { skeletonStub } from "./skeleton-stub";
 
 vi.mock("@/utils/request", () => ({
@@ -152,18 +153,6 @@ const box =
   });
 
 const disposers: Array<() => void> = [];
-const flush = async () => {
-  for (let i = 0; i < 8; i++) {
-    await Promise.resolve();
-    await nextTick();
-  }
-};
-// A filter change is debounced, because asking the deployed database for a page costs a round trip
-// the operator pays for on every keystroke.
-const settle = async () => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  await flush();
-};
 
 function mount() {
   const root = document.createElement("div");
@@ -209,6 +198,8 @@ const click = (node: HTMLElement) => node.dispatchEvent(new MouseEvent("click", 
 
 describe("audit log page", () => {
   beforeEach(() => {
+    // `settle` advances this clock.
+    vi.useFakeTimers();
     get.mockReset();
     allMatching.mockReset();
     toCsv.mockReset();
@@ -226,6 +217,7 @@ describe("audit log page", () => {
   });
   afterEach(() => {
     disposers.splice(0).forEach((dispose) => dispose());
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
