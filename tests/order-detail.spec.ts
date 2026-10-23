@@ -2,7 +2,7 @@ import { createApp, defineComponent, h, nextTick, reactive } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import OrderDetail from "@/pages/(admin)/order/[id].vue";
 import { commerceApi, hasFreight, type OrderRecord } from "@/api/commerce";
-import { message } from "kui-vue";
+import { message, modal } from "kui-vue";
 import { skeletonStub } from "./skeleton-stub";
 
 const route = reactive({ params: { id: "one" }, path: "/order/one" });
@@ -55,6 +55,7 @@ const order = (id: string): OrderRecord => ({
   status: "pending",
   createdAt: "2026-09-28",
   paymentAt: null,
+  receivedAt: null,
   paymentMethod: "",
   source: "manual",
   note: "",
@@ -322,6 +323,93 @@ describe("order detail integration", () => {
     const root = mount();
     await flush();
     expect(stepDescription(root, "商品出库")).toBe("");
+  });
+  it("signs for an order once every box is out", async () => {
+    // `completed` is a status the page has always shown, and until the server had a receipt column
+    // nothing could put an order there: the furthest a button could take one was `shipped`.
+    const shipped: OrderRecord = {
+      ...order("one"),
+      status: "shipped",
+      paymentAt: "2026-09-28T09:00:00",
+      shipments: [
+        {
+          id: "s1",
+          company: "顺丰速运",
+          trackingNo: "SF1",
+          createdAt: "2026-09-29T10:00:00",
+          items: [],
+        },
+      ],
+    };
+    const signed: OrderRecord = { ...shipped, status: "completed", receivedAt: "2026-10-01T15:20:00" };
+    vi.mocked(commerceApi.detail).mockResolvedValueOnce(shipped);
+    vi.mocked(commerceApi.action).mockResolvedValueOnce(signed);
+    const root = mount();
+    await flush();
+    expect(stepDescription(root, "确认收货")).toBe("");
+    [...root.querySelectorAll("button")]
+      .find((button) => button.textContent?.trim() === "确认收货")!
+      .click();
+    await flush();
+    // Closing out a transaction is confirmed rather than fired on a click, then answered by the
+    // server's own row -- the page never writes the status or the time itself.
+    const confirm = vi.mocked(modal.confirm).mock.calls.at(-1)![0] as { onOk: () => void };
+    expect(vi.mocked(modal.confirm).mock.calls.length).toBe(1);
+    confirm.onOk();
+    await flush();
+    expect(commerceApi.action).toHaveBeenCalledWith("one", "receive", undefined);
+    expect(stepDescription(root, "确认收货")).toBe("2026-10-01 15:20");
+    expect(root.textContent).toContain("2026-10-01 15:20");
+    // A signed-for order offers no second receipt, because the server refuses one.
+    expect(
+      [...root.querySelectorAll("button")].some((button) => button.textContent?.includes("确认收货")),
+    ).toBe(false);
+  });
+  it("keeps the step blank when the server refuses the receipt", async () => {
+    const shipped: OrderRecord = {
+      ...order("one"),
+      status: "shipped",
+      shipments: [
+        {
+          id: "s1",
+          company: "顺丰速运",
+          trackingNo: "SF1",
+          createdAt: "2026-09-29T10:00:00",
+          items: [],
+        },
+      ],
+    };
+    vi.mocked(commerceApi.detail).mockResolvedValueOnce(shipped);
+    vi.mocked(commerceApi.action).mockRejectedValueOnce(
+      new Error("Only a fully shipped order can be received"),
+    );
+    const root = mount();
+    await flush();
+    [...root.querySelectorAll("button")]
+      .find((button) => button.textContent?.trim() === "确认收货")!
+      .click();
+    await flush();
+    vi.mocked(modal.confirm).mock.calls.at(-1)![0]!.onOk();
+    await flush();
+    // Refused: nothing moved, the row stays as the server last described it, and its sentence is
+    // the explanation -- which also means no timestamp appeared on the step.
+    expect(message.success).not.toHaveBeenCalled();
+    expect(message.error).toHaveBeenCalledWith("Only a fully shipped order can be received");
+    expect(stepDescription(root, "确认收货")).toBe("");
+    expect(stepDescription(root, "商品出库")).toBe("2026-09-29 10:00");
+  });
+  it("says 尚未签收 for an order closed out before the column existed", async () => {
+    // A `completed` row imported before `received_at` was added really is completed and really has
+    // no receipt time: the cell has to separate "nobody wrote one" from "this order is not done".
+    const legacy: OrderRecord = { ...order("one"), status: "completed", receivedAt: null };
+    vi.mocked(commerceApi.detail).mockResolvedValueOnce(legacy);
+    const root = mount();
+    await flush();
+    expect(stepDescription(root, "确认收货")).toBe("");
+    expect(root.textContent).toContain("尚未签收");
+    expect(
+      [...root.querySelectorAll("button")].some((button) => button.textContent?.includes("确认收货")),
+    ).toBe(false);
   });
   it("writes 免运费 for the order that pays no freight", async () => {
     // The freight the server sends is the string "0.00", which is truthy: the label already says

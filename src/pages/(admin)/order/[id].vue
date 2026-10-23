@@ -39,6 +39,15 @@
           订单发货
         </Button>
         <Button
+          v-if="order.status === 'shipped' && allowed('order:receive')"
+          :disabled="saving"
+          type="primary"
+          :icon="CircleCheck"
+          @click="receiveOrder"
+        >
+          确认收货
+        </Button>
+        <Button
           v-if="
             ['paid', 'partial_shipped', 'shipped', 'completed'].includes(order.status) &&
             allowed('after-sale:write')
@@ -169,6 +178,9 @@
               <DescriptionsItem label="支付方式">{{ order.paymentMethod }}</DescriptionsItem>
               <DescriptionsItem label="支付时间">
                 {{ order.paymentAt ? formatDateTime(order.paymentAt) : "尚未支付" }}
+              </DescriptionsItem>
+              <DescriptionsItem label="签收时间">
+                {{ order.receivedAt ? formatDateTime(order.receivedAt) : "尚未签收" }}
               </DescriptionsItem>
               <DescriptionsItem label="订单来源">{{ order.source }}</DescriptionsItem>
               <DescriptionsItem label="商品件数">{{ itemCount }} 件</DescriptionsItem>
@@ -565,10 +577,13 @@ const stepItems = computed(() => [
       ? formatDateTime(order.value.shipments[0].createdAt)
       : undefined,
   },
-  // No date here on purpose: the order row has no receipt column, so nothing on the server says when
-  // the customer signed for the goods. `updatedAt` moves on any edit (a discount, a remark), which
-  // would print an unrelated timestamp as if it were the delivery date.
-  { title: "确认收货" },
+  // Read from `receivedAt`, which only 确认收货 writes: an order that reached `completed` before
+  // this column existed has no receipt to name, and this cell says nothing rather than pointing at
+  // some other timestamp that happens to be nearby -- `updatedAt` moves on a discount or a remark.
+  {
+    title: "确认收货",
+    description: order.value?.receivedAt ? formatDateTime(order.value.receivedAt) : undefined,
+  },
 ]);
 const itemCount = computed(
   () => order.value?.items.reduce((total, item) => total + item.quantity, 0) || 0,
@@ -576,6 +591,15 @@ const itemCount = computed(
 const events = computed(() =>
   order.value
     ? [
+        ...(order.value.receivedAt
+          ? [
+              {
+                title: "客户已签收",
+                description: "全部商品已交付",
+                time: order.value.receivedAt,
+              },
+            ]
+          : []),
         ...(order.value.paymentAt
           ? [
               {
@@ -699,6 +723,18 @@ const closeOrder = () => {
     content: "关闭后客户将无法继续支付，确定继续吗？",
     onOk: () => {
       if (order.value?.id === id) return action("close", undefined);
+    },
+  });
+};
+// The receipt moment is the server's clock, not a field the operator types, so this is a confirm
+// rather than a form: one click closes the order out with the stamp attached.
+const receiveOrder = () => {
+  const id = order.value?.id;
+  modal.confirm({
+    title: "确认收货",
+    content: "确认客户已收到全部商品？订单将标记为已完成，并记下这一刻作为签收时间。",
+    onOk: () => {
+      if (order.value?.id === id) return action("receive", undefined);
     },
   });
 };

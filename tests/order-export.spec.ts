@@ -24,6 +24,7 @@ const order = (over: Partial<OrderRecord> = {}): OrderRecord => ({
   createdAt: "2026-10-19T16:05:41",
   paymentMethod: "bank-transfer",
   paymentAt: "2026-10-19T16:40:02",
+  receivedAt: null,
   source: "admin",
   note: "尽快发货",
   merchantRemark: "",
@@ -152,21 +153,33 @@ describe("order export", () => {
           },
         ],
       }),
+      // A row that has been signed for, because a column that is only ever seen empty proves nothing:
+      // this is the one line in the file where the cell holds a stamp.
+      order({
+        id: "c".repeat(32),
+        status: "completed",
+        receivedAt: "2026-10-21T09:30:00",
+      }),
     ]);
     const lines = csv.split("\r\n");
 
     expect(lines[0]).toBe(
-      "订单号,下单时间 (UTC),买家,联系人,联系电话,收货地址,商品明细,件数,商品金额,运费,优惠,实付金额,已退金额,状态,支付方式,支付时间 (UTC),订单来源,客户备注,商家备注",
+      "订单号,下单时间 (UTC),买家,联系人,联系电话,收货地址,商品明细,件数,商品金额,运费,优惠,实付金额,已退金额,状态,支付方式,支付时间 (UTC),签收时间 (UTC),订单来源,客户备注,商家备注",
     );
     // The full id and the flat two-decimal amounts: a `2,584.00` cell is re-imported as `2`, and the
     // shortened id the cell displays is a display choice, not a key anyone can look the order up by.
+    // The receipt cell is empty here -- this order was never signed for, and an empty file cell is
+    // what the column actually holds, not a placeholder date.
     expect(lines[1]).toBe(
-      `${"a".repeat(32)},2026-10-19T16:05:41,星河云科,林晓,13800000000,杭州市西湖区文一西路 100 号,旗舰路由 黑色 / R-1 ×2,2,2572.00,12.00,0.00,2584.00,0.00,待发货,bank-transfer,2026-10-19T16:40:02,admin,尽快发货,`,
+      `${"a".repeat(32)},2026-10-19T16:05:41,星河云科,林晓,13800000000,杭州市西湖区文一西路 100 号,旗舰路由 黑色 / R-1 ×2,2,2572.00,12.00,0.00,2584.00,0.00,待发货,bank-transfer,2026-10-19T16:40:02,,admin,尽快发货,`,
     );
     // A status code the 状态 tag spells out in Chinese is spelled out here too, two items join with a
     // count that adds both quantities, and a note holding a comma and quotes is quoted and doubled.
     expect(lines[2]).toBe(
-      `${"b".repeat(32)},2026-10-19T16:05:41,星河云科,林晓,13800000000,杭州市西湖区文一西路 100 号,旗舰路由 黑色 / R-1 ×2; 交换机 24 口 / S-9 ×1,3,2572.00,12.00,0.00,2584.00,0.00,部分发货,,,admin,"收货前打电话, 备注""周末不派送""",`,
+      `${"b".repeat(32)},2026-10-19T16:05:41,星河云科,林晓,13800000000,杭州市西湖区文一西路 100 号,旗舰路由 黑色 / R-1 ×2; 交换机 24 口 / S-9 ×1,3,2572.00,12.00,0.00,2584.00,0.00,部分发货,,,,admin,"收货前打电话, 备注""周末不派送""",`,
+    );
+    expect(lines[3]).toBe(
+      `${"c".repeat(32)},2026-10-19T16:05:41,星河云科,林晓,13800000000,杭州市西湖区文一西路 100 号,旗舰路由 黑色 / R-1 ×2,2,2572.00,12.00,0.00,2584.00,0.00,已完成,bank-transfer,2026-10-19T16:40:02,2026-10-21T09:30:00,admin,尽快发货,`,
     );
   });
 });

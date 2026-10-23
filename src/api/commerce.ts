@@ -32,6 +32,8 @@ export interface OrderRecord {
   createdAt: string;
   paymentMethod: string;
   paymentAt: string | null;
+  /** When the customer took delivery, as recorded by 确认收货; null until then. */
+  receivedAt: string | null;
   source: string;
   note: string;
   merchantRemark: string;
@@ -67,6 +69,8 @@ export interface AfterSaleInput {
 }
 export interface OrderActions {
   close: undefined;
+  /** Stamps the receipt and moves the order to `completed`; the server takes the time, not the page. */
+  receive: undefined;
   address: { contact: string; phone: string; address: string };
   adjust: { discount: string };
   remark: { merchantRemark: string };
@@ -209,6 +213,7 @@ export function ordersToCsv(rows: OrderRecord[]): string {
     "状态",
     "支付方式",
     "支付时间 (UTC)",
+    "签收时间 (UTC)",
     "订单来源",
     "客户备注",
     "商家备注",
@@ -234,6 +239,9 @@ export function ordersToCsv(rows: OrderRecord[]): string {
     orderStatusLabel(row.status),
     row.paymentMethod,
     row.paymentAt ?? "",
+    // Same rule as the payment column: the stamp as the server wrote it, and an order nobody has
+    // signed for yet leaves the cell empty rather than answering 0 or a placeholder date.
+    row.receivedAt ?? "",
     row.source,
     row.note,
     row.merchantRemark,
