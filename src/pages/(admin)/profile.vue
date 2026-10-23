@@ -50,11 +50,13 @@
                     </FormItem>
                   </GridItem>
                   <GridItem>
-                    <FormItem label="邮箱"><Input v-model="basicForm.email" clearable /></FormItem>
+                    <FormItem label="邮箱">
+                      <Input ref="emailInput" v-model="basicForm.email" clearable />
+                    </FormItem>
                   </GridItem>
                   <GridItem>
                     <FormItem label="手机号">
-                      <Input v-model="basicForm.phone" clearable />
+                      <Input ref="phoneInput" v-model="basicForm.phone" clearable />
                     </FormItem>
                   </GridItem>
                 </Grid>
@@ -163,7 +165,7 @@ import { useThemeStore } from "@/stores/theme";
 import { usePreferenceStore } from "@/stores/preferences";
 import { KeyRound, MailCheck, ShieldCheck, Smartphone } from "kui-icons";
 import { message, type IconType } from "kui-vue";
-import { computed, reactive, ref } from "vue";
+import { computed, nextTick, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { changePasswordApi, updateProfileApi } from "@/api/auth";
 import { formatDateTime } from "@/utils/common";
@@ -237,17 +239,32 @@ const passwordOpen = ref(false);
 const changing = ref(false);
 const passwordError = ref("");
 const passwordForm = reactive({ oldPassword: "", password: "", confirm: "" });
+/** Kui's `Input` exposes `focus()`; these refs are read for that method and nothing else. */
+const emailInput = ref<{ focus: () => void } | null>(null);
+const phoneInput = ref<{ focus: () => void } | null>(null);
+const contactFields = { email: emailInput, phone: phoneInput } as const;
 const closePassword = () => {
   if (!changing.value) passwordOpen.value = false;
 };
-const openSecurityEditor = (item: (typeof securityItems)[number]) => {
+const openSecurityEditor = async (item: (typeof securityItems)[number]) => {
   if (item.key === "password") {
     passwordError.value = "";
     passwordOpen.value = true;
     return;
   }
-  // Only the password has an endpoint of its own; these three have no server behaviour yet.
-  message.info(`${item.title}功能待接入服务端`);
+  if (item.key === "two-factor") {
+    // Nothing behind this one on the server: no endpoint to call and no field to jump to.
+    message.info(`${item.title}功能待接入服务端`);
+    return;
+  }
+  // Email and phone are saved by the basic-information form through `PUT /auth/me`, and there is
+  // no verification endpoint to open a dialog against, so 更换 lands the operator on the field
+  // that actually writes the value rather than inventing a second form for the same column.
+  activeTab.value = "basic";
+  // An inactive panel is `display: none`, and focusing a hidden field is a no-op; the panel has
+  // to be the active one before the caret can go into it.
+  await nextTick();
+  contactFields[item.key].value?.focus();
 };
 const submitPassword = async () => {
   if (changing.value) return;

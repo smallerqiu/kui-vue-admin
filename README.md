@@ -158,7 +158,7 @@ pnpm build      # vue-tsc -b && vite build
 pnpm test:e2e   # 自动起 127.0.0.1:7007 的开发服务，用系统 Chrome 执行
 ```
 
-单元测试目前 34 个文件、247 例，跑在 jsdom 上：页面用例挂载的是真实页面组件，Kui 控件按需要注册轻量替身，所以屏幕上的文案、发出的请求参数、确认之后的重读都在断言范围内。收口类的改动另有源码扫描守卫（`tests/format.spec.ts` 扫模板里每一行 `¥` 是否走 `formatMoney`，`tests/csv.spec.ts` 扫有没有模块绕开 `src/utils/csv.ts` 自己拼 CSV，`tests/no-offline-source.spec.ts` 扫有没有模块重新自带数据源或模式开关），因为多数页面没有运行时用例，光靠行为测试挡不住"某处又写回原始字符串"。
+单元测试目前 34 个文件、251 例，跑在 jsdom 上：页面用例挂载的是真实页面组件，Kui 控件按需要注册轻量替身，所以屏幕上的文案、发出的请求参数、确认之后的重读都在断言范围内。收口类的改动另有源码扫描守卫（`tests/format.spec.ts` 扫模板里每一行 `¥` 是否走 `formatMoney`，`tests/csv.spec.ts` 扫有没有模块绕开 `src/utils/csv.ts` 自己拼 CSV，`tests/no-offline-source.spec.ts` 扫有没有模块重新自带数据源或模式开关），因为多数页面没有运行时用例，光靠行为测试挡不住"某处又写回原始字符串"。
 
 E2E 里的 `e2e/app.spec.ts` 需要一台真实后端和一个库里存在的账号，账号密码从 `KUI_E2E_ACCOUNT` / `KUI_E2E_PASSWORD` 读取，两个变量缺一个就跳过而不是失败；`e2e/theme-css.spec.ts` 是构建期的样式校验，不依赖后端。`pnpm format` 需要自行安装 prettier，它没有列在依赖里。
 
