@@ -72,8 +72,19 @@ export interface CustomerSummary {
   annualValue: string;
   strategicAnnualValue: string;
 }
+/**
+ * The 分类 values that exist on the products this account may read.  The column is free text the
+ * product form writes, not a code list this app owns, so the only complete dropdown is the one the
+ * server builds off the table: a list kept here could only offer labels that happen to match, and
+ * the category a colleague just filed under another word would be unfilterable from the page that
+ * lists it.
+ */
+export interface ProductFacets {
+  categories: string[];
+}
 export const catalogApi = {
   customerSummary: () => request.get<CustomerSummary>("/customers/summary"),
+  productFacets: () => request.get<ProductFacets>("/products/facets"),
   setProductEnabled: (id: string, enabled: boolean) =>
     request.post<Product>(`/products/${encodeURIComponent(id)}/availability`, { enabled }),
   customer: (id: string) => request.get<Customer>(`/customers/${encodeURIComponent(id)}`),

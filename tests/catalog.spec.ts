@@ -32,4 +32,15 @@ describe("catalog API contracts", () => {
     vi.mocked(request.get).mockRejectedValueOnce(new Error("Record not found"));
     await expect(catalogApi.customer("missing")).rejects.toThrow("Record not found");
   });
+  it("asks the server which categories the reachable products carry", async () => {
+    vi.mocked(request.get).mockResolvedValueOnce({ categories: ["IT 设备", "it 周边"] });
+    expect(await catalogApi.productFacets()).toEqual({ categories: ["IT 设备", "it 周边"] });
+    expect(request.get).toHaveBeenCalledWith("/products/facets");
+  });
+  it("propagates a refused candidate read instead of answering with nothing", async () => {
+    // An empty dropdown would look like a catalogue with no categories filed, so the page has to hear
+    // the refusal rather than a quietly invented answer.
+    vi.mocked(request.get).mockRejectedValueOnce(new Error("候选接口暂不可用"));
+    await expect(catalogApi.productFacets()).rejects.toThrow("候选接口暂不可用");
+  });
 });

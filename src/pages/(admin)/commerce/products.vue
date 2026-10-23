@@ -23,7 +23,7 @@
           :icon="Search"
           style="width: 200px"
         />
-        <Select v-model="category" clearable placeholder="全部分类" :options="categoryOptions" />
+        <Select v-model="category" clearable placeholder="全部分类" :options="filterOptions" />
         <Select v-model="status" clearable placeholder="全部状态" :options="statusOptions" />
       </template>
       <template #actions>
@@ -106,7 +106,13 @@
           </GridItem>
           <GridItem>
             <FormItem label="分类">
-              <Select v-model="form.category" block :options="categoryOptions" />
+              <AutoComplete
+                v-model="form.category"
+                clearable
+                show-on-empty
+                placeholder="选择已有分类或直接输入新分类"
+                :options="categoryOptions"
+              />
             </FormItem>
           </GridItem>
           <GridItem>
@@ -129,10 +135,16 @@
 <script setup lang="ts">
 import { Package, Pencil, Plus, Search } from "kui-icons";
 import { message, PageHeader, type Column, type TableKey } from "kui-vue";
-import { computed, reactive, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { hasPermission } from "@/routers/permissions";
-import { catalogApi, productInput, type Product, type ProductInput } from "@/api/catalog";
+import {
+  catalogApi,
+  productInput,
+  type Product,
+  type ProductFacets,
+  type ProductInput,
+} from "@/api/catalog";
 import { useResourcePage } from "@/composables/use-resource-page";
 import { reportFailure } from "@/utils/report-failure";
 import { formatDateTime, formatMoney } from "@/utils/common";
@@ -148,11 +160,23 @@ const columns: Column[] = [
 ];
 const auth = useAuthStore();
 const canEdit = computed(() => hasPermission("product:write", auth.user?.permissions || []));
-const categoryOptions = [
-  { label: "软件服务", value: "软件服务" },
-  { label: "数据服务", value: "数据服务" },
-  { label: "增值服务", value: "增值服务" },
-];
+const facets = ref<ProductFacets>();
+// 分类 is free text this very form writes, so the page cannot keep its own list of labels: a copy
+// here could only ever offer the words someone remembered to add, and the category a colleague filed
+// yesterday under another name would be invisible to the filter that is supposed to find it.
+const loadFacets = async () => {
+  try {
+    facets.value = await catalogApi.productFacets();
+  } catch (reason) {
+    reportFailure(reason, "筛选候选值加载失败");
+  }
+};
+onMounted(() => void loadFacets());
+// The filter offers exactly the labels rows carry, so choosing one is a question the list can answer;
+// the form offers the same labels as suggestions and still takes a new one, because a product is how
+// a category comes to exist in the first place.
+const categoryOptions = computed(() => facets.value?.categories ?? []);
+const filterOptions = computed(() => categoryOptions.value.map((value) => ({ label: value, value })));
 const statusOptions = [
   { label: "已上架", value: "enabled" }, { label: "已下架", value: "disabled" },
 ];
@@ -173,7 +197,7 @@ const editingId = ref("");
 const saving = ref(false);
 const changing = ref(false);
 const emptyForm = (): ProductInput => ({
-  name: "", sku: "", category: "软件服务", specs: "", image: "",
+  name: "", sku: "", category: "", specs: "", image: "",
   price: "0.00", stock: 0, enabled: true,
 });
 const form = reactive(emptyForm());
@@ -234,6 +258,10 @@ const saveProduct = async () => {
     drawerOpen.value = false;
     message.success("商品信息已保存");
     await reload();
+    // A category is created by filing a product with it, so the label just typed has to reach the
+    // filter dropdown in the same visit -- otherwise the row is on screen but unfilterable until the
+    // operator reloads the page and wonders whether the save went through at all.
+    await loadFacets();
   } catch (reason) {
     // Input stays for a retry; the server says what it rejected.
     reportFailure(reason, "保存失败");

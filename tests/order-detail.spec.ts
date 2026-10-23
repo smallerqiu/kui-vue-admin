@@ -22,7 +22,7 @@ vi.mock("@/api/commerce", async () => {
   const actual = await vi.importActual<Record<string, unknown>>("@/api/commerce");
   return {
     ...actual,
-    commerceApi: { detail: vi.fn(), action: vi.fn(), afterSale: vi.fn() },
+    commerceApi: { detail: vi.fn(), action: vi.fn(), afterSale: vi.fn(), facets: vi.fn() },
   };
 });
 vi.mock("kui-vue", async () => {
@@ -121,7 +121,6 @@ function mount() {
     "FormItem",
     "RadioGroup",
     "CheckboxGroup",
-    "Select",
   ])
     app.component(name, box);
   app.component("Steps", stepsStub as never);
@@ -161,6 +160,47 @@ function mount() {
   app.component("Input", input);
   app.component("TextArea", input);
   app.component("InputNumber", input);
+  // Kui's AutoComplete is the shape this dialog needs: the server's own carrier names are offered
+  // and a name nobody has filed yet is still typed. Both halves are rendered so a test can pick a
+  // suggestion or type past all of them.
+  app.component(
+    "AutoComplete",
+    defineComponent({
+      props: ["modelValue", "options", "placeholder", "loading"],
+      emits: ["update:modelValue"],
+      setup:
+        (props, { emit }) =>
+        () =>
+          h(
+            "div",
+            {
+              class: "autocomplete",
+              "data-placeholder": props.placeholder,
+              "data-options": JSON.stringify(props.options ?? []),
+              "data-loading": String(Boolean(props.loading)),
+            },
+            [
+              h("input", {
+                class: "autocomplete-input",
+                value: props.modelValue ?? "",
+                onInput: (event: Event) =>
+                  emit("update:modelValue", (event.target as HTMLInputElement).value),
+              }),
+              ...((props.options ?? []) as string[]).map((value) =>
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    class: "option",
+                    onClick: () => emit("update:modelValue", value),
+                  },
+                  value,
+                ),
+              ),
+            ],
+          ),
+    }),
+  );
   app.mount(container);
   disposers.push(() => app.unmount());
   return container;
@@ -438,5 +478,147 @@ describe("order detail integration", () => {
       false,
       true,
     ]);
+  });
+
+  // A box only goes out of an order that is paid and not yet fully shipped, and the dialog needs an
+  // item with something left to send: `openShipping` pre-fills the quantity to ship from what is
+  // outstanding, so an order with no items has nothing to put in the shipment.
+  const shippable = (): OrderRecord => ({
+    ...order("one"),
+    status: "paid",
+    paymentAt: "2026-09-28T09:00:00",
+    items: [
+      {
+        id: "i1",
+        name: "旗舰路由",
+        sku: "R-1",
+        specs: "黑色",
+        image: "",
+        price: "1286.00",
+        quantity: 2,
+        shippedQuantity: 0,
+      },
+    ],
+  });
+  const shipDialog = (root: HTMLElement) =>
+    [...root.querySelectorAll<HTMLElement>("section")].find(
+      (node) => node.dataset.dialog === "订单发货",
+    )!;
+  const shipCarrier = (root: HTMLElement) =>
+    shipDialog(root).querySelector<HTMLInputElement>(".autocomplete-input")!;
+  const shipTracking = (root: HTMLElement) =>
+    [...shipDialog(root).querySelectorAll<HTMLInputElement>("input")].find(
+      (node) => !node.classList.contains("autocomplete-input"),
+    )!;
+  const shipButton = (root: HTMLElement, label: string) =>
+    [...root.querySelectorAll<HTMLButtonElement>("button")].find(
+      (node) => node.textContent?.trim() === label,
+    )!;
+  const write = (field: HTMLInputElement, value: string) => {
+    field.value = value;
+    field.dispatchEvent(new Event("input"));
+  };
+
+  it("suggests the carriers that already have boxes out, and takes a name that does not", async () => {
+    vi.mocked(commerceApi.detail).mockResolvedValueOnce(shippable());
+    vi.mocked(commerceApi.facets).mockResolvedValue({
+      paymentMethods: [],
+      sources: [],
+      carriers: ["EMS", "顺丰速运"],
+    });
+    // The answer keeps the order shipable, because the dialog is re-opened to prove the read happens
+    // again rather than once per page.
+    vi.mocked(commerceApi.action).mockResolvedValue(shippable());
+    const root = mount();
+    await flush();
+
+    // An order that is not awaiting a box has no use for the carrier list, so the read waits for the
+    // dialog instead of costing the page a round trip on open.
+    expect(commerceApi.facets).not.toHaveBeenCalled();
+
+    shipButton(root, "订单发货").click();
+    await flush();
+    expect(commerceApi.facets).toHaveBeenCalledTimes(1);
+    const field = shipCarrier(root);
+    const box = shipDialog(root).querySelector<HTMLElement>(".autocomplete")!;
+    // The names are the ones shipments were actually filed under, in the server's own order, and
+    // this page keeps no copy of a courier list: a warehouse that starts using one is a name nobody
+    // here would have thought to add.
+    expect(JSON.parse(box.dataset.options!)).toEqual(["EMS", "顺丰速运"]);
+    // No carrier is pre-selected. The last box went with whatever the warehouse typed and that says
+    // nothing about the next one, so a default here is a guess written into a shipment row.
+    expect(field.value).toBe("");
+
+    write(field, "UPS");
+    write(shipTracking(root), "1Z999");
+    shipButton(root, "确认提交").click();
+    await flush();
+    expect(commerceApi.action).toHaveBeenCalledWith("one", "ship", {
+      company: "UPS",
+      trackingNo: "1Z999",
+      quantities: { i1: 2 },
+    });
+
+    // Re-opening reads again: a carrier this dialog just typed is a name the next box should be
+    // offered, which a once-per-page read could not know.
+    shipButton(root, "订单发货").click();
+    await flush();
+    expect(commerceApi.facets).toHaveBeenCalledTimes(2);
+  });
+
+  it("writes the carrier exactly as the server named it when a suggestion is picked", async () => {
+    vi.mocked(commerceApi.detail).mockResolvedValueOnce(shippable());
+    vi.mocked(commerceApi.facets).mockResolvedValue({
+      paymentMethods: [],
+      sources: [],
+      carriers: ["EMS", "顺丰速运"],
+    });
+    vi.mocked(commerceApi.action).mockResolvedValueOnce(shippable());
+    const root = mount();
+    await flush();
+    shipButton(root, "订单发货").click();
+    await flush();
+
+    // Picking is not choosing a code the page maps back to a name: what lands in the shipment row is
+    // the same string the earlier boxes carry, which is what keeps the next read offering it.
+    [...shipDialog(root).querySelectorAll<HTMLButtonElement>("button.option")]
+      .find((node) => node.textContent?.trim() === "顺丰速运")!
+      .click();
+    await flush();
+    expect(shipCarrier(root).value).toBe("顺丰速运");
+    write(shipTracking(root), "SF-77");
+    shipButton(root, "确认提交").click();
+    await flush();
+    expect(commerceApi.action).toHaveBeenCalledWith("one", "ship", {
+      company: "顺丰速运",
+      trackingNo: "SF-77",
+      quantities: { i1: 2 },
+    });
+  });
+
+  it("still ships the box when the carrier candidates cannot be read", async () => {
+    vi.mocked(commerceApi.detail).mockResolvedValueOnce(shippable());
+    vi.mocked(commerceApi.facets).mockRejectedValue(new Error("候选接口暂不可用"));
+    vi.mocked(commerceApi.action).mockResolvedValueOnce(shippable());
+    const root = mount();
+    await flush();
+    shipButton(root, "订单发货").click();
+    await flush();
+
+    // An empty suggestion list is not the server saying no carrier exists, so the refusal is said
+    // out loud -- and it cannot be allowed to stop a shipment, because the name was always typed
+    // rather than chosen.
+    expect(message.error).toHaveBeenCalledWith("候选接口暂不可用");
+    expect(JSON.parse(shipDialog(root).querySelector<HTMLElement>(".autocomplete")!.dataset.options!)).toEqual([]);
+    write(shipCarrier(root), "EMS");
+    write(shipTracking(root), "EM-3");
+    shipButton(root, "确认提交").click();
+    await flush();
+    expect(commerceApi.action).toHaveBeenCalledWith("one", "ship", {
+      company: "EMS",
+      trackingNo: "EM-3",
+      quantities: { i1: 2 },
+    });
+    expect(message.warning).not.toHaveBeenCalled();
   });
 });

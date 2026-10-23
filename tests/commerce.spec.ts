@@ -48,4 +48,19 @@ describe("commerce API", () => {
       reference: "BANK-001",
     });
   });
+  it("reads the free-text candidate values, carriers included, off the orders endpoint", async () => {
+    // The ship dialog reads `carriers` out of this one answer, so the key has to survive the call
+    // rather than being a field only the server knows about.
+    vi.mocked(request.get).mockResolvedValueOnce({
+      paymentMethods: ["bank-transfer"],
+      sources: ["admin"],
+      carriers: ["DHL", "顺丰速运"],
+    });
+    expect(await commerceApi.facets()).toEqual({
+      paymentMethods: ["bank-transfer"],
+      sources: ["admin"],
+      carriers: ["DHL", "顺丰速运"],
+    });
+    expect(request.get).toHaveBeenCalledWith("/orders/facets");
+  });
 });

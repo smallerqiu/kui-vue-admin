@@ -33,10 +33,13 @@ const report = vi.mocked(reportFailure);
 
 const summary = { today: 41, byStatus: { pending: 7, paid: 19 }, refundRequests: 3 };
 // A vocabulary wider than anything the page could keep a copy of: three payment channels nobody
-// hand-writes and three sources, one of which no row in this fixture even uses.
+// hand-writes and three sources, one of which no row in this fixture even uses.  `carriers` is what
+// the endpoint answers alongside them -- the ship dialog on the detail page reads it, and this page
+// has no filter for a courier, so it stays unused here rather than quietly missing from the shape.
 const facets = {
   paymentMethods: ["alipay-face", "bank-transfer", "wechat-mp"],
   sources: ["admin", "h5", "open-api"],
+  carriers: ["DHL", "顺丰速运"],
 };
 const order = (over: Record<string, unknown> = {}) => ({
   id: "a".repeat(32),

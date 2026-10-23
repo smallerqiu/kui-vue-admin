@@ -121,10 +121,15 @@ export interface OrderSummary {
  * text the person recording the payment typed, not a code list this app owns, so the only complete
  * dropdown is the one the server builds off the table: a fixed list here could never offer a channel
  * somebody named once, and the row carrying it would be unfilterable from the page that shows it.
+ * `carriers` is the same answer for the 物流公司 of the parcels that were actually sent, which is what
+ * the ship dialog suggests -- a courier a warehouse starts using is a name the dialog could not know
+ * until a shipment carried it, and it is read when the dialog opens rather than when the page does,
+ * because an order that is not awaiting a box has no use for it.
  */
 export interface OrderFacets {
   paymentMethods: string[];
   sources: string[];
+  carriers: string[];
 }
 /**
  * One filter row, sent both to the page on screen and to the export walk, so neither can answer a

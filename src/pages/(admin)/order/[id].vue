@@ -278,7 +278,14 @@
         <Grid :cols="2" :x-gap="12">
           <GridItem>
             <FormItem label="物流公司">
-              <Select v-model="shippingForm.company" block :options="shippingCompanies" />
+              <AutoComplete
+                v-model="shippingForm.company"
+                clearable
+                show-on-empty
+                :loading="carrierLoading"
+                placeholder="选择常用承运商或直接输入"
+                :options="carriers"
+              />
             </FormItem>
           </GridItem>
           <GridItem>
@@ -621,12 +628,27 @@ const shippingOpen = ref(false),
   paymentOpen = ref(false);
 const dialogs = [shippingOpen, addressOpen, priceOpen, remarkOpen, afterSaleOpen, paymentOpen];
 const paymentMethod = ref("");
-const shippingCompanies = ["顺丰速运", "京东物流", "中通快递", "圆通速递"].map((value) => ({
-  label: value,
-  value,
-}));
+// 物流公司 is whatever the warehouse typed when the last box went out, not a list this page owns: the
+// courier a warehouse starts using is a name no copy here could offer, and a shipment carrying it is
+// the only place it comes to exist.  Read when the dialog opens rather than when the page does,
+// because an order that is not awaiting a box has no use for it.
+const carriers = ref<string[]>([]);
+const carrierLoading = ref(false);
+const loadCarriers = async () => {
+  if (carrierLoading.value) return;
+  carrierLoading.value = true;
+  try {
+    carriers.value = (await commerceApi.facets()).carriers;
+  } catch (reason) {
+    // The box still takes a typed name, so a refused candidate read is said out loud rather than
+    // allowed to stop a shipment.
+    reportFailure(reason, "承运商候选值加载失败");
+  } finally {
+    carrierLoading.value = false;
+  }
+};
 const shippingForm = reactive({
-  company: "顺丰速运",
+  company: "",
   trackingNo: "",
   quantities: {} as Record<string, number>,
 });
@@ -639,6 +661,7 @@ const openShipping = () => {
     shippableItems.value.map((item) => [item.id, item.quantity - item.shippedQuantity]),
   );
   shippingOpen.value = true;
+  void loadCarriers();
 };
 async function action<K extends keyof OrderActions>(
   name: K,
