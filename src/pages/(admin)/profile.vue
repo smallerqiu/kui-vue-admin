@@ -76,9 +76,7 @@
                   theme="plain"
                 >
                   <template #extra>
-                    <Button size="small" @click="message.info(`${item.title}功能待接入服务端`)">
-                      {{ item.action }}
-                    </Button>
+                    <Button size="small" @click="openSecurityEditor(item)">{{ item.action }}</Button>
                   </template>
                 </FeatureCard>
               </div>
@@ -112,6 +110,49 @@
         </Card>
       </GridItem>
     </Grid>
+
+    <Modal
+      :model-value="passwordOpen"
+      title="修改登录密码"
+      :show-close="!changing"
+      :mask-closable="!changing"
+      :esc-key="!changing"
+      @update:model-value="!$event && closePassword()"
+    >
+      <Form layout="vertical">
+        <FormItem label="当前密码">
+          <Input
+            v-model="passwordForm.oldPassword"
+            type="password"
+            autocomplete="current-password"
+            :disabled="changing"
+          />
+        </FormItem>
+        <FormItem label="新密码">
+          <Input
+            v-model="passwordForm.password"
+            type="password"
+            placeholder="至少 12 位"
+            autocomplete="new-password"
+            :disabled="changing"
+          />
+        </FormItem>
+        <FormItem label="确认新密码">
+          <Input
+            v-model="passwordForm.confirm"
+            type="password"
+            autocomplete="new-password"
+            :disabled="changing"
+          />
+        </FormItem>
+      </Form>
+      <p v-if="passwordError" role="alert">{{ passwordError }}</p>
+      <p class="password-note">修改成功后当前账号在所有地方的登录都会失效，需要用新密码重新登录。</p>
+      <template #footer>
+        <Button :disabled="changing" @click="closePassword">取消</Button>
+        <Button type="primary" :loading="changing" @click="submitPassword">确认修改</Button>
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -123,13 +164,15 @@ import { usePreferenceStore } from "@/stores/preferences";
 import { KeyRound, MailCheck, ShieldCheck, Smartphone } from "kui-icons";
 import { message, type IconType } from "kui-vue";
 import { computed, reactive, ref } from "vue";
-import { updateProfileApi } from "@/api/auth";
+import { useRouter } from "vue-router";
+import { changePasswordApi, updateProfileApi } from "@/api/auth";
 import { formatDateTime } from "@/utils/common";
 import { reportFailure } from "@/utils/report-failure";
 
 const authStore = useAuthStore();
 const themeStore = useThemeStore();
 const preferenceStore = usePreferenceStore();
+const router = useRouter();
 const activeTab = ref("basic");
 const displayName = computed(() => authStore.user.fullName || authStore.user.name || "管理员");
 // The server answers null when the account has no sign-in behind this one, and says nothing at all
@@ -155,36 +198,90 @@ const basicForm = reactive({
   bio: String(authStore.user.bio || ""),
 });
 const securityItems: Array<{
+  key: "password" | "email" | "phone" | "two-factor";
   title: string;
   description: string;
   action: string;
   icon: IconType[];
 }> = [
   {
+    key: "password",
     title: "登录密码",
     description: "建议定期更换高强度密码",
     action: "修改",
     icon: KeyRound,
   },
   {
+    key: "email",
     title: "安全邮箱",
     description: String(authStore.user.email || "未设置"),
     action: "更换",
     icon: MailCheck,
   },
   {
+    key: "phone",
     title: "绑定手机",
     description: String(authStore.user.phone || "未设置"),
     action: "更换",
     icon: Smartphone,
   },
   {
+    key: "two-factor",
     title: "两步验证",
     description: "提升账号登录安全性",
     action: "开启",
     icon: ShieldCheck,
   },
 ];
+const passwordOpen = ref(false);
+const changing = ref(false);
+const passwordError = ref("");
+const passwordForm = reactive({ oldPassword: "", password: "", confirm: "" });
+const closePassword = () => {
+  if (!changing.value) passwordOpen.value = false;
+};
+const openSecurityEditor = (item: (typeof securityItems)[number]) => {
+  if (item.key === "password") {
+    passwordError.value = "";
+    passwordOpen.value = true;
+    return;
+  }
+  // Only the password has an endpoint of its own; these three have no server behaviour yet.
+  message.info(`${item.title}功能待接入服务端`);
+};
+const submitPassword = async () => {
+  if (changing.value) return;
+  // The server refuses a new password under 12 characters and a mismatched confirmation costs a
+  // round trip for nothing, so both checks happen before the request.
+  if (!passwordForm.oldPassword) {
+    passwordError.value = "请输入当前密码";
+    return;
+  }
+  if (passwordForm.password.length < 12) {
+    passwordError.value = "新密码至少 12 位";
+    return;
+  }
+  if (passwordForm.password !== passwordForm.confirm) {
+    passwordError.value = "两次输入的新密码不一致";
+    return;
+  }
+  changing.value = true;
+  passwordError.value = "";
+  try {
+    await changePasswordApi(passwordForm.oldPassword, passwordForm.password);
+    message.success("密码已修改，请使用新密码重新登录");
+    passwordOpen.value = false;
+    // The server revoked this session when it stored the new hash, so there is nothing to log out
+    // of: drop the local pair and land on the sign-in page.
+    authStore.endSession();
+    await router.replace("/account/login");
+  } catch (reason) {
+    // The refusal belongs inside the dialog, with what was typed still there to correct.
+    passwordError.value = reason instanceof Error ? reason.message : "密码修改失败";
+  } finally {
+    changing.value = false;
+  }
+};
 const saving = ref(false);
 const saveBasic = async () => {
   if (saving.value) return;
@@ -257,6 +354,13 @@ const toggleTheme = (dark: boolean) => themeStore.setTheme(dark ? "dark" : "ligh
 }
 .preference-list p {
   margin: 4px 0 0;
+  color: var(--kui-color-text-description);
+  font-size: 12px;
+}
+/* Every other refusal in this app is a plain role=alert paragraph, so the warning below it has to
+   read as commentary rather than another error. */
+.password-note {
+  margin: 8px 0 0;
   color: var(--kui-color-text-description);
   font-size: 12px;
 }

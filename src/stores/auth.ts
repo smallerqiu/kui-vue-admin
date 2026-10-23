@@ -50,15 +50,19 @@ export const useAuthStore = defineStore("auth", {
       this.user = user;
       this.userLoadedAt = this.userAttemptedAt = Date.now();
     },
+    /** Drops the local pair and the snapshot without asking the server anything. */
+    endSession() {
+      clearAuthSession();
+      this.token = "";
+      this.user = {};
+      this.userLoadedAt = this.userAttemptedAt = 0;
+    },
     async logout() {
       try {
         // The server revokes the pair; without a token there is no session to revoke.
         if (getToken()) await logoutApi();
       } finally {
-        clearAuthSession();
-        this.token = "";
-        this.user = {};
-        this.userLoadedAt = this.userAttemptedAt = 0;
+        this.endSession();
       }
     },
     syncSession() {

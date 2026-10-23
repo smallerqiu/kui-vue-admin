@@ -9,10 +9,15 @@ vi.mock("kui-vue", () => ({
   },
   message: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() },
 }));
-vi.mock("@/api/auth", () => ({ updateProfileApi: vi.fn() }));
+vi.mock("@/api/auth", () => ({ updateProfileApi: vi.fn(), changePasswordApi: vi.fn() }));
+// The page reaches for the router only after a password change is accepted; the meta rows do not
+// navigate, and vue-router's own composable warns when no router was installed.
+vi.mock("vue-router", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 
 const user = reactive<Record<string, unknown>>({});
-vi.mock("@/stores/auth", () => ({ useAuthStore: () => ({ user, roles: [], permissions: [] }) }));
+vi.mock("@/stores/auth", () => ({
+  useAuthStore: () => ({ user, roles: [], permissions: [], endSession: vi.fn() }),
+}));
 vi.mock("@/stores/theme", () => ({ useThemeStore: () => ({ theme: "light", setTheme: vi.fn() }) }));
 vi.mock("@/stores/preferences", () => ({
   usePreferenceStore: () => ({ notification: false, watermark: false }),
@@ -23,6 +28,9 @@ const passThrough = {
   setup: (_props: object, { slots }: { slots: Record<string, (() => unknown) | undefined> }) =>
     () => h("div", Object.values(slots).flatMap((slot) => (slot ? [slot()] : []))),
 };
+
+/** The password dialog is not what these rows are about, so it stays shut the way Kui would. */
+const closedModal = { props: ["modelValue"], setup: (props: any) => () => (props.modelValue ? h("div") : null) };
 
 /** The labelled cell on the account card, with its wrapper components stubbed out. */
 function metaText(label: string) {
@@ -49,6 +57,7 @@ function metaText(label: string) {
   ]) {
     app.component(name, passThrough as never);
   }
+  app.component("Modal", closedModal as never);
   app.mount(root);
   const row = Array.from(root.querySelectorAll<HTMLElement>(".profile-meta > div")).find(
     (element) => element.querySelector("span")?.textContent?.trim() === label,
@@ -84,6 +93,7 @@ function bioInput() {
   ]) {
     app.component(name, passThrough as never);
   }
+  app.component("Modal", closedModal as never);
   app.component("FormItem", {
     props: ["label"],
     setup: (props: any, { slots }: any) => () => {
