@@ -20,7 +20,7 @@ vi.mock("@/stores/auth", () => ({
 }));
 vi.mock("@/stores/theme", () => ({ useThemeStore: () => ({ theme: "light", setTheme: vi.fn() }) }));
 vi.mock("@/stores/preferences", () => ({
-  usePreferenceStore: () => ({ notification: false, watermark: false }),
+  usePreferenceStore: () => ({ watermark: false }),
 }));
 
 /** Kui's layout and surface components wrap the meta rows, so each one has to pass its slots on. */

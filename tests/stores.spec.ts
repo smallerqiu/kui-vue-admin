@@ -6,6 +6,7 @@ import {
   type ViewItem,
 } from "@/stores/tabs";
 import { defaultSystemSettings, useSystemSettingsStore } from "@/stores/system-settings";
+import { usePreferenceStore } from "@/stores/preferences";
 import id from "hash-sum";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -133,5 +134,35 @@ describe("persistent stores", () => {
     const restored = useTabViewsStore();
     expect(restored.views[0].reload).toBe(1);
     expect(restored.keepViews).toEqual([reloadedName]);
+  });
+});
+
+describe("browser preferences", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    setActivePinia(createPinia());
+  });
+
+  /**
+   * The watermark is the preference with a reader (`src/App.vue` draws it), so it is the only key
+   * the store owns and the only one it writes back. Desktop notifications used to be a switch no
+   * code consumed and no browser permission was ever asked for.
+   */
+  it("keeps and writes back only the watermark", async () => {
+    const store = usePreferenceStore();
+    expect(store.watermark).toBe(true);
+    // Pinia hangs its own helpers off the store and they are enumerable (`$patch`, and in dev the
+    // `_hmrPayload` family); the state the store owns is everything else.
+    const owned = Object.keys(store).filter((key) => !/^[$_]/.test(key));
+    expect(owned).toEqual(["watermark"]);
+    store.watermark = false;
+    await nextTick();
+    expect(JSON.parse(localStorage.getItem("preferences") || "{}")).toEqual({ watermark: false });
+  });
+
+  it("restores the stored watermark and pays no attention to a leftover flag", () => {
+    localStorage.setItem("preferences", JSON.stringify({ watermark: false, notification: true }));
+    setActivePinia(createPinia());
+    expect(usePreferenceStore().watermark).toBe(false);
   });
 });

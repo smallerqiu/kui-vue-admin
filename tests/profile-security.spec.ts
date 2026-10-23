@@ -25,7 +25,7 @@ const auth = reactive({
 vi.mock("@/stores/auth", () => ({ useAuthStore: () => auth }));
 vi.mock("@/stores/theme", () => ({ useThemeStore: () => ({ theme: "light", setTheme: vi.fn() }) }));
 vi.mock("@/stores/preferences", () => ({
-  usePreferenceStore: () => ({ notification: false, watermark: false }),
+  usePreferenceStore: () => ({ watermark: false }),
 }));
 
 const password = vi.mocked(changePasswordApi);

@@ -94,13 +94,6 @@
                 </div>
                 <div>
                   <div>
-                    <strong>桌面通知</strong>
-                    <p>接收订单和系统安全提醒</p>
-                  </div>
-                  <Switch v-model="preferenceStore.notification" />
-                </div>
-                <div>
-                  <div>
                     <strong>页面水印</strong>
                     <p>在业务页面展示当前账号信息</p>
                   </div>
