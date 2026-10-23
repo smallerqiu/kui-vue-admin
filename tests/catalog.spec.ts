@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { catalogApi, type Product } from "@/api/catalog";
+import { catalogApi, type Customer, type Product } from "@/api/catalog";
 import request from "@/utils/request";
 
 vi.mock("@/utils/request", () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }));
@@ -23,6 +23,24 @@ describe("catalog API contracts", () => {
       name: "Customer", contact: "Alice", industry: "", level: "growth", status: "follow",
       phone: "", email: "", city: "",
     })).rejects.toThrow("Offline");
+  });
+  it("sends only the columns a person may write when replacing a customer", async () => {
+    // What the detail endpoint answers with is a row, not a form: its own id, when it was created and
+    // last touched, whose customer it is, how many orders it has and what they add up to -- and any
+    // column an older draft still carries. PUT replaces the row, so a body drawn from that answer
+    // would hand the server back figures it computes and name an owner nobody assigned.
+    const customer: Customer = {
+      id: "abc", name: "星河云科", industry: "企业服务", level: "growth", status: "active",
+      contact: "Alice", phone: "", email: "", city: "武汉",
+      createdAt: "2026-09-01T08:00:00", updatedAt: "2026-10-01T08:00:00",
+      ownerName: "陈默", orderCount: 3, annualValue: "30.30", lastContactAt: null,
+      ownerId: "u1", departmentId: "d1", source: "官网",
+    };
+    await catalogApi.saveCustomer(customer, customer.id);
+    expect(request.put).toHaveBeenCalledWith("/customers/abc", {
+      name: "星河云科", industry: "企业服务", level: "growth", status: "active",
+      contact: "Alice", phone: "", email: "", city: "武汉",
+    });
   });
   it("changes availability without resubmitting stale stock or price", async () => {
     await catalogApi.setProductEnabled("abc", false);

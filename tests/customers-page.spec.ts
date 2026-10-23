@@ -177,6 +177,37 @@ const inputStub = {
   },
 };
 
+// A Select that prints the options it was handed and lets the test pick one: 等级 and 状态 are codes
+// the server answers with a 400 outside a fixed set, so a form worth testing has to expose which
+// codes it offers and which one the operator chose.
+const selectStub = {
+  props: ["modelValue", "options", "placeholder"],
+  emits: ["update:modelValue"],
+  setup(props: any, { emit }: { emit: (event: string, value: unknown) => void }) {
+    return () =>
+      h(
+        "div",
+        {
+          class: "select",
+          "data-placeholder": props.placeholder,
+          "data-options": JSON.stringify(props.options),
+          "data-value": props.modelValue ?? "",
+        },
+        (props.options ?? []).map((option: { label: string; value: string }) =>
+          h(
+            "button",
+            {
+              type: "button",
+              class: "option",
+              onClick: () => emit("update:modelValue", option.value),
+            },
+            option.label,
+          ),
+        ),
+      );
+  },
+};
+
 const disposers: Array<() => void> = [];
 const flush = async () => {
   for (let i = 0; i < 8; i++) {
@@ -212,7 +243,6 @@ function mount() {
     "Icon",
     "ListPanel",
     "Page",
-    "Select",
     "Space",
     "TableColumnSetting",
     "Tag",
@@ -220,6 +250,7 @@ function mount() {
     app.component(name, box(name.toLowerCase()) as never);
   }
   app.component("Input", inputStub as never);
+  app.component("Select", selectStub as never);
   app.component("FormItem", formItemStub as never);
   app.component("Table", tableStub as never);
   app.component("StatCard", statCardStub as never);
@@ -239,6 +270,38 @@ const card = (root: HTMLElement, title: string) =>
     (node) => node.dataset.title === title,
   )!;
 const callsTo = (path: string) => get.mock.calls.filter(([url]) => url === path).length;
+
+// The create drawer is the only place a page can put a value the server will refuse to store, so
+// these read the controls a person sees: the labels and codes each dropdown offers, the value it is
+// showing right now, and what a field holds after a save put it back to its start.
+const field = (root: HTMLElement, label: string) =>
+  [...root.querySelectorAll<HTMLElement>(".form-item")].find(
+    (node) => node.dataset.label === label,
+  )!;
+const type = (root: HTMLElement, label: string, value: string) => {
+  const input = field(root, label).querySelector("input")!;
+  input.value = value;
+  input.dispatchEvent(new Event("input"));
+};
+const typed = (root: HTMLElement, label: string) => field(root, label).querySelector("input")!.value;
+const pick = (root: HTMLElement, label: string, optionLabel: string) => {
+  const button = [...field(root, label).querySelectorAll<HTMLButtonElement>("button.option")].find(
+    (node) => node.textContent?.trim() === optionLabel,
+  )!;
+  button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+};
+const codeShown = (root: HTMLElement, label: string) =>
+  field(root, label).querySelector<HTMLElement>(".select")!.dataset.value;
+const codesOffered = (root: HTMLElement, label: string) =>
+  field(root, label).querySelector<HTMLElement>(".select")!.dataset.options;
+const filterSelect = (root: HTMLElement, placeholder: string) =>
+  [...root.querySelectorAll<HTMLElement>(".select")].find(
+    (node) => node.dataset.placeholder === placeholder,
+  )!;
+const save = (root: HTMLElement) =>
+  [...root.querySelectorAll<HTMLButtonElement>("button")].find((node) =>
+    node.textContent?.includes("保存"),
+  )!;
 
 describe("customer page", () => {
   beforeEach(() => {
@@ -401,28 +464,16 @@ describe("customer page", () => {
     const saved = get.mock.calls.length;
     expect(callsTo("/customers/summary")).toBe(1);
 
-    const save = [...root.querySelectorAll("button")].find((node) =>
-      node.textContent?.includes("保存"),
-    )!;
-    const type = (label: string, value: string) => {
-      const box = [...root.querySelectorAll<HTMLElement>(".form-item")].find(
-        (node) => node.dataset.label === label,
-      )!;
-      const input = box.querySelector("input")!;
-      input.value = value;
-      input.dispatchEvent(new Event("input"));
-    };
-
     // A drawer that says nothing about who the customer is gets refused before any request leaves,
     // and a refused save re-reads nothing.
-    save.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    save(root).dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await flush();
     expect(post).not.toHaveBeenCalled();
     expect(get.mock.calls.length).toBe(saved);
 
-    type("企业名称", "青屿网络科技");
-    type("联系人", "Nina");
-    save.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    type(root, "企业名称", "青屿网络科技");
+    type(root, "联系人", "Nina");
+    save(root).dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await flush();
 
     expect(post).toHaveBeenCalledWith(
@@ -433,5 +484,67 @@ describe("customer page", () => {
     // a page that re-reads only the table leaves 客户总数 a customer short.
     expect(callsTo("/customers/summary")).toBe(2);
     expect(callsTo("/customers")).toBeGreaterThanOrEqual(2);
+  });
+
+  it("offers the drawer exactly the codes the server answers with", async () => {
+    const root = mount();
+    await flush();
+
+    // 等级 and 状态 are fixed sets: a customer row outside them cannot be read back, and the 状态
+    // column labels a row through the very list this dropdown is built from. Offering one more label
+    // here would be a code the page cannot display and the server refuses.
+    expect(JSON.parse(codesOffered(root, "客户等级")!)).toEqual([
+      { label: "战略客户", value: "strategic" },
+      { label: "企业客户", value: "enterprise" },
+      { label: "成长客户", value: "growth" },
+    ]);
+    expect(JSON.parse(codesOffered(root, "跟进状态")!)).toEqual([
+      { label: "合作中", value: "active" },
+      { label: "跟进中", value: "follow" },
+      { label: "风险关注", value: "risk" },
+    ]);
+    // One list serves the filter and the form: the dropdown that selects 战略客户 rows and the one
+    // that files them cannot drift apart into two spellings of the same code.
+    expect(filterSelect(root, "全部等级").dataset.options).toBe(codesOffered(root, "客户等级"));
+    expect(filterSelect(root, "全部状态").dataset.options).toBe(codesOffered(root, "跟进状态"));
+    // A drawer that cannot write 状态 or 城市 files every new customer as 跟进中 with nobody having
+    // said so, and leaves the 城市 column and the keyword search that reaches it empty forever.
+    expect(codeShown(root, "跟进状态")).toBe("follow");
+    expect(codeShown(root, "客户等级")).toBe("growth");
+    expect(typed(root, "城市")).toBe("");
+  });
+
+  it("sends the status, level and city the operator chose", async () => {
+    post.mockResolvedValue({ id: "c3" } as never);
+    const root = mount();
+    await flush();
+
+    type(root, "企业名称", "青屿网络科技");
+    type(root, "联系人", "Nina");
+    type(root, "城市", "成都");
+    pick(root, "客户等级", "企业客户");
+    pick(root, "跟进状态", "风险关注");
+    save(root).dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+
+    // The whole row, and nothing else: the create body is the eight columns the customers table
+    // stores, so a field the server has not got -- a 来源, a hand-typed 年价值 -- is refused here
+    // rather than quietly dropped by a backend nobody wrote.
+    expect(post).toHaveBeenCalledWith("/customers", {
+      name: "青屿网络科技",
+      industry: "",
+      level: "enterprise",
+      status: "risk",
+      contact: "Nina",
+      phone: "",
+      email: "",
+      city: "成都",
+    });
+    // The next customer is a blank drawer, not the last one with a name deleted: a draft that keeps
+    // the previous 等级 and 状态 files a second customer in somebody else's terms.
+    expect(codeShown(root, "跟进状态")).toBe("follow");
+    expect(codeShown(root, "客户等级")).toBe("growth");
+    expect(typed(root, "城市")).toBe("");
+    expect(typed(root, "企业名称")).toBe("");
   });
 });

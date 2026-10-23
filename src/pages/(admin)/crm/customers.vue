@@ -92,6 +92,12 @@
       </template>
       <Form :model="form" layout="vertical">
         <FormItem label="企业名称"><Input v-model="form.name" clearable /></FormItem>
+        <!-- 状态 and 城市 are columns this page already reads: 合作中/跟进中/风险关注 is what the 状态
+             filter and the badge on each row show, and 城市 is a column with a header and a keyword
+             search that reaches it. A form that cannot write them files every new customer as 跟进中
+             with nobody having said so, and leaves a filter nobody can satisfy. The two starts here
+             are the server's own schema defaults, drawn as a value the operator sees and can change
+             rather than a field hidden in a draft object. -->
         <Grid :cols="2" :x-gap="12">
           <GridItem>
             <FormItem label="所属行业"><Input v-model="form.industry" clearable /></FormItem>
@@ -100,6 +106,14 @@
             <FormItem label="客户等级">
               <Select v-model="form.level" block :options="levelOptions" />
             </FormItem>
+          </GridItem>
+          <GridItem>
+            <FormItem label="跟进状态">
+              <Select v-model="form.status" block :options="statusOptions" />
+            </FormItem>
+          </GridItem>
+          <GridItem>
+            <FormItem label="城市"><Input v-model="form.city" clearable /></FormItem>
           </GridItem>
           <GridItem>
             <FormItem label="联系人"><Input v-model="form.contact" clearable /></FormItem>
